@@ -1,0 +1,34 @@
+{
+  "name": "@hsy/ruoyi-monitor",
+  "version": "1.0.0",
+  "description": "Plugin-based frontend monitoring SDK",
+  "main": "dist/index.cjs.js",
+  "module": "dist/index.esm.js",
+  "scripts": {
+    "build": "rollup -c",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "files": [
+    "dist"
+  ],
+  "keywords": [
+    "web",
+    "monitor",
+    "javascript",
+    "rollup"
+  ],
+  "homepage": "https://github.com/shengyongheng/miot-design#readme",
+  "bugs": {
+    "url": "https://github.com/shengyongheng/miot-design/issues"
+  },
+  "repository": "https://github.com/shengyongheng/miot-design",
+  "author": "hengshengyong <3271660881@qq.com> (https://github.com/shengyongheng)",
+  "license": "ISC",
+  "devDependencies": {
+    "@rollup/plugin-alias": "^6.0.0",
+    "@rollup/plugin-commonjs": "^25.0.0",
+    "@rollup/plugin-node-resolve": "^15.0.0",
+    "rollup": "^3.0.0"
+  },
+  "packageManager": "pnpm@10.14.0"
+}
