@@ -54,7 +54,7 @@ class ConfigManager {
         reportUrl: '',
         reportStrategy: 'immediate', // immediate batch throttle
         batchSize: 10,
-        reportInterval: 10000,
+        reportInterval: 10000, // 延迟上报时间 reportStrategy 为 batch throttle 时有效
         maxQueueSize: 100,
         sampleRate: 1,
         errorSampleRate: 1,
@@ -90,7 +90,6 @@ class ConfigManager {
 }
 
 // 数据上报层 - 上报管理器
-
 class DataReporter {
     // private queue: MonitoringEvent[] = [];
 
@@ -401,23 +400,76 @@ class UserBehaviorPlugin {
     name = 'userBehavior';
 
     install(sdk) {
-        this.trackPageStayTime(sdk);
-        // this.trackScrollBehavior(sdk);
+        // 页面停留时长监控
+        {
+            let enterTime = Date.now();
+
+            document.addEventListener('visibilitychange', this.trackPageStayTime.bind(this, sdk, enterTime), true);
+        }
+
+        // 处理用户点击事件
+        {
+            document.addEventListener('click', this.trackClickBehavior.bind(this, sdk), true);
+        }
+
+        // 处理用户输入事件
+        {
+            document.addEventListener('input', this.trackInputBehavior.bind(this, sdk), true);
+        }
     }
 
-    trackPageStayTime(sdk) {
+    // 移除事件监听
+    uninstall() {
+        document.removeEventListener("visibilitychange", this.trackPageStayTime.bind(this), true);
+        document.removeEventListener('click', this.trackClickBehavior.bind(this, sdk), true);
+        document.removeEventListener('input', this.trackInputBehavior.bind(this, sdk), true);
+    }
 
-        let enterTime = Date.now();
+    trackPageStayTime(sdk, enterTime, event) {
+        // console.log(arguments);
+        if (document.visibilityState === 'hidden') {
+            const stayTime = Date.now() - enterTime;
+            sdk.capture('userAction', {
+                type: 'pageStay',
+                stayTime
+            });
+        } else {
+            enterTime = Date.now();
+        }
+    }
 
-        document.addEventListener('visibilitychange', () => {
-            if (document.visibilityState === 'hidden') {
-                const stayTime = Date.now() - enterTime;
-                sdk.capture('userAction', {
-                    type: 'pageStay',
-                    stayTime
-                });
-            } else {
-                enterTime = Date.now();
+    // 处理用户点击事件
+    trackClickBehavior(sdk, e) {
+        const target = e.target;
+        let description = `点击了 ${target.tagName}`;
+
+        if (target.id) description += ` #${target.id}`;
+        if (target.className) description += ` .${target.className}`;
+        if (target.textContent && target.textContent.length < 30) {
+            description += ` (${target.textContent.trim()})`;
+        }
+        sdk.capture('userAction', {
+            type: 'click',
+            data: {
+                description
+            }
+        });
+    }
+
+    // 处理用户输入事件
+    trackInputBehavior(sdk, e) {
+        const target = e.target;
+        let description = `在 ${target.tagName}`;
+
+        if (target.id) description += ` #${target.id}`;
+        if (target.placeholder) description += ` [${target.placeholder}]`;
+
+        description += ` 输入: "${target.value}"`;
+
+        sdk.capture('userAction', {
+            type: 'input',
+            data: {
+                description
             }
         });
     }

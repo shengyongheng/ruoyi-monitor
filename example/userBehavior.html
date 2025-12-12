@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>用户行为监控与Session Replay演示</title>
+    <script src="../dist/index.cjs.js"></script>
+    <!-- 引入 rrweb-player 样式 -->
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/rrweb-player@latest/dist/style.css"
+    />
+    <!-- 引入 rrweb-player -->
+    <script src="https://cdn.jsdelivr.net/npm/rrweb-player@latest/dist/index.js"></script>
+    <!-- 引入 rrweb -->
+    <script src="https://cdn.jsdelivr.net/npm/rrweb@latest/dist/rrweb.min.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      }
+
+      body {
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        color: #333;
+        line-height: 1.6;
+        padding: 20px;
+        min-height: 100vh;
+      }
+
+      .App {
+        max-width: 1200px;
+        margin: 0 auto;
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      .btn-wrap {
+        margin-bottom: 20px;
+        display: flex;
+        gap: 10px;
+      }
+
+      button {
+        padding: 10px 20px;
+        font-size: 16px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        background: #007bff;
+        color: white;
+        transition: background 0.3s;
+      }
+
+      button:hover {
+        background: #0056b3;
+      }
+
+      button:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+      }
+
+      #replay {
+        width: 100%;
+        min-height: 400px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        background: #f9f9f9;
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+      }
+
+      @media (max-width: 768px) {
+        .container {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .panel {
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        padding: 20px;
+        overflow: hidden;
+      }
+
+      h1 {
+        text-align: center;
+        margin-bottom: 30px;
+        color: #2c3e50;
+        grid-column: 1 / -1;
+      }
+
+      h2 {
+        color: #3498db;
+        margin-bottom: 15px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #f0f0f0;
+      }
+
+      .demo-area {
+        min-height: 300px;
+        padding: 15px;
+        border: 2px dashed #bdc3c7;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        background: #f8f9fa;
+      }
+
+      .demo-area button,
+      .demo-area input {
+        margin: 5px;
+        padding: 8px 15px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        background: white;
+      }
+
+      .demo-area button {
+        background: #3498db;
+        color: white;
+        border: none;
+        cursor: pointer;
+        transition: background 0.3s;
+      }
+
+      .demo-area button:hover {
+        background: #2980b9;
+      }
+
+      .log-area {
+        height: 300px;
+        overflow-y: auto;
+        background: #2c3e50;
+        color: #ecf0f1;
+        padding: 15px;
+        border-radius: 8px;
+        font-family: "Courier New", monospace;
+        font-size: 14px;
+        margin-bottom: 20px;
+      }
+
+      .control-panel {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+      }
+
+      .control-panel button {
+        flex: 1;
+        padding: 10px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-weight: bold;
+        transition: all 0.3s;
+      }
+
+      .start-btn {
+        background: #2ecc71;
+        color: white;
+      }
+
+      .stop-btn {
+        background: #e74c3c;
+        color: white;
+      }
+
+      .replay-btn {
+        background: #f39c12;
+        color: white;
+      }
+
+      .control-panel button:hover {
+        opacity: 0.9;
+        transform: translateY(-2px);
+      }
+
+      .status-indicator {
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        margin-right: 8px;
+      }
+
+      .recording {
+        background: #e74c3c;
+        animation: pulse 1.5s infinite;
+      }
+
+      .stopped {
+        background: #7f8c8d;
+      }
+
+      @keyframes pulse {
+        0% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.5;
+        }
+        100% {
+          opacity: 1;
+        }
+      }
+
+      .event-item {
+        margin-bottom: 5px;
+        padding: 5px;
+        border-radius: 4px;
+        background: rgba(255, 255, 255, 0.1);
+      }
+
+      .event-time {
+        color: #3498db;
+        font-weight: bold;
+      }
+
+      .event-type {
+        color: #2ecc71;
+      }
+
+      .event-details {
+        color: #ecf0f1;
+      }
+
+      .replay-highlight {
+        background-color: rgba(243, 156, 18, 0.3);
+        transition: background-color 0.5s;
+      }
+
+      .section-title {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .stats {
+        display: flex;
+        justify-content: space-around;
+        margin-top: 20px;
+        padding-top: 15px;
+        border-top: 1px solid #eee;
+      }
+
+      .stat-item {
+        text-align: center;
+      }
+
+      .stat-value {
+        font-size: 24px;
+        font-weight: bold;
+        color: #3498db;
+      }
+
+      .stat-label {
+        font-size: 12px;
+        color: #7f8c8d;
+        margin-top: 5px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>用户行为监控与Session Replay演示</h1>
+    <h2>rrweb 录制与回放演示</h2>
+    <div class="App">
+      <div class="btn-wrap">
+        <button id="startBtn">开始录制</button>
+        <button id="replayBtn" disabled>回放</button>
+      </div>
+      <div id="replay"></div>
+    </div>
+    <br />
+    <div class="container">
+      <div class="panel">
+        <div class="section-title">
+          <h2>用户操作区域</h2>
+          <div>
+            <span class="status-indicator stopped" id="statusIndicator"></span>
+            <span id="statusText">监控已停止</span>
+          </div>
+        </div>
+
+        <div class="demo-area" id="demoArea">
+          <p>在此区域进行各种操作，它们将被记录下来：</p>
+          <button id="demoButton1">按钮 1</button>
+          <button id="demoButton2">按钮 2</button>
+          <input type="text" id="demoInput" placeholder="在此输入文本" />
+          <div
+            style="
+              height: 150px;
+              overflow-y: auto;
+              margin-top: 15px;
+              padding: 10px;
+              border: 1px solid #ddd;
+              background: white;
+            "
+            id="scrollArea"
+          >
+            <p>滚动区域 - 请滚动此内容</p>
+            <p>项目 1</p>
+            <p>项目 2</p>
+            <p>项目 3</p>
+            <p>项目 4</p>
+            <p>项目 5</p>
+            <p>项目 6</p>
+            <p>项目 7</p>
+            <p>项目 8</p>
+            <p>项目 9</p>
+            <p>项目 10</p>
+          </div>
+          <button
+            id="simulateCrash"
+            style="background: #e74c3c; margin-top: 15px"
+          >
+            模拟崩溃
+          </button>
+        </div>
+
+        <div class="control-panel">
+          <button class="start-btn" id="startTracking">开始监控</button>
+          <button class="stop-btn" id="stopTracking">停止监控</button>
+          <button class="replay-btn" id="replaySession">回放会话</button>
+        </div>
+
+        <div class="stats">
+          <div class="stat-item">
+            <div class="stat-value" id="clickCount">0</div>
+            <div class="stat-label">点击次数</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value" id="inputCount">0</div>
+            <div class="stat-label">输入操作</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value" id="scrollCount">0</div>
+            <div class="stat-label">滚动次数</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>行为记录日志</h2>
+        <div class="log-area" id="logArea">
+          <!-- 日志将在这里显示 -->
+        </div>
+
+        <h2>崩溃前最后5次操作</h2>
+        <div class="log-area" id="crashLogArea">
+          <!-- 崩溃前的操作将在这里显示 -->
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // 用户行为监控SDK
+      class UserBehaviorTracker {
+        constructor() {
+          this.isTracking = false;
+          this.events = [];
+          this.crashBuffer = [];
+          this.crashBufferSize = 5;
+          this.eventCounters = {
+            clicks: 0,
+            inputs: 0,
+            scrolls: 0,
+          };
+
+          // DOM元素引用
+          this.logArea = document.getElementById("logArea");
+          this.crashLogArea = document.getElementById("crashLogArea");
+          this.statusIndicator = document.getElementById("statusIndicator");
+          this.statusText = document.getElementById("statusText");
+          this.clickCount = document.getElementById("clickCount");
+          this.inputCount = document.getElementById("inputCount");
+          this.scrollCount = document.getElementById("scrollCount");
+
+          // 演示区域事件
+          this.setupDemoEvents();
+        }
+
+        // 开始监控
+        startTracking() {
+          if (this.isTracking) return;
+
+          this.isTracking = true;
+          this.updateStatus();
+          this.logEvent("SYSTEM", "开始监控用户行为");
+        }
+
+        // 停止监控
+        stopTracking() {
+          if (!this.isTracking) return;
+
+          this.isTracking = false;
+          this.updateStatus();
+          this.logEvent("SYSTEM", "停止监控用户行为");
+
+          // 移除事件监听
+          this.removeEventListeners();
+        }
+
+        // 更新状态显示
+        updateStatus() {
+          if (this.isTracking) {
+            this.statusIndicator.className = "status-indicator recording";
+            this.statusText.textContent = "监控进行中";
+          } else {
+            this.statusIndicator.className = "status-indicator stopped";
+            this.statusText.textContent = "监控已停止";
+          }
+        }
+
+        // 设置演示区域事件
+        setupDemoEvents() {
+          const demoArea = document.getElementById("demoArea");
+
+          // 演示按钮
+          document
+            .getElementById("demoButton1")
+            .addEventListener("click", () => {
+              this.logEvent("CLICK", "点击了按钮 1");
+            });
+
+          document
+            .getElementById("demoButton2")
+            .addEventListener("click", () => {
+              this.logEvent("CLICK", "点击了按钮 2");
+            });
+
+          // 演示输入
+          document
+            .getElementById("demoInput")
+            .addEventListener("input", (e) => {
+              this.logEvent("INPUT", `输入: "${e.target.value}"`);
+            });
+
+          // 演示滚动
+          document.getElementById("scrollArea").addEventListener(
+            "scroll",
+            this.debounce(() => {
+              this.logEvent("SCROLL", "在滚动区域滚动");
+            }, 200)
+          );
+        }
+
+        // 处理滚动事件
+        handleScroll(e) {
+          if (!this.isTracking) return;
+
+          const target = e.target;
+          let description = `滚动 `;
+
+          if (target.id) description += `#${target.id}`;
+          else if (target === document) description += "页面";
+          else description += target.tagName;
+
+          this.logEvent("SCROLL", description);
+          this.eventCounters.scrolls++;
+          this.updateCounters();
+        }
+
+        // 处理页面卸载
+        handlePageUnload() {
+          if (this.isTracking) {
+            // 在实际应用中，这里会上报数据
+            this.logEvent("NAVIGATION", "页面跳转/关闭");
+          }
+        }
+
+        // 记录事件
+        logEvent(type, description) {
+          const timestamp = new Date().toLocaleTimeString();
+          const event = {
+            type,
+            description,
+            timestamp,
+            element: null, // 在实际应用中，这里会保存相关元素信息
+          };
+
+          this.events.push(event);
+
+          // 更新崩溃缓冲区（保存最后几个操作）
+          this.crashBuffer.push(event);
+          if (this.crashBuffer.length > this.crashBufferSize) {
+            this.crashBuffer.shift();
+          }
+
+          // 更新日志显示
+          this.updateLogDisplay(event);
+        }
+
+        // 更新日志显示
+        updateLogDisplay(event) {
+          const logItem = document.createElement("div");
+          logItem.className = "event-item";
+          logItem.innerHTML = `
+                    <span class="event-time">[${event.timestamp}]</span>
+                    <span class="event-type">${event.type}</span>
+                    <span class="event-details">: ${event.description}</span>
+                `;
+
+          this.logArea.appendChild(logItem);
+          this.logArea.scrollTop = this.logArea.scrollHeight;
+        }
+
+        // 更新计数器显示
+        updateCounters() {
+          this.clickCount.textContent = this.eventCounters.clicks;
+          this.inputCount.textContent = this.eventCounters.inputs;
+          this.scrollCount.textContent = this.eventCounters.scrolls;
+        }
+
+        // 回放会话
+        replaySession() {
+          if (this.events.length === 0) {
+            alert("没有可回放的会话记录");
+            return;
+          }
+
+          this.logEvent("SYSTEM", "开始回放会话");
+
+          // 清空崩溃前操作显示
+          this.crashLogArea.innerHTML = "";
+
+          // 显示崩溃前的操作
+          this.crashBuffer.forEach((event) => {
+            const logItem = document.createElement("div");
+            logItem.className = "event-item";
+            logItem.innerHTML = `
+                        <span class="event-time">[${event.timestamp}]</span>
+                        <span class="event-type">${event.type}</span>
+                        <span class="event-details">: ${event.description}</span>
+                    `;
+            this.crashLogArea.appendChild(logItem);
+          });
+
+          // 在实际应用中，这里会实现真正的UI回放
+          // 这里我们简单高亮相关元素来模拟回放效果
+          this.simulateReplay();
+        }
+
+        // 模拟回放效果
+        simulateReplay() {
+          const demoArea = document.getElementById("demoArea");
+          demoArea.classList.add("replay-highlight");
+
+          setTimeout(() => {
+            demoArea.classList.remove("replay-highlight");
+          }, 2000);
+        }
+
+        // 模拟崩溃
+        simulateCrash() {
+          this.logEvent("SYSTEM", "模拟崩溃发生");
+          alert('模拟崩溃！查看"崩溃前最后5次操作"区域');
+
+          // 在实际应用中，这里会将崩溃缓冲区的数据上报
+        }
+
+        // 防抖函数
+        debounce(func, wait) {
+          let timeout;
+          return function executedFunction(...args) {
+            const later = () => {
+              clearTimeout(timeout);
+              func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+          };
+        }
+      }
+
+      // 初始化监控SDK
+      document.addEventListener("DOMContentLoaded", () => {
+        window.behaviorTracker = new UserBehaviorTracker();
+      });
+    </script>
+  </body>
+  <script>
+    // 状态管理
+    let stopFn = null;
+    let replayInstance = null;
+    let events = [];
+    let isPlaying = false;
+
+    // DOM 元素
+    const startBtn = document.getElementById("startBtn");
+    const replayBtn = document.getElementById("replayBtn");
+    const replayContainer = document.getElementById("replay");
+
+    // 开始录制
+    function start() {
+      // 重置状态
+      events = [];
+      isPlaying = false;
+      replayBtn.disabled = true;
+
+      // 如果已有回放实例，先销毁
+      if (replayInstance) {
+        replayInstance.destroy();
+        replayInstance = null;
+        replayContainer.innerHTML = "";
+      }
+
+      // 开始录制
+      stopFn = rrweb.record({
+        emit(event) {
+          // 将 event 存入 events 数组中
+          events.push(event);
+          console.log(event);
+        },
+      });
+
+      // 更新按钮状态
+      startBtn.disabled = true;
+      replayBtn.disabled = false;
+    }
+
+    // 回放
+    function replay() {
+      if (!stopFn) return;
+
+      // 停止录制
+      stopFn();
+      stopFn = null;
+
+      isPlaying = true;
+      startBtn.disabled = false;
+      replayBtn.disabled = true;
+
+      // 延迟创建回放实例，确保 DOM 已更新
+      setTimeout(() => {
+        if (replayContainer) {
+          // 如果已有回放实例，先销毁
+          if (replayInstance) {
+            replayInstance.destroy();
+          }
+
+          // 创建新的回放实例
+          replayInstance = new rrwebPlayer({
+            target: replayContainer, // 可以自定义 DOM 元素
+            // 配置项
+            props: {
+              events,
+            },
+          });
+        }
+      }, 100);
+    }
+
+    // 绑定事件
+    startBtn.addEventListener("click", start);
+    replayBtn.addEventListener("click", replay);
+  </script>
+</html>
