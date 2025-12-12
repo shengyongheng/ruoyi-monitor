@@ -1,0 +1,1286 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>环境监控与上下文分析</title>
+    <script src="../dist/index.cjs.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      }
+
+      body {
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        color: #333;
+        line-height: 1.6;
+        padding: 20px;
+        min-height: 100vh;
+      }
+
+      .container {
+        max-width: 1400px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+      }
+
+      @media (max-width: 1024px) {
+        .container {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .panel {
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        padding: 20px;
+        overflow: hidden;
+      }
+
+      h1 {
+        text-align: center;
+        margin-bottom: 30px;
+        color: #2c3e50;
+        grid-column: 1 / -1;
+      }
+
+      h2 {
+        color: #3498db;
+        margin-bottom: 15px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #f0f0f0;
+      }
+
+      .info-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 15px;
+      }
+
+      @media (max-width: 768px) {
+        .info-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .info-card {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 15px;
+        border-left: 4px solid #3498db;
+      }
+
+      .info-card h3 {
+        color: #2c3e50;
+        margin-bottom: 10px;
+        font-size: 16px;
+        display: flex;
+        align-items: center;
+      }
+
+      .info-card h3 i {
+        margin-right: 8px;
+        color: #3498db;
+      }
+
+      .info-item {
+        margin-bottom: 8px;
+        display: flex;
+        justify-content: space-between;
+      }
+
+      .info-label {
+        font-weight: bold;
+        color: #7f8c8d;
+      }
+
+      .info-value {
+        color: #2c3e50;
+        text-align: right;
+      }
+
+      .status-indicator {
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        margin-right: 5px;
+      }
+
+      .online {
+        background: #2ecc71;
+      }
+
+      .offline {
+        background: #e74c3c;
+      }
+
+      .unknown {
+        background: #f39c12;
+      }
+
+      .map-container {
+        height: 200px;
+        background: #ecf0f1;
+        border-radius: 8px;
+        margin-top: 15px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #7f8c8d;
+        font-style: italic;
+      }
+
+      .chart-container {
+        height: 200px;
+        margin-top: 15px;
+      }
+
+      .control-panel {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+      }
+
+      .control-panel button {
+        padding: 10px 15px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-weight: bold;
+        transition: all 0.3s;
+      }
+
+      .refresh-btn {
+        background: #3498db;
+        color: white;
+      }
+
+      .location-btn {
+        background: #9b59b6;
+        color: white;
+      }
+
+      .export-btn {
+        background: #2ecc71;
+        color: white;
+      }
+
+      .simulate-btn {
+        background: #f39c12;
+        color: white;
+      }
+
+      .control-panel button:hover {
+        opacity: 0.9;
+        transform: translateY(-2px);
+      }
+
+      .log-area {
+        height: 300px;
+        overflow-y: auto;
+        background: #2c3e50;
+        color: #ecf0f1;
+        padding: 15px;
+        border-radius: 8px;
+        font-family: "Courier New", monospace;
+        font-size: 14px;
+        margin-bottom: 20px;
+      }
+
+      .event-item {
+        margin-bottom: 5px;
+        padding: 5px;
+        border-radius: 4px;
+        background: rgba(255, 255, 255, 0.1);
+      }
+
+      .event-time {
+        color: #3498db;
+        font-weight: bold;
+      }
+
+      .event-type {
+        color: #2ecc71;
+      }
+
+      .event-details {
+        color: #ecf0f1;
+      }
+
+      .tab-container {
+        margin-top: 20px;
+      }
+
+      .tabs {
+        display: flex;
+        border-bottom: 1px solid #ddd;
+        margin-bottom: 15px;
+      }
+
+      .tab {
+        padding: 10px 20px;
+        cursor: pointer;
+        border-bottom: 3px solid transparent;
+      }
+
+      .tab.active {
+        border-bottom: 3px solid #3498db;
+        font-weight: bold;
+        color: #3498db;
+      }
+
+      .tab-content {
+        display: none;
+      }
+
+      .tab-content.active {
+        display: block;
+      }
+
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 15px;
+        margin-top: 20px;
+      }
+
+      @media (max-width: 768px) {
+        .stats {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .stat-item {
+        text-align: center;
+        padding: 15px;
+        background: #f8f9fa;
+        border-radius: 8px;
+      }
+
+      .stat-value {
+        font-size: 24px;
+        font-weight: bold;
+        color: #3498db;
+      }
+
+      .stat-label {
+        font-size: 12px;
+        color: #7f8c8d;
+        margin-top: 5px;
+      }
+
+      .warning {
+        color: #e74c3c;
+      }
+
+      .good {
+        color: #2ecc71;
+      }
+
+      .connection-status {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 10px;
+        border-radius: 8px;
+        margin-top: 10px;
+        font-weight: bold;
+      }
+
+      .connection-online {
+        background: rgba(46, 204, 113, 0.2);
+        color: #27ae60;
+      }
+
+      .connection-offline {
+        background: rgba(231, 76, 60, 0.2);
+        color: #c0392b;
+      }
+
+      .battery-container {
+        margin-top: 15px;
+      }
+
+      .battery-level {
+        height: 20px;
+        background: #ecf0f1;
+        border-radius: 10px;
+        overflow: hidden;
+        margin-top: 5px;
+      }
+
+      .battery-fill {
+        height: 100%;
+        background: #2ecc71;
+        transition: width 0.5s;
+      }
+
+      .battery-low {
+        background: #e74c3c;
+      }
+
+      .battery-medium {
+        background: #f39c12;
+      }
+
+      .environment-snapshot {
+        background: #34495e;
+        color: white;
+        padding: 15px;
+        border-radius: 8px;
+        margin-top: 15px;
+        font-family: "Courier New", monospace;
+        font-size: 12px;
+        overflow-x: auto;
+        white-space: pre;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>环境监控与上下文分析</h1>
+
+    <div class="container">
+      <div class="panel">
+        <h2>环境信息概览</h2>
+
+        <div class="control-panel">
+          <button class="refresh-btn" id="refreshInfo">刷新信息</button>
+          <button class="location-btn" id="getLocation">获取地理位置</button>
+          <button class="export-btn" id="exportData">导出环境数据</button>
+          <button class="simulate-btn" id="simulateError">模拟环境问题</button>
+        </div>
+
+        <div class="info-grid">
+          <div class="info-card">
+            <h3><i>🔍</i> 浏览器信息</h3>
+            <div class="info-item">
+              <span class="info-label">浏览器:</span>
+              <span class="info-value" id="browserName">检测中...</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">版本:</span>
+              <span class="info-value" id="browserVersion">检测中...</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">引擎:</span>
+              <span class="info-value" id="browserEngine">检测中...</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">用户代理:</span>
+              <span class="info-value" id="userAgentShort">检测中...</span>
+            </div>
+          </div>
+
+          <div class="info-card">
+            <h3><i>💻</i> 系统信息</h3>
+            <div class="info-item">
+              <span class="info-label">操作系统:</span>
+              <span class="info-value" id="osName">检测中...</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">设备类型:</span>
+              <span class="info-value" id="deviceType">检测中...</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">CPU核心数:</span>
+              <span class="info-value" id="cpuCores">检测中...</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">内存:</span>
+              <span class="info-value" id="deviceMemory">检测中...</span>
+            </div>
+          </div>
+
+          <div class="info-card">
+            <h3><i>📶</i> 网络状况</h3>
+            <div class="info-item">
+              <span class="info-label">在线状态:</span>
+              <span class="info-value" id="onlineStatus">检测中...</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">连接类型:</span>
+              <span class="info-value" id="connectionType">检测中...</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">下行速度:</span>
+              <span class="info-value" id="downlinkSpeed">检测中...</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">有效类型:</span>
+              <span class="info-value" id="effectiveType">检测中...</span>
+            </div>
+            <div
+              id="connectionStatus"
+              class="connection-status connection-online"
+              style="display: none"
+            >
+              网络连接正常
+            </div>
+          </div>
+
+          <div class="info-card">
+            <h3><i>📍</i> 地理位置</h3>
+            <div class="info-item">
+              <span class="info-label">国家:</span>
+              <span class="info-value" id="country">未获取</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">城市:</span>
+              <span class="info-value" id="city">未获取</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">经纬度:</span>
+              <span class="info-value" id="coordinates">未获取</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">精度:</span>
+              <span class="info-value" id="accuracy">未获取</span>
+            </div>
+            <div class="map-container" id="mapPlaceholder">
+              地理位置可视化区域
+            </div>
+          </div>
+
+          <div class="info-card">
+            <h3><i>📱</i> 屏幕信息</h3>
+            <div class="info-item">
+              <span class="info-label">分辨率:</span>
+              <span class="info-value" id="screenResolution">检测中...</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">视口大小:</span>
+              <span class="info-value" id="viewportSize">检测中...</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">色彩深度:</span>
+              <span class="info-value" id="colorDepth">检测中...</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">像素比:</span>
+              <span class="info-value" id="pixelRatio">检测中...</span>
+            </div>
+          </div>
+
+          <div class="info-card">
+            <h3><i>⚡</i> 性能信息</h3>
+            <div class="info-item">
+              <span class="info-label">时区:</span>
+              <span class="info-value" id="timezone">检测中...</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">语言:</span>
+              <span class="info-value" id="language">检测中...</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Cookie启用:</span>
+              <span class="info-value" id="cookiesEnabled">检测中...</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">电池状态:</span>
+              <span class="info-value" id="batteryLevel">检测中...</span>
+            </div>
+            <div
+              class="battery-container"
+              id="batteryContainer"
+              style="display: none"
+            >
+              <div class="battery-level">
+                <div
+                  class="battery-fill"
+                  id="batteryFill"
+                  style="width: 0%"
+                ></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="stats">
+          <div class="stat-item">
+            <div class="stat-value" id="pageLoadTime">0ms</div>
+            <div class="stat-label">页面加载时间</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value" id="memoryUsage">0MB</div>
+            <div class="stat-label">内存使用</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value" id="connectionRtt">0ms</div>
+            <div class="stat-label">网络延迟</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>环境变化监控</h2>
+
+        <div class="log-area" id="environmentLog">
+          <!-- 环境变化日志将在这里显示 -->
+        </div>
+
+        <div class="tab-container">
+          <div class="tabs">
+            <div class="tab active" data-tab="snapshot">环境快照</div>
+            <div class="tab" data-tab="analysis">问题分析</div>
+            <div class="tab" data-tab="trends">趋势图表</div>
+          </div>
+
+          <div class="tab-content active" id="snapshot-tab">
+            <div class="environment-snapshot" id="environmentSnapshot">
+              {/* 环境快照数据将在这里显示 */}
+            </div>
+          </div>
+
+          <div class="tab-content" id="analysis-tab">
+            <div id="problemAnalysis">
+              <p>环境问题分析将在这里显示...</p>
+            </div>
+          </div>
+
+          <div class="tab-content" id="trends-tab">
+            <div class="chart-container" id="performanceChart">
+              <canvas id="performanceCanvas" width="400" height="200"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // 环境监控SDK
+      class EnvironmentMonitor {
+        constructor() {
+          this.environmentData = {};
+          this.changeLog = [];
+          this.performanceEntries = [];
+
+          // DOM元素引用
+          this.environmentLog = document.getElementById("environmentLog");
+          this.environmentSnapshot = document.getElementById(
+            "environmentSnapshot"
+          );
+
+          // 绑定按钮事件
+          document
+            .getElementById("refreshInfo")
+            .addEventListener("click", () => this.refreshEnvironmentData());
+          document
+            .getElementById("getLocation")
+            .addEventListener("click", () => this.getGeolocation());
+          document
+            .getElementById("exportData")
+            .addEventListener("click", () => this.exportEnvironmentData());
+          document
+            .getElementById("simulateError")
+            .addEventListener("click", () => this.simulateEnvironmentIssue());
+
+          // 绑定标签页事件
+          this.setupTabs();
+
+          // 初始化监控
+          this.init();
+        }
+
+        // 初始化环境监控
+        init() {
+          this.logEvent("SYSTEM", "环境监控初始化");
+
+          // 收集初始环境数据
+          this.collectEnvironmentData();
+
+          // 设置环境变化监听
+          this.setupEnvironmentListeners();
+
+          // 设置性能监控
+          this.setupPerformanceMonitoring();
+
+          // 更新UI
+          this.updateEnvironmentDisplay();
+
+          this.logEvent("SYSTEM", "环境数据收集完成");
+        }
+
+        // 收集环境数据
+        collectEnvironmentData() {
+          // 浏览器信息
+          this.environmentData.browser = this.detectBrowser();
+          this.environmentData.userAgent = navigator.userAgent;
+
+          // 系统信息
+          this.environmentData.os = this.detectOS();
+          this.environmentData.device = this.detectDevice();
+          this.environmentData.cpuCores =
+            navigator.hardwareConcurrency || "未知";
+          this.environmentData.deviceMemory = navigator.deviceMemory
+            ? `${navigator.deviceMemory} GB`
+            : "未知";
+
+          // 网络信息
+          this.environmentData.online = navigator.onLine;
+          this.environmentData.connection = this.getConnectionInfo();
+
+          // 屏幕信息
+          this.environmentData.screen = {
+            width: screen.width,
+            height: screen.height,
+            colorDepth: screen.colorDepth,
+            pixelRatio: window.devicePixelRatio,
+          };
+
+          // 视口信息
+          this.environmentData.viewport = {
+            width: window.innerWidth,
+            height: window.innerHeight,
+          };
+
+          // 其他环境信息
+          this.environmentData.language = navigator.language;
+          this.environmentData.timezone =
+            Intl.DateTimeFormat().resolvedOptions().timeZone;
+          this.environmentData.cookiesEnabled = navigator.cookieEnabled;
+
+          // 性能信息
+          this.environmentData.performance = this.getPerformanceInfo();
+
+          // 地理位置（稍后获取）
+          this.environmentData.geolocation = {
+            supported: "geolocation" in navigator,
+            coordinates: null,
+            country: null,
+            city: null,
+          };
+
+          // 电池信息（如果支持）
+          if ("getBattery" in navigator) {
+            navigator.getBattery().then((battery) => {
+              this.environmentData.battery = {
+                level: battery.level,
+                charging: battery.charging,
+                chargingTime: battery.chargingTime,
+                dischargingTime: battery.dischargingTime,
+              };
+              this.updateBatteryDisplay();
+            });
+          }
+        }
+
+        // 检测浏览器信息
+        detectBrowser() {
+          const ua = navigator.userAgent;
+          let browserName = "未知";
+          let browserVersion = "未知";
+          let engine = "未知";
+
+          // 检测浏览器
+          if (ua.includes("Chrome") && !ua.includes("Edg")) {
+            browserName = "Chrome";
+            const match = ua.match(/Chrome\/([0-9.]+)/);
+            browserVersion = match ? match[1] : "未知";
+          } else if (ua.includes("Firefox")) {
+            browserName = "Firefox";
+            const match = ua.match(/Firefox\/([0-9.]+)/);
+            browserVersion = match ? match[1] : "未知";
+          } else if (ua.includes("Safari") && !ua.includes("Chrome")) {
+            browserName = "Safari";
+            const match = ua.match(/Version\/([0-9.]+)/);
+            browserVersion = match ? match[1] : "未知";
+          } else if (ua.includes("Edg")) {
+            browserName = "Edge";
+            const match = ua.match(/Edg\/([0-9.]+)/);
+            browserVersion = match ? match[1] : "未知";
+          }
+
+          // 检测引擎
+          if (ua.includes("AppleWebKit")) {
+            engine = "WebKit";
+          } else if (ua.includes("Gecko")) {
+            engine = "Gecko";
+          } else if (ua.includes("Trident")) {
+            engine = "Trident";
+          }
+
+          return {
+            name: browserName,
+            version: browserVersion,
+            engine: engine,
+          };
+        }
+
+        // 检测操作系统
+        detectOS() {
+          const ua = navigator.userAgent;
+          let os = "未知";
+
+          if (ua.includes("Windows")) {
+            os = "Windows";
+            if (ua.includes("Windows NT 10.0")) os = "Windows 10/11";
+            else if (ua.includes("Windows NT 6.3")) os = "Windows 8.1";
+            else if (ua.includes("Windows NT 6.2")) os = "Windows 8";
+            else if (ua.includes("Windows NT 6.1")) os = "Windows 7";
+          } else if (ua.includes("Mac")) {
+            os = "macOS";
+          } else if (ua.includes("Linux")) {
+            os = "Linux";
+          } else if (ua.includes("Android")) {
+            os = "Android";
+          } else if (
+            ua.includes("iOS") ||
+            ua.includes("iPhone") ||
+            ua.includes("iPad")
+          ) {
+            os = "iOS";
+          }
+
+          return os;
+        }
+
+        // 检测设备类型
+        detectDevice() {
+          const ua = navigator.userAgent;
+          const width = window.innerWidth;
+
+          if (/(tablet|ipad|playbook|silk)|(android(?!.*mobi))/i.test(ua)) {
+            return "平板";
+          } else if (
+            /Mobile|Android|iP(hone|od)|IEMobile|BlackBerry|Kindle|Silk-Accelerated|(hpw|web)OS|Opera M(obi|ini)/.test(
+              ua
+            )
+          ) {
+            return "手机";
+          } else if (width < 768) {
+            return "手机 (基于屏幕大小)";
+          } else if (width < 834) {
+            return "平板 (基于屏幕大小)";
+          } else {
+            return "桌面";
+          }
+        }
+
+        // 获取网络连接信息
+        getConnectionInfo() {
+          const connection =
+            navigator.connection ||
+            navigator.mozConnection ||
+            navigator.webkitConnection;
+
+          if (!connection) {
+            return {
+              type: "未知",
+              downlink: "未知",
+              effectiveType: "未知",
+              rtt: "未知",
+            };
+          }
+
+          return {
+            type: connection.type || "未知",
+            downlink: connection.downlink
+              ? `${connection.downlink} Mbps`
+              : "未知",
+            effectiveType: connection.effectiveType || "未知",
+            rtt: connection.rtt ? `${connection.rtt} ms` : "未知",
+          };
+        }
+
+        // 获取性能信息
+        getPerformanceInfo() {
+          if (!performance || !performance.timing) {
+            return {
+              loadTime: "未知",
+              memory: "未知",
+            };
+          }
+
+          const timing = performance.timing;
+          const loadTime = timing.loadEventEnd - timing.navigationStart;
+
+          let memoryInfo = "未知";
+          if (performance.memory) {
+            const used = Math.round(
+              performance.memory.usedJSHeapSize / 1048576
+            );
+            const total = Math.round(
+              performance.memory.totalJSHeapSize / 1048576
+            );
+            memoryInfo = `${used}MB / ${total}MB`;
+          }
+
+          return {
+            loadTime: loadTime > 0 ? `${loadTime} ms` : "未知",
+            memory: memoryInfo,
+          };
+        }
+
+        // 设置环境变化监听
+        setupEnvironmentListeners() {
+          // 监听在线状态变化
+          window.addEventListener("online", () => {
+            this.environmentData.online = true;
+            this.logEvent("NETWORK", "网络连接恢复");
+            this.updateEnvironmentDisplay();
+          });
+
+          window.addEventListener("offline", () => {
+            this.environmentData.online = false;
+            this.logEvent("NETWORK", "网络连接断开");
+            this.updateEnvironmentDisplay();
+          });
+
+          // 监听窗口大小变化
+          window.addEventListener("resize", () => {
+            const oldWidth = this.environmentData.viewport.width;
+            const oldHeight = this.environmentData.viewport.height;
+
+            this.environmentData.viewport.width = window.innerWidth;
+            this.environmentData.viewport.height = window.innerHeight;
+
+            if (
+              oldWidth !== window.innerWidth ||
+              oldHeight !== window.innerHeight
+            ) {
+              this.logEvent(
+                "VIEWPORT",
+                `视口大小改变: ${oldWidth}x${oldHeight} → ${window.innerWidth}x${window.innerHeight}`
+              );
+              this.updateEnvironmentDisplay();
+            }
+          });
+
+          // 监听网络连接变化
+          const connection =
+            navigator.connection ||
+            navigator.mozConnection ||
+            navigator.webkitConnection;
+          if (connection) {
+            connection.addEventListener("change", () => {
+              this.environmentData.connection = this.getConnectionInfo();
+              this.logEvent(
+                "NETWORK",
+                `网络连接改变: ${JSON.stringify(
+                  this.environmentData.connection
+                )}`
+              );
+              this.updateEnvironmentDisplay();
+            });
+          }
+
+          // 监听电池状态变化
+          if ("getBattery" in navigator) {
+            navigator.getBattery().then((battery) => {
+              battery.addEventListener("levelchange", () => {
+                this.environmentData.battery.level = battery.level;
+                this.updateBatteryDisplay();
+                this.logEvent(
+                  "BATTERY",
+                  `电池电量改变: ${Math.round(battery.level * 100)}%`
+                );
+              });
+
+              battery.addEventListener("chargingchange", () => {
+                this.environmentData.battery.charging = battery.charging;
+                this.updateBatteryDisplay();
+                this.logEvent(
+                  "BATTERY",
+                  `充电状态改变: ${battery.charging ? "充电中" : "未充电"}`
+                );
+              });
+            });
+          }
+        }
+
+        // 设置性能监控
+        setupPerformanceMonitoring() {
+          // 使用PerformanceObserver监控性能条目
+          if ("PerformanceObserver" in window) {
+            const observer = new PerformanceObserver((list) => {
+              list.getEntries().forEach((entry) => {
+                this.performanceEntries.push(entry);
+              });
+            });
+
+            try {
+              observer.observe({
+                entryTypes: ["navigation", "resource", "paint"],
+              });
+            } catch (e) {
+              // 某些浏览器可能不支持某些entryTypes
+            }
+          }
+
+          // 定期更新性能信息
+          setInterval(() => {
+            this.updatePerformanceInfo();
+          }, 5000);
+        }
+
+        // 更新性能信息
+        updatePerformanceInfo() {
+          // 更新页面加载时间
+          const loadTime = document.getElementById("pageLoadTime");
+          if (this.environmentData.performance.loadTime !== "未知") {
+            loadTime.textContent = this.environmentData.performance.loadTime;
+          }
+
+          // 更新内存使用
+          const memoryUsage = document.getElementById("memoryUsage");
+          if (performance.memory) {
+            const usedMB = Math.round(
+              performance.memory.usedJSHeapSize / 1048576
+            );
+            memoryUsage.textContent = `${usedMB}MB`;
+
+            // 根据内存使用情况添加颜色提示
+            if (usedMB > 500) {
+              memoryUsage.className = "stat-value warning";
+            } else {
+              memoryUsage.className = "stat-value good";
+            }
+          }
+
+          // 更新网络延迟
+          const connectionRtt = document.getElementById("connectionRtt");
+          const connection =
+            navigator.connection ||
+            navigator.mozConnection ||
+            navigator.webkitConnection;
+          if (connection && connection.rtt) {
+            connectionRtt.textContent = `${connection.rtt}ms`;
+
+            // 根据延迟添加颜色提示
+            if (connection.rtt > 300) {
+              connectionRtt.className = "stat-value warning";
+            } else {
+              connectionRtt.className = "stat-value good";
+            }
+          }
+        }
+
+        // 更新环境信息显示
+        updateEnvironmentDisplay() {
+          // 浏览器信息
+          document.getElementById("browserName").textContent =
+            this.environmentData.browser.name;
+          document.getElementById("browserVersion").textContent =
+            this.environmentData.browser.version;
+          document.getElementById("browserEngine").textContent =
+            this.environmentData.browser.engine;
+          document.getElementById("userAgentShort").textContent =
+            this.environmentData.userAgent.length > 30
+              ? this.environmentData.userAgent.substring(0, 30) + "..."
+              : this.environmentData.userAgent;
+
+          // 系统信息
+          document.getElementById("osName").textContent =
+            this.environmentData.os;
+          document.getElementById("deviceType").textContent =
+            this.environmentData.device;
+          document.getElementById("cpuCores").textContent =
+            this.environmentData.cpuCores;
+          document.getElementById("deviceMemory").textContent =
+            this.environmentData.deviceMemory;
+
+          // 网络信息
+          document.getElementById(
+            "onlineStatus"
+          ).innerHTML = `<span class="status-indicator ${
+            this.environmentData.online ? "online" : "offline"
+          }"></span>${this.environmentData.online ? "在线" : "离线"}`;
+
+          document.getElementById("connectionType").textContent =
+            this.environmentData.connection.type;
+          document.getElementById("downlinkSpeed").textContent =
+            this.environmentData.connection.downlink;
+          document.getElementById("effectiveType").textContent =
+            this.environmentData.connection.effectiveType;
+
+          // 显示连接状态
+          const connectionStatus = document.getElementById("connectionStatus");
+          if (this.environmentData.online) {
+            connectionStatus.textContent = "网络连接正常";
+            connectionStatus.className = "connection-status connection-online";
+            connectionStatus.style.display = "flex";
+          } else {
+            connectionStatus.textContent = "网络连接已断开";
+            connectionStatus.className = "connection-status connection-offline";
+            connectionStatus.style.display = "flex";
+          }
+
+          // 屏幕信息
+          document.getElementById(
+            "screenResolution"
+          ).textContent = `${this.environmentData.screen.width} × ${this.environmentData.screen.height}`;
+          document.getElementById(
+            "viewportSize"
+          ).textContent = `${this.environmentData.viewport.width} × ${this.environmentData.viewport.height}`;
+          document.getElementById(
+            "colorDepth"
+          ).textContent = `${this.environmentData.screen.colorDepth} 位`;
+          document.getElementById("pixelRatio").textContent =
+            this.environmentData.screen.pixelRatio;
+
+          // 其他信息
+          document.getElementById("timezone").textContent =
+            this.environmentData.timezone;
+          document.getElementById("language").textContent =
+            this.environmentData.language;
+          document.getElementById("cookiesEnabled").textContent = this
+            .environmentData.cookiesEnabled
+            ? "是"
+            : "否";
+
+          // 更新性能信息
+          this.updatePerformanceInfo();
+
+          // 更新环境快照
+          this.updateEnvironmentSnapshot();
+        }
+
+        // 更新电池显示
+        updateBatteryDisplay() {
+          if (!this.environmentData.battery) return;
+
+          const batteryLevel = document.getElementById("batteryLevel");
+          const batteryContainer = document.getElementById("batteryContainer");
+          const batteryFill = document.getElementById("batteryFill");
+
+          const level = this.environmentData.battery.level;
+          const percentage = Math.round(level * 100);
+
+          batteryLevel.textContent = `${percentage}%${
+            this.environmentData.battery.charging ? " (充电中)" : ""
+          }`;
+
+          batteryFill.style.width = `${percentage}%`;
+
+          if (percentage < 20) {
+            batteryFill.className = "battery-fill battery-low";
+          } else if (percentage < 50) {
+            batteryFill.className = "battery-fill battery-medium";
+          } else {
+            batteryFill.className = "battery-fill";
+          }
+
+          batteryContainer.style.display = "block";
+        }
+
+        // 获取地理位置
+        getGeolocation() {
+          if (!navigator.geolocation) {
+            this.logEvent("GEOLOCATION", "浏览器不支持地理位置API");
+            alert("您的浏览器不支持地理位置功能");
+            return;
+          }
+
+          this.logEvent("GEOLOCATION", "请求地理位置权限...");
+
+          navigator.geolocation.getCurrentPosition(
+            (position) => {
+              // 根据经纬度查询地址：https://lbsyun.baidu.com/jsdemo/demo/yLngLatLocation.htm
+              const { latitude, longitude, accuracy } = position.coords;
+              this.environmentData.geolocation.coordinates = {
+                latitude,
+                longitude,
+                accuracy,
+              };
+
+              document.getElementById(
+                "coordinates"
+              ).textContent = `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
+              document.getElementById("accuracy").textContent = `${Math.round(
+                accuracy
+              )} 米`;
+
+              this.logEvent(
+                "GEOLOCATION",
+                `地理位置获取成功: ${latitude.toFixed(6)}, ${longitude.toFixed(
+                  6
+                )}`
+              );
+
+              // 在实际应用中，这里会调用地理编码服务将坐标转换为地址
+              this.getLocationFromCoords(latitude, longitude);
+            },
+            (error) => {
+              let errorMessage = "未知错误";
+              switch (error.code) {
+                case error.PERMISSION_DENIED:
+                  errorMessage = "用户拒绝提供地理位置权限";
+                  break;
+                case error.POSITION_UNAVAILABLE:
+                  errorMessage = "无法获取当前位置信息";
+                  break;
+                case error.TIMEOUT:
+                  errorMessage = "获取位置信息超时";
+                  break;
+              }
+
+              this.logEvent("GEOLOCATION", `地理位置获取失败: ${errorMessage}`);
+              alert(`无法获取地理位置: ${errorMessage}`);
+            },
+            {
+              enableHighAccuracy: true,
+              timeout: 10000,
+              maximumAge: 60000,
+            }
+          );
+        }
+
+        // 根据坐标获取位置信息（模拟）
+        getLocationFromCoords(latitude, longitude) {
+          // 在实际应用中，这里会调用地理编码API
+          // 这里我们使用模拟数据
+          setTimeout(() => {
+            this.environmentData.geolocation.country = "中国";
+            this.environmentData.geolocation.city = "北京";
+
+            document.getElementById("country").textContent = "中国";
+            document.getElementById("city").textContent = "北京";
+
+            this.logEvent("GEOLOCATION", "位置信息解析完成: 中国, 北京");
+          }, 1000);
+        }
+
+        // 刷新环境数据
+        refreshEnvironmentData() {
+          this.logEvent("SYSTEM", "手动刷新环境数据");
+          this.collectEnvironmentData();
+          this.updateEnvironmentDisplay();
+        }
+
+        // 导出环境数据
+        exportEnvironmentData() {
+          const dataStr = JSON.stringify(this.environmentData, null, 2);
+          const dataBlob = new Blob([dataStr], { type: "application/json" });
+
+          const url = URL.createObjectURL(dataBlob);
+          const link = document.createElement("a");
+          link.href = url;
+          link.download = `environment-data-${new Date()
+            .toISOString()
+            .slice(0, 19)}.json`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(url);
+
+          this.logEvent("SYSTEM", "环境数据已导出");
+        }
+
+        // 模拟环境问题
+        simulateEnvironmentIssue() {
+          // 模拟低内存情况
+          if (performance.memory) {
+            const originalUsed = performance.memory.usedJSHeapSize;
+            // 临时修改内存使用显示（仅用于演示）
+            const memoryUsage = document.getElementById("memoryUsage");
+            memoryUsage.textContent = "1500MB";
+            memoryUsage.className = "stat-value warning";
+
+            this.logEvent("SIMULATION", "模拟高内存使用情况: 1500MB");
+
+            // 3秒后恢复
+            setTimeout(() => {
+              const usedMB = Math.round(originalUsed / 1048576);
+              memoryUsage.textContent = `${usedMB}MB`;
+              if (usedMB > 500) {
+                memoryUsage.className = "stat-value warning";
+              } else {
+                memoryUsage.className = "stat-value good";
+              }
+            }, 3000);
+          }
+
+          // 模拟网络延迟
+          const connectionRtt = document.getElementById("connectionRtt");
+          connectionRtt.textContent = "800ms";
+          connectionRtt.className = "stat-value warning";
+          this.logEvent("SIMULATION", "模拟高网络延迟: 800ms");
+
+          // 3秒后恢复
+          setTimeout(() => {
+            const connection =
+              navigator.connection ||
+              navigator.mozConnection ||
+              navigator.webkitConnection;
+            if (connection && connection.rtt) {
+              connectionRtt.textContent = `${connection.rtt}ms`;
+              if (connection.rtt > 300) {
+                connectionRtt.className = "stat-value warning";
+              } else {
+                connectionRtt.className = "stat-value good";
+              }
+            }
+          }, 3000);
+        }
+
+        // 更新环境快照
+        updateEnvironmentSnapshot() {
+          this.environmentSnapshot.textContent = JSON.stringify(
+            this.environmentData,
+            null,
+            2
+          );
+        }
+
+        // 记录环境事件
+        logEvent(type, message) {
+          const timestamp = new Date().toLocaleTimeString();
+          const event = {
+            type,
+            message,
+            timestamp,
+          };
+
+          this.changeLog.push(event);
+
+          // 更新日志显示
+          const logItem = document.createElement("div");
+          logItem.className = "event-item";
+          logItem.innerHTML = `
+                    <span class="event-time">[${timestamp}]</span>
+                    <span class="event-type">${type}</span>
+                    <span class="event-details">: ${message}</span>
+                `;
+
+          this.environmentLog.appendChild(logItem);
+          this.environmentLog.scrollTop = this.environmentLog.scrollHeight;
+        }
+
+        // 设置标签页
+        setupTabs() {
+          const tabs = document.querySelectorAll(".tab");
+          const tabContents = document.querySelectorAll(".tab-content");
+
+          tabs.forEach((tab) => {
+            tab.addEventListener("click", () => {
+              // 移除所有active类
+              tabs.forEach((t) => t.classList.remove("active"));
+              tabContents.forEach((c) => c.classList.remove("active"));
+
+              // 添加active类到当前标签
+              tab.classList.add("active");
+              document
+                .getElementById(`${tab.dataset.tab}-tab`)
+                .classList.add("active");
+            });
+          });
+        }
+      }
+
+      // 初始化环境监控SDK
+      document.addEventListener("DOMContentLoaded", () => {
+        window.environmentMonitor = new EnvironmentMonitor();
+      });
+    </script>
+    <!-- 引入Chart.js用于图表显示 -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  </body>
+</html>

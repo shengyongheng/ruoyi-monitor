@@ -369,6 +369,130 @@ class MonitoringCore extends EventBus {
     }
 }
 
+// 环境监控插件
+class EnvironmentInfoPlugin {
+    name = 'environmentInfo';
+
+    install(sdk) {
+        // 浏览器环境
+        this.detectBrowserInfo(sdk);
+        // 检测操作系统
+        this.detectOSInfo(sdk);
+        // 检测设备类型
+        this.detectDeviceInfo(sdk);
+    }
+
+    // 
+    uninstall() {
+    }
+
+    detectBrowserInfo(sdk) {
+        const ua = navigator.userAgent;
+        let browserName = "未知";
+        let browserVersion = "未知";
+        let engine = "未知";
+
+        // 检测浏览器
+        if (ua.includes("Chrome") && !ua.includes("Edg")) {
+            browserName = "Chrome";
+            const match = ua.match(/Chrome\/([0-9.]+)/);
+            browserVersion = match ? match[1] : "未知";
+        } else if (ua.includes("Firefox")) {
+            browserName = "Firefox";
+            const match = ua.match(/Firefox\/([0-9.]+)/);
+            browserVersion = match ? match[1] : "未知";
+        } else if (ua.includes("Safari") && !ua.includes("Chrome")) {
+            browserName = "Safari";
+            const match = ua.match(/Version\/([0-9.]+)/);
+            browserVersion = match ? match[1] : "未知";
+        } else if (ua.includes("Edg")) {
+            browserName = "Edge";
+            const match = ua.match(/Edg\/([0-9.]+)/);
+            browserVersion = match ? match[1] : "未知";
+        }
+
+        // 检测引擎
+        if (ua.includes("AppleWebKit")) {
+            engine = "WebKit";
+        } else if (ua.includes("Gecko")) {
+            engine = "Gecko";
+        } else if (ua.includes("Trident")) {
+            engine = "Trident";
+        }
+
+        const data = {
+            name: browserName,
+            version: browserVersion,
+            engine: engine,
+        };
+        sdk.capture("environment", {
+            type: "browser",
+            data
+        });
+    }
+
+    detectOSInfo(sdk) {
+        const ua = navigator.userAgent;
+        let os = "未知";
+
+        if (ua.includes("Windows")) {
+            os = "Windows";
+            if (ua.includes("Windows NT 10.0")) os = "Windows 10/11";
+            else if (ua.includes("Windows NT 6.3")) os = "Windows 8.1";
+            else if (ua.includes("Windows NT 6.2")) os = "Windows 8";
+            else if (ua.includes("Windows NT 6.1")) os = "Windows 7";
+        } else if (ua.includes("Mac")) {
+            os = "macOS";
+        } else if (ua.includes("Linux")) {
+            os = "Linux";
+        } else if (ua.includes("Android")) {
+            os = "Android";
+        } else if (
+            ua.includes("iOS") ||
+            ua.includes("iPhone") ||
+            ua.includes("iPad")
+        ) {
+            os = "iOS";
+        }
+        sdk.capture("environment", {
+            type: "os",
+            data: {
+                os
+            }
+        });
+    }
+
+    detectDeviceInfo(sdk) {
+        const ua = navigator.userAgent;
+        const width = window.innerWidth;
+        let device = "";
+
+        if (/(tablet|ipad|playbook|silk)|(android(?!.*mobi))/i.test(ua)) {
+            device = "平板";
+        } else if (
+            /Mobile|Android|iP(hone|od)|IEMobile|BlackBerry|Kindle|Silk-Accelerated|(hpw|web)OS|Opera M(obi|ini)/.test(
+                ua
+            )
+        ) {
+            device = "手机";
+        } else if (width < 768) {
+            device = "手机 (基于屏幕大小)";
+        } else if (width < 834) {
+            device = "平板 (基于屏幕大小)";
+        } else {
+            device = "桌面";
+        }
+        sdk.capture("environment", {
+            type: "device",
+            data: {
+                device
+            }
+        });
+    }
+
+
+}
+
 // 性能监控插件
 class PerformancePlugin {
     name = 'performance';
@@ -475,10 +599,15 @@ class UserBehaviorPlugin {
             }
         });
     }
+
+    // 处理用户滚动事件
+
+    // 处理页面卸载事件
 }
 
 new MonitoringCore({
     appId: "abc",
 })
     .use(new PerformancePlugin())
-    .use(new UserBehaviorPlugin());
+    .use(new UserBehaviorPlugin())
+    .use(new EnvironmentInfoPlugin());
