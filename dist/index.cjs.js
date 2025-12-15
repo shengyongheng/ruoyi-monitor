@@ -380,6 +380,8 @@ class EnvironmentInfoPlugin {
         this.detectOSInfo(sdk);
         // 检测设备类型
         this.detectDeviceInfo(sdk);
+        // 获取地理位置
+        this.getGeolocationInfo(sdk);
     }
 
     // 
@@ -425,7 +427,7 @@ class EnvironmentInfoPlugin {
             version: browserVersion,
             engine: engine,
         };
-        sdk.capture("environment", {
+        sdk.capture("environmentInfo", {
             type: "browser",
             data
         });
@@ -454,7 +456,7 @@ class EnvironmentInfoPlugin {
         ) {
             os = "iOS";
         }
-        sdk.capture("environment", {
+        sdk.capture("environmentInfo", {
             type: "os",
             data: {
                 os
@@ -482,7 +484,7 @@ class EnvironmentInfoPlugin {
         } else {
             device = "桌面";
         }
-        sdk.capture("environment", {
+        sdk.capture("environmentInfo", {
             type: "device",
             data: {
                 device
@@ -490,7 +492,328 @@ class EnvironmentInfoPlugin {
         });
     }
 
+    getGeolocationInfo(sdk) {
+        if (!navigator.geolocation) return;
 
+        navigator.geolocation.getCurrentPosition(
+            async (position) => {
+                const { latitude, longitude, accuracy } = position.coords;
+
+                // 在实际应用中，这里会调用地理编码服务将坐标转换为地址
+                const { country, city } = await this.getLocationFromCoords(latitude, longitude);
+                sdk.capture("environmentInfo", {
+                    type: "geolocation",
+                    data: {
+                        coordinates: {
+                            latitude,
+                            longitude,
+                            accuracy,
+                        },
+                        country,
+                        city,
+                    }
+                });
+            },
+            (error) => {
+                let errorMessage = "未知错误";
+                switch (error.code) {
+                    case error.PERMISSION_DENIED:
+                        errorMessage = "用户拒绝提供地理位置权限";
+                        break;
+                    case error.POSITION_UNAVAILABLE:
+                        errorMessage = "无法获取当前位置信息";
+                        break;
+                    case error.TIMEOUT:
+                        errorMessage = "获取位置信息超时";
+                        break;
+                }
+
+                sdk.capture("environmentInfo", {
+                    type: "geolocation",
+                    data: {
+                        errorMessage
+                    }
+                });
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 60000,
+            }
+        );
+    }
+
+    // 根据坐标获取位置信息（模拟）
+    getLocationFromCoords(latitude, longitude) {
+        // 在实际应用中，这里会调用地理编码API
+        // 这里我们使用模拟数据
+        return new Promise(() => {
+            // this.environmentData.geolocation.country = "中国";
+            // this.environmentData.geolocation.city = "北京";
+
+            // document.getElementById("country").textContent = "中国";
+            // document.getElementById("city").textContent = "北京";
+
+            // this.logEvent("GEOLOCATION", "位置信息解析完成: 中国, 北京");
+            return {
+                country: "中国",
+                city: "北京"
+            }
+        })
+
+    }
+
+}
+
+// 错误监控插件
+class ErrorTrackingPlugin {
+    name = 'errorTracking';
+
+    install(sdk) {
+        {
+            // 监听全局错误
+            window.addEventListener("error", this.windowErrorTracking.bind(this, sdk), true);
+        }
+        {
+            // 监听未处理的Promise拒绝
+            window.addEventListener(
+                "unhandledrejection",
+                this.unhandledRejectionTracking.bind(this)
+            );
+        }
+        this.xHRErrorTracking(sdk);
+        this.fetchErrorTracking(sdk);
+    }
+
+    // 
+    uninstall() {
+        window.removeEventListener("error", this.windowErrorTracking.bind(this, sdk), true);
+        window.removeEventListener(
+            "unhandledrejection",
+            this.unhandledRejectionTracking.bind(this)
+        );
+        // window.removeEventListener("load", this.resourceErrorTracking.bind(this));
+    }
+
+    windowErrorTracking(sdk, event) {
+        const { message, filename, lineno, colno, error } = event;
+
+        // 判断错误类型
+        let errorType = "js";
+        // let severity = "high";
+
+        // 判断是否为资源加载错误
+        if (
+            event.target &&
+            (event.target.tagName === "IMG" ||
+                event.target.tagName === "SCRIPT" ||
+                event.target.tagName === "LINK" ||
+                event.target.tagName === "VIDEO" ||
+                event.target.tagName === "AUDIO")
+        ) {
+            errorType = "resource";
+            // severity = "medium";
+        }
+
+        // 判断是否为跨域脚本错误
+        if (message && message.includes("Script error")) {
+            errorType = "cross-origin";
+            // severity = "medium";
+        }
+
+        const errorData = {
+            type: errorType,
+            /**
+             * tagName src href 加载资源时有效
+             */
+            tagName: event.target.tagName || "",
+            src: event.target.src || "",
+            href: event.target.href || "",
+            // severity: severity, // 错误优先级
+            message: message || "Unknown error",
+            filename: filename || "Unknown file",
+            lineno: lineno || 0,
+            colno: colno || 0,
+            stack: error ? error.stack : "",
+            timestamp: new Date().toISOString(),
+            // userInfo: this.config.enableUserTracking ? this.userInfo : null,
+        };
+
+        sdk.capture(this.name, errorData);
+
+        // 阻止默认错误处理（避免控制台重复显示）
+        event.preventDefault();
+    }
+
+    // 处理未处理的Promise拒绝
+    unhandledRejectionTracking(sdk, event) {
+        const error = event.reason;
+
+        const errorData = {
+            type: "promise",
+            // severity: "high",
+            message: error ? error.message : "Unhandled Promise rejection",
+            stack: error ? error.stack : "",
+            timestamp: new Date().toISOString(),
+            // userInfo: this.config.enableUserTracking ? this.userInfo : null,
+        };
+
+        sdk.capture(this.name, errorData);
+
+        // 阻止默认错误处理
+        event.preventDefault();
+    }
+
+    // 处理资源加载错误
+    resourceErrorTracking() {
+        // 检查已加载的资源是否有错误
+        const resources = performance.getEntriesByType("resource");
+        console.log("处理资源加载错误:", resources);
+
+        resources.forEach((resource) => {
+            // 这里可以检查资源的加载状态
+            // 注意：performance API 不直接提供错误状态
+            // 实际应用中需要结合其他方法
+        });
+    }
+
+    // 拦截XMLHttpRequest
+    xHRErrorTracking(sdk) {
+        const self = this;
+        const OriginalXHR = window.XMLHttpRequest;
+
+        window.XMLHttpRequest = function () {
+            const xhr = new OriginalXHR();
+
+            // 保存原始方法
+            const originalOpen = xhr.open;
+            const originalSend = xhr.send;
+
+            let method, url;
+
+            // 拦截open方法
+            xhr.open = function (...args) {
+                method = args[0];
+                url = args[1];
+                return originalOpen.apply(this, args);
+            };
+
+            // 拦截send方法
+            xhr.send = function (...args) {
+                // 监听加载完成
+                xhr.addEventListener("load", function () {
+                    if (xhr.status >= 400) {
+                        const errorData = {
+                            type: "ajax",
+                            // severity: xhr.status >= 500 ? "high" : "medium",
+                            message: `HTTP ${xhr.status} ${xhr.statusText}`,
+                            url: url,
+                            method: method,
+                            status: xhr.status,
+                            response: xhr.responseText,
+                            timestamp: new Date().toISOString(),
+                            // userInfo: self.config.enableUserTracking
+                            //     ? self.userInfo
+                            //     : null,
+                        };
+
+                        sdk.capture(self.name, errorData);
+                    }
+                });
+
+                // 监听错误
+                xhr.addEventListener("error", function () {
+                    const errorData = {
+                        type: "ajax",
+                        // severity: "critical",
+                        message: "网络请求失败",
+                        url: url,
+                        method: method,
+                        status: 0,
+                        timestamp: new Date().toISOString(),
+                        // userInfo: self.config.enableUserTracking
+                        //     ? self.userInfo
+                        //     : null,
+                    };
+
+                    sdk.capture(self.name, errorData);
+                });
+
+                // 监听超时
+                xhr.addEventListener("timeout", function () {
+                    const errorData = {
+                        type: "ajax",
+                        // severity: "high",
+                        message: "请求超时",
+                        url: url,
+                        method: method,
+                        status: 0,
+                        timestamp: new Date().toISOString(),
+                        // userInfo: self.config.enableUserTracking
+                        //     ? self.userInfo
+                        //     : null,
+                    };
+
+                    sdk.capture(self.name, errorData);
+                });
+
+                return originalSend.apply(this, args);
+            };
+
+            return xhr;
+        };
+    }
+
+    // 拦截fetch API
+    fetchErrorTracking(sdk) {
+        const self = this;
+        const originalFetch = window.fetch;
+
+        window.fetch = function (...args) {
+            const url = args[0];
+            const options = args[1] || {};
+            const method = options.method || "GET";
+
+            return originalFetch
+                .apply(this, args)
+                .then((response) => {
+                    if (!response.ok) {
+                        const errorData = {
+                            type: "fetch",
+                            // severity: response.status >= 500 ? "high" : "medium",
+                            message: `HTTP ${response.status} ${response.statusText}`,
+                            url: url,
+                            method: method,
+                            status: response.status,
+                            timestamp: new Date().toISOString(),
+                            // userInfo: self.config.enableUserTracking
+                            //     ? self.userInfo
+                            // : null,
+                        };
+
+                        sdk.capture(self.name, errorData);
+                    }
+                    return response;
+                })
+                .catch((error) => {
+                    const errorData = {
+                        type: "fetch",
+                        // severity: "critical",
+                        message: error.message,
+                        url: url,
+                        method: method,
+                        status: 0,
+                        timestamp: new Date().toISOString(),
+                        // userInfo: self.config.enableUserTracking
+                        //     ? self.userInfo
+                        //     : null,
+                    };
+
+                    sdk.capture(self.name, errorData);
+                    throw error;
+                });
+        };
+    }
 }
 
 // 性能监控插件
@@ -610,4 +933,5 @@ new MonitoringCore({
 })
     .use(new PerformancePlugin())
     .use(new UserBehaviorPlugin())
-    .use(new EnvironmentInfoPlugin());
+    .use(new EnvironmentInfoPlugin())
+    .use(new ErrorTrackingPlugin());

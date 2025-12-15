@@ -56,7 +56,7 @@ export class EnvironmentInfoPlugin {
             version: browserVersion,
             engine: engine,
         };
-        sdk.capture("environment", {
+        sdk.capture("environmentInfo", {
             type: "browser",
             data
         })
@@ -85,7 +85,7 @@ export class EnvironmentInfoPlugin {
         ) {
             os = "iOS";
         }
-        sdk.capture("environment", {
+        sdk.capture("environmentInfo", {
             type: "os",
             data: {
                 os
@@ -113,7 +113,7 @@ export class EnvironmentInfoPlugin {
         } else {
             device = "桌面";
         }
-        sdk.capture("environment", {
+        sdk.capture("environmentInfo", {
             type: "device",
             data: {
                 device
@@ -125,17 +125,12 @@ export class EnvironmentInfoPlugin {
         if (!navigator.geolocation) return;
 
         navigator.geolocation.getCurrentPosition(
-            (position) => {
+            async (position) => {
                 const { latitude, longitude, accuracy } = position.coords;
-                this.environmentData.geolocation.coordinates = {
-                    latitude,
-                    longitude,
-                    accuracy,
-                };
 
                 // 在实际应用中，这里会调用地理编码服务将坐标转换为地址
-                const { country, city } = this.getLocationFromCoords(latitude, longitude);
-                sdk.capture("environment", {
+                const { country, city } = await this.getLocationFromCoords(latitude, longitude);
+                sdk.capture("environmentInfo", {
                     type: "geolocation",
                     data: {
                         coordinates: {
@@ -162,7 +157,7 @@ export class EnvironmentInfoPlugin {
                         break;
                 }
 
-                sdk.capture("environment", {
+                sdk.capture("environmentInfo", {
                     type: "geolocation",
                     data: {
                         errorMessage
@@ -181,15 +176,20 @@ export class EnvironmentInfoPlugin {
     getLocationFromCoords(latitude, longitude) {
         // 在实际应用中，这里会调用地理编码API
         // 这里我们使用模拟数据
-        setTimeout(() => {
-            this.environmentData.geolocation.country = "中国";
-            this.environmentData.geolocation.city = "北京";
+        return new Promise(() => {
+            // this.environmentData.geolocation.country = "中国";
+            // this.environmentData.geolocation.city = "北京";
 
             // document.getElementById("country").textContent = "中国";
             // document.getElementById("city").textContent = "北京";
 
             // this.logEvent("GEOLOCATION", "位置信息解析完成: 中国, 北京");
-        }, 1000);
+            return {
+                country: "中国",
+                city: "北京"
+            }
+        })
+
     }
 
 }

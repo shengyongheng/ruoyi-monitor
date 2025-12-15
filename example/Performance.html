@@ -1,0 +1,2813 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>前端性能监控系统</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+      }
+
+      body {
+        background: linear-gradient(
+          135deg,
+          #1a1a2e 0%,
+          #16213e 50%,
+          #0f3460 100%
+        );
+        color: #f0f0f0;
+        line-height: 1.6;
+        padding: 20px;
+        min-height: 100vh;
+      }
+
+      .container {
+        max-width: 1600px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 25px;
+      }
+
+      @media (max-width: 1200px) {
+        .container {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .panel {
+        background: rgba(25, 25, 35, 0.9);
+        backdrop-filter: blur(10px);
+        border-radius: 16px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+        padding: 30px;
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+      }
+
+      .panel:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 50px rgba(0, 0, 0, 0.5);
+      }
+
+      h1 {
+        text-align: center;
+        margin-bottom: 40px;
+        color: #4dccbd;
+        grid-column: 1 / -1;
+        font-size: 2.8rem;
+        font-weight: 700;
+        text-shadow: 0 2px 20px rgba(77, 204, 189, 0.4);
+        letter-spacing: 1px;
+      }
+
+      h2 {
+        color: #4dccbd;
+        margin-bottom: 25px;
+        padding-bottom: 15px;
+        border-bottom: 2px solid rgba(77, 204, 189, 0.3);
+        font-size: 1.8rem;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+      }
+
+      h2 i {
+        margin-right: 12px;
+        font-size: 1.5rem;
+      }
+
+      h3 {
+        color: #a5b4fc;
+        margin: 20px 0 12px;
+        font-size: 1.3rem;
+        font-weight: 500;
+      }
+
+      .demo-area {
+        min-height: 350px;
+        padding: 25px;
+        border: 2px dashed rgba(77, 204, 189, 0.4);
+        border-radius: 12px;
+        margin-bottom: 25px;
+        background: rgba(20, 20, 30, 0.6);
+        position: relative;
+      }
+
+      .demo-area::before {
+        content: "测试区域";
+        position: absolute;
+        top: -12px;
+        left: 20px;
+        background: rgba(20, 20, 30, 0.9);
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.9rem;
+        color: #4dccbd;
+      }
+
+      .demo-area button {
+        margin: 8px;
+        padding: 14px 22px;
+        border: none;
+        border-radius: 10px;
+        background: linear-gradient(135deg, #4dccbd 0%, #39a9cb 100%);
+        color: white;
+        cursor: pointer;
+        transition: all 0.3s;
+        font-weight: 600;
+        font-size: 1rem;
+        box-shadow: 0 4px 15px rgba(77, 204, 189, 0.3);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .demo-area button:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px rgba(77, 204, 189, 0.5);
+      }
+
+      .demo-area button i {
+        margin-right: 8px;
+      }
+
+      .demo-area button.danger {
+        background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
+        box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+      }
+
+      .demo-area button.danger:hover {
+        box-shadow: 0 8px 25px rgba(255, 107, 107, 0.5);
+      }
+
+      .demo-area button.warning {
+        background: linear-gradient(135deg, #ffd166 0%, #ffb142 100%);
+        box-shadow: 0 4px 15px rgba(255, 209, 102, 0.3);
+        color: #333;
+      }
+
+      .demo-area button.warning:hover {
+        box-shadow: 0 8px 25px rgba(255, 209, 102, 0.5);
+      }
+
+      .demo-area button.success {
+        background: linear-gradient(135deg, #06d6a0 0%, #05b185 100%);
+        box-shadow: 0 4px 15px rgba(6, 214, 160, 0.3);
+      }
+
+      .demo-area button.success:hover {
+        box-shadow: 0 8px 25px rgba(6, 214, 160, 0.5);
+      }
+
+      .log-area {
+        height: 450px;
+        overflow-y: auto;
+        background: rgba(15, 20, 30, 0.95);
+        color: #f0f0f0;
+        padding: 20px;
+        border-radius: 12px;
+        font-family: "SF Mono", "Monaco", "Inconsolata", monospace;
+        font-size: 14px;
+        margin-bottom: 25px;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+      }
+
+      .log-area::-webkit-scrollbar {
+        width: 8px;
+      }
+
+      .log-area::-webkit-scrollbar-track {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 4px;
+      }
+
+      .log-area::-webkit-scrollbar-thumb {
+        background: rgba(77, 204, 189, 0.5);
+        border-radius: 4px;
+      }
+
+      .control-panel {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 30px;
+        flex-wrap: wrap;
+      }
+
+      .control-panel button {
+        padding: 14px 24px;
+        border: none;
+        border-radius: 10px;
+        cursor: pointer;
+        font-weight: bold;
+        transition: all 0.3s;
+        min-width: 140px;
+        font-size: 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .control-panel button i {
+        margin-right: 8px;
+      }
+
+      .start-btn {
+        background: linear-gradient(135deg, #06d6a0 0%, #05b185 100%);
+        color: white;
+        box-shadow: 0 4px 15px rgba(6, 214, 160, 0.3);
+      }
+
+      .stop-btn {
+        background: linear-gradient(135deg, #ef476f 0%, #d43f63 100%);
+        color: white;
+        box-shadow: 0 4px 15px rgba(239, 71, 111, 0.3);
+      }
+
+      .clear-btn {
+        background: linear-gradient(135deg, #ffd166 0%, #ffb142 100%);
+        color: #333;
+        box-shadow: 0 4px 15px rgba(255, 209, 102, 0.3);
+      }
+
+      .test-btn {
+        background: linear-gradient(135deg, #a5b4fc 0%, #8a94e8 100%);
+        color: white;
+        box-shadow: 0 4px 15px rgba(165, 180, 252, 0.3);
+      }
+
+      .export-btn {
+        background: linear-gradient(135deg, #9d4edd 0%, #7b2cbf 100%);
+        color: white;
+        box-shadow: 0 4px 15px rgba(157, 78, 221, 0.3);
+      }
+
+      .control-panel button:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+      }
+
+      .status-indicator {
+        display: inline-block;
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        margin-right: 12px;
+        vertical-align: middle;
+      }
+
+      .monitoring {
+        background: #06d6a0;
+        box-shadow: 0 0 12px #06d6a0;
+        animation: pulse 1.5s infinite;
+      }
+
+      .stopped {
+        background: #ef476f;
+        box-shadow: 0 0 12px #ef476f;
+      }
+
+      @keyframes pulse {
+        0% {
+          transform: scale(1);
+          opacity: 1;
+        }
+        50% {
+          transform: scale(1.1);
+          opacity: 0.8;
+        }
+        100% {
+          transform: scale(1);
+          opacity: 1;
+        }
+      }
+
+      .metric-item {
+        margin-bottom: 20px;
+        padding: 20px;
+        border-radius: 12px;
+        background: rgba(30, 35, 45, 0.7);
+        border-left: 5px solid #4dccbd;
+        transition: all 0.3s;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .metric-item:hover {
+        background: rgba(40, 45, 55, 0.8);
+        transform: translateX(5px);
+      }
+
+      .metric-item.critical {
+        border-left-color: #ef476f;
+      }
+
+      .metric-item.warning {
+        border-left-color: #ffd166;
+      }
+
+      .metric-item.good {
+        border-left-color: #06d6a0;
+      }
+
+      .metric-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+      }
+
+      .metric-name {
+        color: #f0f0f0;
+        font-weight: 600;
+        font-size: 1.1rem;
+        display: flex;
+        align-items: center;
+      }
+
+      .metric-name i {
+        margin-right: 10px;
+        color: #4dccbd;
+      }
+
+      .metric-value {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #4dccbd;
+        text-shadow: 0 0 10px rgba(77, 204, 189, 0.3);
+      }
+
+      .metric-value.critical {
+        color: #ef476f;
+        text-shadow: 0 0 10px rgba(239, 71, 111, 0.3);
+      }
+
+      .metric-value.warning {
+        color: #ffd166;
+        text-shadow: 0 0 10px rgba(255, 209, 102, 0.3);
+      }
+
+      .metric-value.good {
+        color: #06d6a0;
+        text-shadow: 0 0 10px rgba(6, 214, 160, 0.3);
+      }
+
+      .metric-desc {
+        color: #b0b7c3;
+        font-size: 0.95rem;
+        margin-bottom: 10px;
+      }
+
+      .metric-threshold {
+        font-size: 0.9rem;
+        color: #8a94a6;
+      }
+
+      .metric-bar {
+        height: 8px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 4px;
+        margin-top: 12px;
+        overflow: hidden;
+      }
+
+      .metric-bar-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #4dccbd, #39a9cb);
+        border-radius: 4px;
+        transition: width 1s ease;
+      }
+
+      .metric-bar-fill.critical {
+        background: linear-gradient(90deg, #ef476f, #d43f63);
+      }
+
+      .metric-bar-fill.warning {
+        background: linear-gradient(90deg, #ffd166, #ffb142);
+      }
+
+      .metric-bar-fill.good {
+        background: linear-gradient(90deg, #06d6a0, #05b185);
+      }
+
+      .section-title {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 25px;
+      }
+
+      .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px;
+        margin-top: 30px;
+      }
+
+      @media (max-width: 768px) {
+        .stats-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .stat-card {
+        text-align: center;
+        padding: 25px 20px;
+        background: rgba(30, 35, 45, 0.7);
+        border-radius: 12px;
+        transition: all 0.3s;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+      }
+
+      .stat-card:hover {
+        background: rgba(40, 45, 55, 0.8);
+        transform: translateY(-5px);
+      }
+
+      .stat-value {
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin-bottom: 10px;
+      }
+
+      .stat-critical {
+        color: #ef476f;
+        text-shadow: 0 0 15px rgba(239, 71, 111, 0.5);
+      }
+
+      .stat-warning {
+        color: #ffd166;
+        text-shadow: 0 0 15px rgba(255, 209, 102, 0.5);
+      }
+
+      .stat-good {
+        color: #06d6a0;
+        text-shadow: 0 0 15px rgba(6, 214, 160, 0.5);
+      }
+
+      .stat-label {
+        font-size: 1rem;
+        color: #b0b7c3;
+        margin-bottom: 8px;
+      }
+
+      .stat-desc {
+        font-size: 0.9rem;
+        color: #8a94a6;
+      }
+
+      .chart-container {
+        height: 280px;
+        margin-top: 30px;
+        position: relative;
+        background: rgba(15, 20, 30, 0.7);
+        border-radius: 12px;
+        padding: 15px;
+      }
+
+      .tab-container {
+        margin-top: 30px;
+      }
+
+      .tabs {
+        display: flex;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        margin-bottom: 25px;
+        overflow-x: auto;
+      }
+
+      .tab {
+        padding: 14px 28px;
+        cursor: pointer;
+        border-bottom: 3px solid transparent;
+        color: #b0b7c3;
+        transition: all 0.3s;
+        font-weight: 600;
+        white-space: nowrap;
+        display: flex;
+        align-items: center;
+      }
+
+      .tab i {
+        margin-right: 10px;
+      }
+
+      .tab:hover {
+        color: #4dccbd;
+      }
+
+      .tab.active {
+        border-bottom: 3px solid #4dccbd;
+        color: #4dccbd;
+      }
+
+      .tab-content {
+        display: none;
+      }
+
+      .tab-content.active {
+        display: block;
+      }
+
+      .filter-controls {
+        margin-bottom: 25px;
+        display: flex;
+        gap: 15px;
+        flex-wrap: wrap;
+      }
+
+      .filter-controls select,
+      .filter-controls input {
+        padding: 12px 18px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+        background: rgba(20, 25, 35, 0.8);
+        color: #f0f0f0;
+        min-width: 160px;
+        font-size: 1rem;
+      }
+
+      .filter-controls input {
+        flex-grow: 1;
+      }
+
+      .performance-log-item {
+        margin-bottom: 15px;
+        padding: 18px;
+        border-radius: 10px;
+        background: rgba(30, 35, 45, 0.7);
+        transition: all 0.3s;
+        border-left: 4px solid #4dccbd;
+      }
+
+      .performance-log-item:hover {
+        background: rgba(40, 45, 55, 0.8);
+      }
+
+      .performance-log-time {
+        color: #4dccbd;
+        font-weight: 600;
+        font-size: 0.95rem;
+        margin-bottom: 8px;
+      }
+
+      .performance-log-metric {
+        color: #f0f0f0;
+        font-weight: 500;
+        margin-bottom: 5px;
+        font-size: 1.1rem;
+      }
+
+      .performance-log-details {
+        color: #b0b7c3;
+        font-size: 0.95rem;
+        margin-top: 5px;
+      }
+
+      .waterfall-container {
+        margin-top: 25px;
+      }
+
+      .waterfall-item {
+        margin-bottom: 8px;
+        display: flex;
+        align-items: center;
+        padding: 12px;
+        background: rgba(30, 35, 45, 0.7);
+        border-radius: 8px;
+      }
+
+      .waterfall-url {
+        flex: 1;
+        color: #f0f0f0;
+        font-size: 0.95rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        margin-right: 15px;
+      }
+
+      .waterfall-bar-container {
+        flex: 2;
+        height: 20px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .waterfall-bar {
+        position: absolute;
+        height: 100%;
+        border-radius: 10px;
+      }
+
+      .waterfall-dns {
+        background: rgba(77, 204, 189, 0.7);
+        left: 0%;
+      }
+
+      .waterfall-tcp {
+        background: rgba(165, 180, 252, 0.7);
+      }
+
+      .waterfall-ssl {
+        background: rgba(255, 107, 107, 0.7);
+      }
+
+      .waterfall-ttfb {
+        background: rgba(255, 209, 102, 0.7);
+      }
+
+      .waterfall-download {
+        background: rgba(6, 214, 160, 0.7);
+      }
+
+      .waterfall-duration {
+        margin-left: 15px;
+        color: #4dccbd;
+        font-weight: 600;
+        min-width: 80px;
+        text-align: right;
+      }
+
+      .recommendation-box {
+        margin-top: 25px;
+        padding: 20px;
+        background: rgba(30, 35, 45, 0.7);
+        border-radius: 12px;
+        border-left: 5px solid #ffd166;
+      }
+
+      .recommendation-title {
+        color: #ffd166;
+        font-weight: 600;
+        margin-bottom: 12px;
+        font-size: 1.2rem;
+        display: flex;
+        align-items: center;
+      }
+
+      .recommendation-title i {
+        margin-right: 10px;
+      }
+
+      .recommendation-list {
+        list-style-type: none;
+      }
+
+      .recommendation-item {
+        padding: 10px 0;
+        color: #f0f0f0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      }
+
+      .recommendation-item:last-child {
+        border-bottom: none;
+      }
+
+      .recommendation-item i {
+        color: #06d6a0;
+        margin-right: 10px;
+      }
+
+      .simulate-area {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px;
+        margin-top: 25px;
+      }
+
+      @media (max-width: 768px) {
+        .simulate-area {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .simulate-category {
+        padding: 20px;
+        background: rgba(20, 25, 35, 0.6);
+        border-radius: 12px;
+      }
+
+      .notification-settings {
+        margin-top: 25px;
+        padding: 25px;
+        background: rgba(20, 25, 35, 0.6);
+        border-radius: 12px;
+      }
+
+      .setting-item {
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+
+      .setting-item label {
+        margin-right: 20px;
+        min-width: 200px;
+        color: #f0f0f0;
+        font-weight: 500;
+      }
+
+      .setting-item input[type="checkbox"] {
+        margin-right: 12px;
+        width: 20px;
+        height: 20px;
+        accent-color: #4dccbd;
+      }
+
+      .setting-item input[type="number"],
+      .setting-item input[type="text"] {
+        padding: 10px 15px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        background: rgba(20, 25, 35, 0.8);
+        color: #f0f0f0;
+        width: 150px;
+        font-size: 1rem;
+      }
+
+      .metric-thresholds {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 15px;
+        margin-top: 20px;
+      }
+
+      @media (max-width: 768px) {
+        .metric-thresholds {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .threshold-item {
+        padding: 15px;
+        background: rgba(30, 35, 45, 0.7);
+        border-radius: 10px;
+      }
+
+      .threshold-name {
+        color: #f0f0f0;
+        font-weight: 500;
+        margin-bottom: 8px;
+      }
+
+      .threshold-values {
+        display: flex;
+        justify-content: space-between;
+        color: #b0b7c3;
+        font-size: 0.9rem;
+      }
+
+      .threshold-good {
+        color: #06d6a0;
+      }
+
+      .threshold-warning {
+        color: #ffd166;
+      }
+
+      .threshold-critical {
+        color: #ef476f;
+      }
+
+      .performance-score {
+        text-align: center;
+        padding: 30px;
+        background: linear-gradient(
+          135deg,
+          rgba(30, 35, 45, 0.9),
+          rgba(20, 25, 35, 0.9)
+        );
+        border-radius: 16px;
+        margin-top: 25px;
+        border: 2px solid rgba(77, 204, 189, 0.3);
+      }
+
+      .score-circle {
+        width: 150px;
+        height: 150px;
+        border-radius: 50%;
+        background: conic-gradient(
+          #06d6a0 0% 70%,
+          #ffd166 70% 90%,
+          #ef476f 90% 100%
+        );
+        margin: 0 auto 25px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+      }
+
+      .score-circle::before {
+        content: "";
+        position: absolute;
+        width: 130px;
+        height: 130px;
+        background: rgba(20, 25, 35, 0.9);
+        border-radius: 50%;
+      }
+
+      .score-value {
+        position: relative;
+        font-size: 3rem;
+        font-weight: 700;
+        color: #f0f0f0;
+        z-index: 1;
+      }
+
+      .score-label {
+        color: #4dccbd;
+        font-size: 1.2rem;
+        font-weight: 600;
+        margin-top: 10px;
+      }
+
+      .performance-timeline {
+        margin-top: 25px;
+        position: relative;
+        height: 100px;
+        background: rgba(15, 20, 30, 0.7);
+        border-radius: 10px;
+        overflow: hidden;
+      }
+
+      .timeline-marker {
+        position: absolute;
+        height: 100%;
+        width: 2px;
+        top: 0;
+      }
+
+      .timeline-label {
+        position: absolute;
+        bottom: -25px;
+        transform: translateX(-50%);
+        color: #b0b7c3;
+        font-size: 0.85rem;
+        white-space: nowrap;
+      }
+
+      .timeline-fcp {
+        background: rgba(6, 214, 160, 0.7);
+      }
+
+      .timeline-lcp {
+        background: rgba(77, 204, 189, 0.7);
+      }
+
+      .timeline-fid {
+        background: rgba(165, 180, 252, 0.7);
+      }
+
+      .timeline-dom {
+        background: rgba(255, 107, 107, 0.7);
+      }
+
+      .timeline-load {
+        background: rgba(255, 209, 102, 0.7);
+      }
+
+      .timeline-event {
+        position: absolute;
+        top: 10px;
+        transform: translateX(-50%);
+        background: rgba(30, 35, 45, 0.9);
+        padding: 5px 10px;
+        border-radius: 6px;
+        color: #f0f0f0;
+        font-size: 0.85rem;
+        white-space: nowrap;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .icon {
+        display: inline-block;
+        width: 24px;
+        height: 24px;
+        margin-right: 10px;
+        background-size: contain;
+        background-repeat: no-repeat;
+        vertical-align: middle;
+      }
+
+      .icon-performance {
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%234dccbd'%3E%3Cpath d='M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.29L22 12V6z'/%3E%3C/svg%3E");
+      }
+      .icon-metric {
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%234dccbd'%3E%3Cpath d='M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z'/%3E%3C/svg%3E");
+      }
+      .icon-chart {
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%234dccbd'%3E%3Cpath d='M3.5 18.49l6-6.01 4 4L22 6.92l-1.41-1.41-7.09 7.97-4-4L2 16.99z'/%3E%3C/svg%3E");
+      }
+      .icon-settings {
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%234dccbd'%3E%3Cpath d='M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z'/%3E%3C/svg%3E");
+      }
+      .icon-start {
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'%3E%3Cpath d='M8 5v14l11-7z'/%3E%3C/svg%3E");
+      }
+      .icon-stop {
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'%3E%3Cpath d='M6 6h12v12H6z'/%3E%3C/svg%3E");
+      }
+      .icon-clear {
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23333'%3E%3Cpath d='M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z'/%3E%3C/svg%3E");
+      }
+      .icon-test {
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'%3E%3Cpath d='M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z'/%3E%3C/svg%3E");
+      }
+      .icon-export {
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'%3E%3Cpath d='M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z'/%3E%3C/svg%3E");
+      }
+      .icon-warning {
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ffd166'%3E%3Cpath d='M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z'/%3E%3C/svg%3E");
+      }
+      .icon-success {
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2306d6a0'%3E%3Cpath d='M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z'/%3E%3C/svg%3E");
+      }
+      .icon-error {
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ef476f'%3E%3Cpath d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z'/%3E%3C/svg%3E");
+      }
+    </style>
+  </head>
+  <body>
+    <h1>前端性能监控系统</h1>
+
+    <div class="container">
+      <div class="panel">
+        <div class="section-title">
+          <h2><i class="icon icon-performance"></i> 性能指标监控</h2>
+          <div>
+            <span class="status-indicator stopped" id="statusIndicator"></span>
+            <span id="statusText">监控已停止</span>
+          </div>
+        </div>
+
+        <div class="demo-area" id="demoArea">
+          <h3>性能测试工具</h3>
+          <div>
+            <button class="success" id="simulateLoad">
+              <i class="icon icon-start"></i> 模拟页面加载
+            </button>
+            <button class="warning" id="simulateSlowResource">
+              <i class="icon icon-warning"></i> 模拟慢资源
+            </button>
+            <button class="danger" id="simulateLayoutShift">
+              <i class="icon icon-error"></i> 模拟布局偏移
+            </button>
+            <button class="success" id="simulateInteraction">
+              <i class="icon icon-test"></i> 模拟用户交互
+            </button>
+          </div>
+
+          <h3>自定义性能测试</h3>
+          <div style="margin-top: 15px">
+            <div
+              style="
+                display: flex;
+                gap: 10px;
+                align-items: center;
+                flex-wrap: wrap;
+              "
+            >
+              <select
+                id="customMetric"
+                style="
+                  padding: 10px 15px;
+                  border-radius: 8px;
+                  background: rgba(20, 25, 35, 0.8);
+                  color: white;
+                  border: 1px solid rgba(255, 255, 255, 0.1);
+                "
+              >
+                <option value="fcp">首屏绘制 (FCP)</option>
+                <option value="lcp">最大内容绘制 (LCP)</option>
+                <option value="fid">首次输入延迟 (FID)</option>
+                <option value="cls">累计布局偏移 (CLS)</option>
+                <option value="tti">可交互时间 (TTI)</option>
+              </select>
+              <input
+                type="number"
+                id="customMetricValue"
+                placeholder="数值 (ms)"
+                style="
+                  padding: 10px 15px;
+                  border-radius: 8px;
+                  background: rgba(20, 25, 35, 0.8);
+                  color: white;
+                  border: 1px solid rgba(255, 255, 255, 0.1);
+                  width: 120px;
+                "
+              />
+              <button class="test-btn" id="addCustomMetric">
+                <i class="icon icon-test"></i> 添加测试数据
+              </button>
+            </div>
+          </div>
+
+          <div class="performance-timeline" id="performanceTimeline">
+            <!-- 性能时间线将在这里显示 -->
+          </div>
+        </div>
+
+        <div class="control-panel">
+          <button class="start-btn" id="startMonitoring">
+            <i class="icon icon-start"></i> 开始监控
+          </button>
+          <button class="stop-btn" id="stopMonitoring">
+            <i class="icon icon-stop"></i> 停止监控
+          </button>
+          <button class="clear-btn" id="clearMetrics">
+            <i class="icon icon-clear"></i> 清除数据
+          </button>
+          <button class="export-btn" id="exportData">
+            <i class="icon icon-export"></i> 导出报告
+          </button>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-value stat-good" id="performanceScore">100</div>
+            <div class="stat-label">性能评分</div>
+            <div class="stat-desc">基于 Core Web Vitals</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value stat-good" id="pageLoadTime">0ms</div>
+            <div class="stat-label">页面加载时间</div>
+            <div class="stat-desc">DOMContentLoaded</div>
+          </div>
+        </div>
+
+        <div class="performance-score">
+          <div class="score-circle">
+            <div class="score-value" id="overallScore">0</div>
+          </div>
+          <div class="score-label" id="performanceLevel">未评估</div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2><i class="icon icon-metric"></i> 性能指标详情</h2>
+
+        <div class="filter-controls">
+          <select id="metricTypeFilter">
+            <option value="all">所有指标</option>
+            <option value="loading">加载性能</option>
+            <option value="interactivity">交互性能</option>
+            <option value="visual">视觉稳定性</option>
+            <option value="resource">资源性能</option>
+          </select>
+
+          <select id="metricSeverityFilter">
+            <option value="all">所有状态</option>
+            <option value="good">良好</option>
+            <option value="warning">警告</option>
+            <option value="critical">严重</option>
+          </select>
+
+          <input type="text" id="metricFilter" placeholder="搜索指标..." />
+        </div>
+
+        <div class="log-area" id="metricLogArea">
+          <!-- 性能指标日志将在这里显示 -->
+          <div style="text-align: center; color: #666; padding: 60px 20px">
+            <div style="font-size: 48px; margin-bottom: 20px">📊</div>
+            <div>性能监控已就绪</div>
+            <div style="font-size: 14px; margin-top: 10px">
+              点击"开始监控"按钮启动性能数据收集
+            </div>
+          </div>
+        </div>
+
+        <div class="tab-container">
+          <div class="tabs">
+            <div class="tab active" data-tab="core">
+              <i class="icon icon-chart"></i> Core Web Vitals
+            </div>
+            <div class="tab" data-tab="loading">
+              <i class="icon icon-performance"></i> 加载性能
+            </div>
+            <div class="tab" data-tab="resources">
+              <i class="icon icon-settings"></i> 资源瀑布图
+            </div>
+            <div class="tab" data-tab="recommendations">
+              <i class="icon icon-success"></i> 优化建议
+            </div>
+          </div>
+
+          <div class="tab-content active" id="core-tab">
+            <div class="metric-item good" id="fcpMetric">
+              <div class="metric-header">
+                <div class="metric-name">
+                  <i class="icon icon-success"></i> 首屏绘制 (FCP)
+                </div>
+                <div class="metric-value good" id="fcpValue">--</div>
+              </div>
+              <div class="metric-desc">
+                浏览器首次绘制任何文本、图像、非空白canvas或SVG的时间
+              </div>
+              <div class="metric-threshold">
+                良好: &lt; 1.8s | 需改进: 1.8s-3s | 差: &gt; 3s
+              </div>
+              <div class="metric-bar">
+                <div
+                  class="metric-bar-fill good"
+                  id="fcpBar"
+                  style="width: 0%"
+                ></div>
+              </div>
+            </div>
+
+            <div class="metric-item good" id="lcpMetric">
+              <div class="metric-header">
+                <div class="metric-name">
+                  <i class="icon icon-success"></i> 最大内容绘制 (LCP)
+                </div>
+                <div class="metric-value good" id="lcpValue">--</div>
+              </div>
+              <div class="metric-desc">
+                页面中最大内容元素（如图片或文本块）呈现在屏幕上的时间
+              </div>
+              <div class="metric-threshold">
+                良好: &lt; 2.5s | 需改进: 2.5s-4s | 差: &gt; 4s
+              </div>
+              <div class="metric-bar">
+                <div
+                  class="metric-bar-fill good"
+                  id="lcpBar"
+                  style="width: 0%"
+                ></div>
+              </div>
+            </div>
+
+            <div class="metric-item good" id="fidMetric">
+              <div class="metric-header">
+                <div class="metric-name">
+                  <i class="icon icon-success"></i> 首次输入延迟 (FID)
+                </div>
+                <div class="metric-value good" id="fidValue">--</div>
+              </div>
+              <div class="metric-desc">
+                从用户首次与页面交互到浏览器实际能够响应该交互的时间
+              </div>
+              <div class="metric-threshold">
+                良好: &lt; 100ms | 需改进: 100ms-300ms | 差: &gt; 300ms
+              </div>
+              <div class="metric-bar">
+                <div
+                  class="metric-bar-fill good"
+                  id="fidBar"
+                  style="width: 0%"
+                ></div>
+              </div>
+            </div>
+
+            <div class="metric-item good" id="clsMetric">
+              <div class="metric-header">
+                <div class="metric-name">
+                  <i class="icon icon-success"></i> 累计布局偏移 (CLS)
+                </div>
+                <div class="metric-value good" id="clsValue">--</div>
+              </div>
+              <div class="metric-desc">
+                测量页面视觉稳定性，量化内容意外移动的程度
+              </div>
+              <div class="metric-threshold">
+                良好: &lt; 0.1 | 需改进: 0.1-0.25 | 差: &gt; 0.25
+              </div>
+              <div class="metric-bar">
+                <div
+                  class="metric-bar-fill good"
+                  id="clsBar"
+                  style="width: 0%"
+                ></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="tab-content" id="loading-tab">
+            <div class="chart-container">
+              <canvas id="loadingChart" width="400" height="280"></canvas>
+            </div>
+
+            <div class="metric-thresholds">
+              <div class="threshold-item">
+                <div class="threshold-name">白屏时间</div>
+                <div class="threshold-values">
+                  <span class="threshold-good">&lt; 1s</span>
+                  <span class="threshold-warning">1-3s</span>
+                  <span class="threshold-critical">&gt; 3s</span>
+                </div>
+              </div>
+              <div class="threshold-item">
+                <div class="threshold-name">首屏加载时间</div>
+                <div class="threshold-values">
+                  <span class="threshold-good">&lt; 2.5s</span>
+                  <span class="threshold-warning">2.5-4s</span>
+                  <span class="threshold-critical">&gt; 4s</span>
+                </div>
+              </div>
+              <div class="threshold-item">
+                <div class="threshold-name">TTFB</div>
+                <div class="threshold-values">
+                  <span class="threshold-good">&lt; 200ms</span>
+                  <span class="threshold-warning">200-600ms</span>
+                  <span class="threshold-critical">&gt; 600ms</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="tab-content" id="resources-tab">
+            <div class="waterfall-container" id="waterfallContainer">
+              <!-- 资源瀑布图将在这里显示 -->
+              <div style="text-align: center; color: #666; padding: 40px 20px">
+                <div style="font-size: 36px; margin-bottom: 15px">🌊</div>
+                <div>资源加载瀑布图</div>
+                <div style="font-size: 14px; margin-top: 10px">
+                  开始监控后显示资源加载详情
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="tab-content" id="recommendations-tab">
+            <div class="recommendation-box">
+              <div class="recommendation-title">
+                <i class="icon icon-success"></i> 性能优化建议
+              </div>
+              <ul class="recommendation-list" id="recommendationList">
+                <li class="recommendation-item">
+                  <i class="icon icon-success"></i> 压缩和优化图片资源
+                </li>
+                <li class="recommendation-item">
+                  <i class="icon icon-success"></i> 启用HTTP/2和GZIP压缩
+                </li>
+                <li class="recommendation-item">
+                  <i class="icon icon-success"></i> 使用CDN分发静态资源
+                </li>
+                <li class="recommendation-item">
+                  <i class="icon icon-success"></i> 延迟加载非关键资源
+                </li>
+                <li class="recommendation-item">
+                  <i class="icon icon-success"></i> 减少JavaScript执行时间
+                </li>
+              </ul>
+            </div>
+
+            <div class="notification-settings">
+              <h3>性能告警设置</h3>
+              <div class="setting-item">
+                <label>
+                  <input type="checkbox" id="enablePerformanceAlert" checked />
+                  启用性能告警
+                </label>
+              </div>
+              <div class="setting-item">
+                <label>LCP告警阈值:</label>
+                <input
+                  type="number"
+                  id="lcpThreshold"
+                  value="4000"
+                  min="100"
+                  max="10000"
+                />
+                ms
+              </div>
+              <div class="setting-item">
+                <label>FID告警阈值:</label>
+                <input
+                  type="number"
+                  id="fidThreshold"
+                  value="300"
+                  min="10"
+                  max="1000"
+                />
+                ms
+              </div>
+              <div class="setting-item">
+                <label>CLS告警阈值:</label>
+                <input
+                  type="number"
+                  id="clsThreshold"
+                  value="0.25"
+                  min="0.01"
+                  max="1"
+                  step="0.01"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 用于性能测试的图片 -->
+    <img
+      id="testImage"
+      src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iIzRkY2NiZCIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiNmZmYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIwLjNlbSI+UGVyZjwvdGV4dD48L3N2Zz4="
+      style="display: none"
+    />
+
+    <script>
+      // 性能监控SDK
+      class PerformanceMonitor {
+        constructor() {
+          this.isMonitoring = false;
+          this.metrics = {
+            // Core Web Vitals
+            fcp: null,
+            lcp: null,
+            fid: null,
+            cls: 0,
+
+            // 加载性能
+            ttfb: null,
+            fpt: null, // 白屏时间 First Paint Time
+            tti: null, // 可交互时间 Time to Interactive
+            ready: null, // DOM Ready时间
+            load: null, // 页面完全加载时间
+
+            // 资源性能
+            resources: [],
+          };
+
+          this.metricLogs = [];
+          this.performanceObservers = [];
+          this.layoutShiftEntries = [];
+
+          // 配置
+          this.config = {
+            enablePerformanceAlert: true,
+            lcpThreshold: 4000,
+            fidThreshold: 300,
+            clsThreshold: 0.25,
+            samplingRate: 100,
+          };
+
+          // DOM元素引用
+          this.metricLogArea = document.getElementById("metricLogArea");
+          this.statusIndicator = document.getElementById("statusIndicator");
+          this.statusText = document.getElementById("statusText");
+          this.performanceTimeline = document.getElementById(
+            "performanceTimeline"
+          );
+          this.waterfallContainer =
+            document.getElementById("waterfallContainer");
+          this.recommendationList =
+            document.getElementById("recommendationList");
+
+          // 指标显示元素
+          this.performanceScore = document.getElementById("performanceScore");
+          this.overallScore = document.getElementById("overallScore");
+          this.performanceLevel = document.getElementById("performanceLevel");
+          this.pageLoadTime = document.getElementById("pageLoadTime");
+
+          // Core Web Vitals 显示元素
+          this.fcpValue = document.getElementById("fcpValue");
+          this.fcpBar = document.getElementById("fcpBar");
+          this.lcpValue = document.getElementById("lcpValue");
+          this.lcpBar = document.getElementById("lcpBar");
+          this.fidValue = document.getElementById("fidValue");
+          this.fidBar = document.getElementById("fidBar");
+          this.clsValue = document.getElementById("clsValue");
+          this.clsBar = document.getElementById("clsBar");
+
+          // 初始化
+          this.initEventListeners();
+          this.initSettings();
+          this.initCharts();
+
+          // 绑定按钮事件
+          this.bindControlEvents();
+          this.bindSimulationEvents();
+
+          // 记录页面加载开始时间
+          this.pageLoadStart = performance.now();
+
+          // 显示初始化信息
+          this.logPerformanceEvent("性能监控SDK已初始化", "info");
+        }
+
+        // 初始化事件监听器
+        initEventListeners() {
+          // 配置变更监听
+          document
+            .getElementById("enablePerformanceAlert")
+            .addEventListener("change", (e) => {
+              this.config.enablePerformanceAlert = e.target.checked;
+            });
+
+          document
+            .getElementById("lcpThreshold")
+            .addEventListener("input", (e) => {
+              this.config.lcpThreshold = parseInt(e.target.value);
+            });
+
+          document
+            .getElementById("fidThreshold")
+            .addEventListener("input", (e) => {
+              this.config.fidThreshold = parseInt(e.target.value);
+            });
+
+          document
+            .getElementById("clsThreshold")
+            .addEventListener("input", (e) => {
+              this.config.clsThreshold = parseFloat(e.target.value);
+            });
+
+          // 过滤监听
+          document
+            .getElementById("metricTypeFilter")
+            .addEventListener("change", () => this.filterMetrics());
+          document
+            .getElementById("metricSeverityFilter")
+            .addEventListener("change", () => this.filterMetrics());
+          document
+            .getElementById("metricFilter")
+            .addEventListener("input", () => this.filterMetrics());
+
+          // 标签页切换
+          this.setupTabs();
+        }
+
+        // 初始化设置
+        initSettings() {
+          // 设置默认值
+          document.getElementById("enablePerformanceAlert").checked =
+            this.config.enablePerformanceAlert;
+          document.getElementById("lcpThreshold").value =
+            this.config.lcpThreshold;
+          document.getElementById("fidThreshold").value =
+            this.config.fidThreshold;
+          document.getElementById("clsThreshold").value =
+            this.config.clsThreshold;
+        }
+
+        // 绑定控制事件
+        bindControlEvents() {
+          document
+            .getElementById("startMonitoring")
+            .addEventListener("click", () => this.startMonitoring());
+          document
+            .getElementById("stopMonitoring")
+            .addEventListener("click", () => this.stopMonitoring());
+          document
+            .getElementById("clearMetrics")
+            .addEventListener("click", () => this.clearMetrics());
+          document
+            .getElementById("exportData")
+            .addEventListener("click", () => this.exportData());
+          document
+            .getElementById("addCustomMetric")
+            .addEventListener("click", () => this.addCustomMetric());
+        }
+
+        // 绑定模拟事件
+        bindSimulationEvents() {
+          document
+            .getElementById("simulateLoad")
+            .addEventListener("click", () => this.simulatePageLoad());
+          document
+            .getElementById("simulateSlowResource")
+            .addEventListener("click", () => this.simulateSlowResource());
+          document
+            .getElementById("simulateLayoutShift")
+            .addEventListener("click", () => this.simulateLayoutShift());
+          document
+            .getElementById("simulateInteraction")
+            .addEventListener("click", () => this.simulateInteraction());
+        }
+
+        // 开始监控
+        startMonitoring() {
+          if (this.isMonitoring) return;
+
+          this.isMonitoring = true;
+          this.updateStatus();
+          this.logPerformanceEvent("性能监控已启动", "info");
+
+          // 开始收集性能指标
+          this.collectPerformanceMetrics();
+
+          // 监听页面性能事件
+          this.setupPerformanceObservers();
+
+          // 收集初始资源性能数据
+          this.collectResourceTiming();
+
+          // 开始性能评分计算
+          this.startPerformanceScoring();
+
+          // 模拟一些初始数据用于演示
+          setTimeout(() => {
+            this.simulateInitialMetrics();
+          }, 500);
+        }
+
+        // 停止监控
+        stopMonitoring() {
+          if (!this.isMonitoring) return;
+
+          this.isMonitoring = false;
+          this.updateStatus();
+          this.logPerformanceEvent("性能监控已停止", "warning");
+
+          // 断开所有PerformanceObserver
+          this.performanceObservers.forEach((observer) => {
+            if (observer) observer.disconnect();
+          });
+          this.performanceObservers = [];
+
+          // 停止性能评分计算
+          clearInterval(this.scoringInterval);
+        }
+
+        // 更新状态显示
+        updateStatus() {
+          if (this.isMonitoring) {
+            this.statusIndicator.className = "status-indicator monitoring";
+            this.statusText.textContent = "监控进行中";
+          } else {
+            this.statusIndicator.className = "status-indicator stopped";
+            this.statusText.textContent = "监控已停止";
+          }
+        }
+
+        // 收集性能指标
+        collectPerformanceMetrics() {
+          // 使用Performance Timeline API收集指标
+          if (window.performance && window.performance.timing) {
+            const timing = window.performance.timing;
+
+            // TTFB (Time to First Byte)
+            this.metrics.ttfb = timing.responseStart - timing.requestStart;
+
+            // 白屏时间 (First Paint Time)
+            // 实际中需要通过PerformanceObserver获取FP/FCP
+            // 这里使用一个近似值
+            this.metrics.fpt = timing.responseEnd - timing.navigationStart;
+
+            // DOM Ready时间
+            this.metrics.ready =
+              timing.domContentLoadedEventEnd - timing.navigationStart;
+
+            // 页面完全加载时间
+            this.metrics.load = timing.loadEventEnd - timing.navigationStart;
+
+            // 更新页面加载时间显示
+            this.pageLoadTime.textContent = `${this.metrics.ready}ms`;
+
+            this.logPerformanceMetric("TTFB", this.metrics.ttfb, "loading");
+            this.logPerformanceMetric("白屏时间", this.metrics.fpt, "loading");
+            this.logPerformanceMetric(
+              "DOM Ready",
+              this.metrics.ready,
+              "loading"
+            );
+            this.logPerformanceMetric(
+              "页面完全加载",
+              this.metrics.load,
+              "loading"
+            );
+          }
+
+          // 使用PerformanceNavigationTiming API (如果可用)
+          if (window.performance && window.performance.getEntriesByType) {
+            const navigationEntries =
+              performance.getEntriesByType("navigation");
+            if (navigationEntries.length > 0) {
+              const navigation = navigationEntries[0];
+
+              // 更精确的TTFB
+              this.metrics.ttfb = navigation.responseStart;
+
+              this.logPerformanceMetric(
+                "TTFB (Navigation Timing)",
+                this.metrics.ttfb,
+                "loading"
+              );
+            }
+          }
+        }
+
+        // 设置PerformanceObserver
+        setupPerformanceObservers() {
+          // 观察FCP (First Contentful Paint)
+          if ("PerformanceObserver" in window) {
+            try {
+              // FCP观察者
+              const fcpObserver = new PerformanceObserver((entryList) => {
+                const entries = entryList.getEntries();
+                for (const entry of entries) {
+                  if (entry.name === "first-contentful-paint") {
+                    this.metrics.fcp = entry.startTime;
+                    this.updateMetricDisplay("fcp", this.metrics.fcp);
+                    this.logPerformanceMetric("FCP", this.metrics.fcp, "core");
+                  }
+                }
+              });
+
+              fcpObserver.observe({ entryTypes: ["paint"] });
+              this.performanceObservers.push(fcpObserver);
+
+              // LCP观察者
+              const lcpObserver = new PerformanceObserver((entryList) => {
+                const entries = entryList.getEntries();
+                const lastEntry = entries[entries.length - 1];
+                this.metrics.lcp = lastEntry.startTime;
+                this.updateMetricDisplay("lcp", this.metrics.lcp);
+                this.logPerformanceMetric("LCP", this.metrics.lcp, "core");
+              });
+
+              lcpObserver.observe({ entryTypes: ["largest-contentful-paint"] });
+              this.performanceObservers.push(lcpObserver);
+
+              // FID观察者
+              const fidObserver = new PerformanceObserver((entryList) => {
+                const entries = entryList.getEntries();
+                for (const entry of entries) {
+                  this.metrics.fid = entry.processingStart - entry.startTime;
+                  this.updateMetricDisplay("fid", this.metrics.fid);
+                  this.logPerformanceMetric(
+                    "FID",
+                    this.metrics.fid,
+                    "interactivity"
+                  );
+                }
+              });
+
+              fidObserver.observe({ entryTypes: ["first-input"] });
+              this.performanceObservers.push(fidObserver);
+
+              // CLS观察者
+              const clsObserver = new PerformanceObserver((entryList) => {
+                for (const entry of entryList.getEntries()) {
+                  if (!entry.hadRecentInput) {
+                    this.layoutShiftEntries.push(entry);
+                    this.metrics.cls = this.calculateCLS();
+                    this.updateMetricDisplay("cls", this.metrics.cls);
+                    this.logPerformanceMetric(
+                      "CLS",
+                      this.metrics.cls,
+                      "visual"
+                    );
+                  }
+                }
+              });
+
+              clsObserver.observe({ entryTypes: ["layout-shift"] });
+              this.performanceObservers.push(clsObserver);
+
+              // 资源观察者
+              const resourceObserver = new PerformanceObserver((entryList) => {
+                const entries = entryList.getEntries();
+                for (const entry of entries) {
+                  this.processResourceEntry(entry);
+                }
+              });
+
+              resourceObserver.observe({ entryTypes: ["resource"] });
+              this.performanceObservers.push(resourceObserver);
+            } catch (e) {
+              console.error("PerformanceObserver error:", e);
+            }
+          }
+        }
+
+        // 计算CLS
+        calculateCLS() {
+          return this.layoutShiftEntries.reduce(
+            (sum, entry) => sum + entry.value,
+            0
+          );
+        }
+
+        // 处理资源条目
+        processResourceEntry(entry) {
+          const resource = {
+            name: entry.name,
+            duration: entry.duration,
+            startTime: entry.startTime,
+            initiatorType: entry.initiatorType,
+            size: entry.transferSize || 0,
+            timing: {
+              dns: entry.domainLookupEnd - entry.domainLookupStart,
+              tcp: entry.connectEnd - entry.connectStart,
+              ssl:
+                entry.secureConnectionStart > 0
+                  ? entry.connectEnd - entry.secureConnectionStart
+                  : 0,
+              ttfb: entry.responseStart - entry.requestStart,
+              download: entry.responseEnd - entry.responseStart,
+            },
+          };
+
+          this.metrics.resources.push(resource);
+          this.updateWaterfallChart();
+          this.logPerformanceMetric(
+            `资源加载: ${this.getResourceName(resource.name)}`,
+            resource.duration,
+            "resource"
+          );
+        }
+
+        // 获取资源名称
+        getResourceName(fullName) {
+          const urlParts = fullName.split("/");
+          return urlParts[urlParts.length - 1] || fullName;
+        }
+
+        // 收集资源性能数据
+        collectResourceTiming() {
+          if (window.performance && window.performance.getEntriesByType) {
+            const resources = performance.getEntriesByType("resource");
+            for (const resource of resources) {
+              this.processResourceEntry(resource);
+            }
+          }
+        }
+
+        // 更新瀑布图
+        updateWaterfallChart() {
+          // 清空容器
+          this.waterfallContainer.innerHTML = "";
+
+          // 只显示前20个资源
+          const displayResources = this.metrics.resources.slice(0, 20);
+
+          if (displayResources.length === 0) {
+            this.waterfallContainer.innerHTML = `
+                        <div style="text-align: center; color: #666; padding: 40px 20px;">
+                            <div style="font-size: 36px; margin-bottom: 15px;">🌊</div>
+                            <div>暂无资源加载数据</div>
+                        </div>
+                    `;
+            return;
+          }
+
+          // 找到最大时间用于比例计算
+          const maxTime = Math.max(
+            ...displayResources.map((r) => r.startTime + r.duration)
+          );
+
+          displayResources.forEach((resource) => {
+            const resourceItem = document.createElement("div");
+            resourceItem.className = "waterfall-item";
+
+            // 计算各个阶段的比例
+            const totalDuration = resource.duration;
+            const startPercent = (resource.startTime / maxTime) * 100;
+            const durationPercent = (totalDuration / maxTime) * 100;
+
+            // 计算各个阶段的时间比例
+            const dnsPercent = (resource.timing.dns / totalDuration) * 100;
+            const tcpPercent = (resource.timing.tcp / totalDuration) * 100;
+            const sslPercent = (resource.timing.ssl / totalDuration) * 100;
+            const ttfbPercent = (resource.timing.ttfb / totalDuration) * 100;
+            const downloadPercent =
+              (resource.timing.download / totalDuration) * 100;
+
+            resourceItem.innerHTML = `
+                        <div class="waterfall-url" title="${resource.name}">
+                            ${this.getResourceName(resource.name)} (${
+              resource.initiatorType
+            })
+                        </div>
+                        <div class="waterfall-bar-container">
+                            <div class="waterfall-bar waterfall-dns" style="left: 0%; width: ${dnsPercent}%"></div>
+                            <div class="waterfall-bar waterfall-tcp" style="left: ${dnsPercent}%; width: ${tcpPercent}%"></div>
+                            <div class="waterfall-bar waterfall-ssl" style="left: ${
+                              dnsPercent + tcpPercent
+                            }%; width: ${sslPercent}%"></div>
+                            <div class="waterfall-bar waterfall-ttfb" style="left: ${
+                              dnsPercent + tcpPercent + sslPercent
+                            }%; width: ${ttfbPercent}%"></div>
+                            <div class="waterfall-bar waterfall-download" style="left: ${
+                              dnsPercent + tcpPercent + sslPercent + ttfbPercent
+                            }%; width: ${downloadPercent}%"></div>
+                        </div>
+                        <div class="waterfall-duration">${Math.round(
+                          resource.duration
+                        )}ms</div>
+                    `;
+
+            this.waterfallContainer.appendChild(resourceItem);
+          });
+        }
+
+        // 开始性能评分计算
+        startPerformanceScoring() {
+          // 每2秒更新一次性能评分
+          this.scoringInterval = setInterval(() => {
+            this.calculatePerformanceScore();
+          }, 2000);
+        }
+
+        // 计算性能评分
+        calculatePerformanceScore() {
+          let score = 100;
+          let issues = [];
+
+          // 基于Core Web Vitals计算评分
+          if (this.metrics.fcp !== null) {
+            if (this.metrics.fcp > 3000) {
+              score -= 20;
+              issues.push("FCP超过3秒");
+            } else if (this.metrics.fcp > 1800) {
+              score -= 10;
+              issues.push("FCP超过1.8秒");
+            }
+          }
+
+          if (this.metrics.lcp !== null) {
+            if (this.metrics.lcp > 4000) {
+              score -= 25;
+              issues.push("LCP超过4秒");
+            } else if (this.metrics.lcp > 2500) {
+              score -= 15;
+              issues.push("LCP超过2.5秒");
+            }
+          }
+
+          if (this.metrics.fid !== null) {
+            if (this.metrics.fid > 300) {
+              score -= 20;
+              issues.push("FID超过300ms");
+            } else if (this.metrics.fid > 100) {
+              score -= 10;
+              issues.push("FID超过100ms");
+            }
+          }
+
+          if (this.metrics.cls > 0.25) {
+            score -= 20;
+            issues.push("CLS超过0.25");
+          } else if (this.metrics.cls > 0.1) {
+            score -= 10;
+            issues.push("CLS超过0.1");
+          }
+
+          // 确保评分在0-100之间
+          score = Math.max(0, Math.min(100, score));
+
+          // 更新评分显示
+          this.performanceScore.textContent = score;
+          this.overallScore.textContent = score;
+
+          // 确定性能等级
+          let level = "优秀";
+          let levelClass = "good";
+
+          if (score >= 90) {
+            level = "优秀";
+            levelClass = "good";
+          } else if (score >= 70) {
+            level = "良好";
+            levelClass = "good";
+          } else if (score >= 50) {
+            level = "需改进";
+            levelClass = "warning";
+          } else {
+            level = "差";
+            levelClass = "critical";
+          }
+
+          this.performanceLevel.textContent = level;
+          this.performanceLevel.className = `score-label ${levelClass}`;
+
+          // 更新建议
+          this.updateRecommendations(issues);
+
+          // 检查是否需要告警
+          this.checkPerformanceAlerts();
+        }
+
+        // 更新优化建议
+        updateRecommendations(issues) {
+          // 清空当前建议
+          this.recommendationList.innerHTML = "";
+
+          // 默认建议
+          const defaultRecommendations = [
+            "压缩和优化图片资源",
+            "启用HTTP/2和GZIP压缩",
+            "使用CDN分发静态资源",
+            "延迟加载非关键资源",
+            "减少JavaScript执行时间",
+          ];
+
+          // 基于问题添加特定建议
+          const specificRecommendations = [];
+
+          if (this.metrics.fcp !== null && this.metrics.fcp > 1800) {
+            specificRecommendations.push("优化首屏渲染，减少关键资源");
+          }
+
+          if (this.metrics.lcp !== null && this.metrics.lcp > 2500) {
+            specificRecommendations.push(
+              "优化最大内容元素加载，使用尺寸适当的图片"
+            );
+          }
+
+          if (this.metrics.fid !== null && this.metrics.fid > 100) {
+            specificRecommendations.push("减少主线程工作，拆分长任务");
+          }
+
+          if (this.metrics.cls > 0.1) {
+            specificRecommendations.push(
+              "为图片和广告预留空间，避免动态插入内容"
+            );
+          }
+
+          // 合并建议
+          const allRecommendations = [
+            ...specificRecommendations,
+            ...defaultRecommendations,
+          ];
+
+          // 显示建议
+          allRecommendations.slice(0, 8).forEach((recommendation) => {
+            const li = document.createElement("li");
+            li.className = "recommendation-item";
+            li.innerHTML = `<i class="icon icon-success"></i> ${recommendation}`;
+            this.recommendationList.appendChild(li);
+          });
+        }
+
+        // 检查性能告警
+        checkPerformanceAlerts() {
+          if (!this.config.enablePerformanceAlert) return;
+
+          const alerts = [];
+
+          if (
+            this.metrics.lcp !== null &&
+            this.metrics.lcp > this.config.lcpThreshold
+          ) {
+            alerts.push(
+              `LCP超过阈值: ${this.metrics.lcp}ms > ${this.config.lcpThreshold}ms`
+            );
+          }
+
+          if (
+            this.metrics.fid !== null &&
+            this.metrics.fid > this.config.fidThreshold
+          ) {
+            alerts.push(
+              `FID超过阈值: ${this.metrics.fid}ms > ${this.config.fidThreshold}ms`
+            );
+          }
+
+          if (this.metrics.cls > this.config.clsThreshold) {
+            alerts.push(
+              `CLS超过阈值: ${this.metrics.cls} > ${this.config.clsThreshold}`
+            );
+          }
+
+          if (alerts.length > 0) {
+            this.showPerformanceAlert(alerts.join(", "));
+          }
+        }
+
+        // 显示性能告警
+        showPerformanceAlert(message) {
+          // 在实际应用中，这里会发送通知或记录到监控系统
+          console.warn("[PerformanceMonitor] 性能告警:", message);
+
+          // 显示视觉反馈
+          const alertElement = document.createElement("div");
+          alertElement.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    padding: 15px 20px;
+                    border-radius: 10px;
+                    background: rgba(239, 71, 111, 0.9);
+                    color: white;
+                    font-weight: bold;
+                    box-shadow: 0 5px 20px rgba(239, 71, 111, 0.5);
+                    z-index: 1000;
+                    animation: slideIn 0.5s, fadeOut 0.5s 4.5s forwards;
+                    max-width: 400px;
+                `;
+
+          alertElement.textContent = `性能告警: ${message}`;
+
+          document.body.appendChild(alertElement);
+
+          // 5秒后移除
+          setTimeout(() => {
+            if (alertElement.parentNode) {
+              alertElement.parentNode.removeChild(alertElement);
+            }
+          }, 5000);
+        }
+
+        // 更新指标显示
+        updateMetricDisplay(metricName, value) {
+          let element, barElement, severity;
+
+          switch (metricName) {
+            case "fcp":
+              element = this.fcpValue;
+              barElement = this.fcpBar;
+              severity = this.getFcpSeverity(value);
+              element.textContent = `${Math.round(value)}ms`;
+              break;
+            case "lcp":
+              element = this.lcpValue;
+              barElement = this.lcpBar;
+              severity = this.getLcpSeverity(value);
+              element.textContent = `${Math.round(value)}ms`;
+              break;
+            case "fid":
+              element = this.fidValue;
+              barElement = this.fidBar;
+              severity = this.getFidSeverity(value);
+              element.textContent = `${Math.round(value)}ms`;
+              break;
+            case "cls":
+              element = this.clsValue;
+              barElement = this.clsBar;
+              severity = this.getClsSeverity(value);
+              element.textContent = value.toFixed(3);
+              break;
+          }
+
+          if (element && barElement && severity) {
+            // 更新值和样式
+            element.className = `metric-value ${severity.class}`;
+            barElement.className = `metric-bar-fill ${severity.class}`;
+
+            // 更新进度条
+            let percentage = 0;
+            switch (metricName) {
+              case "fcp":
+                percentage = Math.min(100, (value / 3000) * 100);
+                break;
+              case "lcp":
+                percentage = Math.min(100, (value / 4000) * 100);
+                break;
+              case "fid":
+                percentage = Math.min(100, (value / 300) * 100);
+                break;
+              case "cls":
+                percentage = Math.min(100, (value / 0.25) * 100);
+                break;
+            }
+
+            barElement.style.width = `${percentage}%`;
+
+            // 更新指标卡片样式
+            const metricCard = document.getElementById(`${metricName}Metric`);
+            if (metricCard) {
+              metricCard.className = `metric-item ${severity.class}`;
+            }
+          }
+        }
+
+        // 获取FCP严重程度
+        getFcpSeverity(value) {
+          if (value <= 1800) return { class: "good", text: "良好" };
+          if (value <= 3000) return { class: "warning", text: "需改进" };
+          return { class: "critical", text: "差" };
+        }
+
+        // 获取LCP严重程度
+        getLcpSeverity(value) {
+          if (value <= 2500) return { class: "good", text: "良好" };
+          if (value <= 4000) return { class: "warning", text: "需改进" };
+          return { class: "critical", text: "差" };
+        }
+
+        // 获取FID严重程度
+        getFidSeverity(value) {
+          if (value <= 100) return { class: "good", text: "良好" };
+          if (value <= 300) return { class: "warning", text: "需改进" };
+          return { class: "critical", text: "差" };
+        }
+
+        // 获取CLS严重程度
+        getClsSeverity(value) {
+          if (value <= 0.1) return { class: "good", text: "良好" };
+          if (value <= 0.25) return { class: "warning", text: "需改进" };
+          return { class: "critical", text: "差" };
+        }
+
+        // 记录性能事件
+        logPerformanceEvent(message, type = "info") {
+          const timestamp = new Date().toLocaleTimeString();
+          const logEntry = {
+            timestamp,
+            message,
+            type,
+          };
+
+          this.metricLogs.push(logEntry);
+          this.displayPerformanceLog(logEntry);
+        }
+
+        // 记录性能指标
+        logPerformanceMetric(metricName, value, category) {
+          const timestamp = new Date().toLocaleTimeString();
+
+          // 确定严重程度
+          let severity = "good";
+          let severityClass = "good";
+
+          if (category === "core") {
+            if (metricName === "FCP") {
+              const fcpSeverity = this.getFcpSeverity(value);
+              severity = fcpSeverity.text;
+              severityClass = fcpSeverity.class;
+            } else if (metricName === "LCP") {
+              const lcpSeverity = this.getLcpSeverity(value);
+              severity = lcpSeverity.text;
+              severityClass = lcpSeverity.class;
+            } else if (metricName === "FID") {
+              const fidSeverity = this.getFidSeverity(value);
+              severity = fidSeverity.text;
+              severityClass = fidSeverity.class;
+            } else if (metricName === "CLS") {
+              const clsSeverity = this.getClsSeverity(value);
+              severity = clsSeverity.text;
+              severityClass = clsSeverity.class;
+            }
+          }
+
+          const logEntry = {
+            timestamp,
+            metricName,
+            value,
+            category,
+            severity,
+            severityClass,
+          };
+
+          this.metricLogs.push(logEntry);
+          this.displayPerformanceMetric(logEntry);
+        }
+
+        // 显示性能日志
+        displayPerformanceLog(logEntry) {
+          // 如果日志区域有初始提示，清除它
+          const initialMessage = this.metricLogArea.querySelector(
+            'div[style*="text-align: center"]'
+          );
+          if (initialMessage) {
+            this.metricLogArea.innerHTML = "";
+          }
+
+          const logItem = document.createElement("div");
+          logItem.className = "performance-log-item";
+
+          // 根据类型设置样式
+          let typeIcon = "📝";
+          if (logEntry.type === "warning") typeIcon = "⚠️";
+          if (logEntry.type === "error") typeIcon = "❌";
+          if (logEntry.type === "success") typeIcon = "✅";
+
+          logItem.innerHTML = `
+                    <div class="performance-log-time">${logEntry.timestamp} ${typeIcon}</div>
+                    <div class="performance-log-metric">${logEntry.message}</div>
+                `;
+
+          // 添加到日志区域顶部
+          this.metricLogArea.insertBefore(
+            logItem,
+            this.metricLogArea.firstChild
+          );
+
+          // 限制显示的日志数量
+          const maxDisplayedLogs = 30;
+          const logItems = this.metricLogArea.querySelectorAll(
+            ".performance-log-item"
+          );
+          if (logItems.length > maxDisplayedLogs) {
+            for (let i = maxDisplayedLogs; i < logItems.length; i++) {
+              logItems[i].remove();
+            }
+          }
+        }
+
+        // 显示性能指标
+        displayPerformanceMetric(logEntry) {
+          // 如果日志区域有初始提示，清除它
+          const initialMessage = this.metricLogArea.querySelector(
+            'div[style*="text-align: center"]'
+          );
+          if (initialMessage) {
+            this.metricLogArea.innerHTML = "";
+          }
+
+          const logItem = document.createElement("div");
+          logItem.className = "performance-log-item";
+
+          // 根据严重程度设置边框颜色
+          if (logEntry.severityClass === "warning") {
+            logItem.style.borderLeftColor = "#ffd166";
+          } else if (logEntry.severityClass === "critical") {
+            logItem.style.borderLeftColor = "#ef476f";
+          }
+
+          // 格式化值
+          let formattedValue = logEntry.value;
+          if (typeof logEntry.value === "number") {
+            if (logEntry.category === "visual") {
+              formattedValue = logEntry.value.toFixed(3);
+            } else {
+              formattedValue = `${Math.round(logEntry.value)}ms`;
+            }
+          }
+
+          logItem.innerHTML = `
+                    <div class="performance-log-time">${
+                      logEntry.timestamp
+                    }</div>
+                    <div class="performance-log-metric">
+                        ${logEntry.metricName}: <strong style="color: ${
+            logEntry.severityClass === "good"
+              ? "#06d6a0"
+              : logEntry.severityClass === "warning"
+              ? "#ffd166"
+              : "#ef476f"
+          }">${formattedValue}</strong>
+                        <span style="margin-left: 10px; padding: 2px 8px; border-radius: 10px; background: ${
+                          logEntry.severityClass === "good"
+                            ? "rgba(6, 214, 160, 0.2)"
+                            : logEntry.severityClass === "warning"
+                            ? "rgba(255, 209, 102, 0.2)"
+                            : "rgba(239, 71, 111, 0.2)"
+                        }; color: ${
+            logEntry.severityClass === "good"
+              ? "#06d6a0"
+              : logEntry.severityClass === "warning"
+              ? "#ffd166"
+              : "#ef476f"
+          }; font-size: 0.8rem;">
+                            ${logEntry.severity}
+                        </span>
+                    </div>
+                    <div class="performance-log-details">类别: ${this.getCategoryName(
+                      logEntry.category
+                    )}</div>
+                `;
+
+          // 添加到日志区域顶部
+          this.metricLogArea.insertBefore(
+            logItem,
+            this.metricLogArea.firstChild
+          );
+
+          // 限制显示的日志数量
+          const maxDisplayedLogs = 30;
+          const logItems = this.metricLogArea.querySelectorAll(
+            ".performance-log-item"
+          );
+          if (logItems.length > maxDisplayedLogs) {
+            for (let i = maxDisplayedLogs; i < logItems.length; i++) {
+              logItems[i].remove();
+            }
+          }
+        }
+
+        // 获取类别名称
+        getCategoryName(category) {
+          const categories = {
+            core: "Core Web Vitals",
+            loading: "加载性能",
+            interactivity: "交互性能",
+            visual: "视觉稳定性",
+            resource: "资源性能",
+          };
+
+          return categories[category] || category;
+        }
+
+        // 过滤指标
+        filterMetrics() {
+          const typeFilter = document.getElementById("metricTypeFilter").value;
+          const severityFilter = document.getElementById(
+            "metricSeverityFilter"
+          ).value;
+          const textFilter = document
+            .getElementById("metricFilter")
+            .value.toLowerCase();
+
+          const logItems = this.metricLogArea.querySelectorAll(
+            ".performance-log-item"
+          );
+
+          logItems.forEach((item) => {
+            let show = true;
+
+            // 类型过滤
+            if (typeFilter !== "all") {
+              const detailsText = item.querySelector(
+                ".performance-log-details"
+              ).textContent;
+              if (!detailsText.includes(this.getCategoryName(typeFilter))) {
+                show = false;
+              }
+            }
+
+            // 严重程度过滤
+            if (show && severityFilter !== "all") {
+              const severityText = item.querySelector(
+                ".performance-log-metric span"
+              ).textContent;
+              if (!severityText.includes(severityFilter)) {
+                show = false;
+              }
+            }
+
+            // 文本过滤
+            if (show && textFilter) {
+              const metricText = item
+                .querySelector(".performance-log-metric")
+                .textContent.toLowerCase();
+              if (!metricText.includes(textFilter)) {
+                show = false;
+              }
+            }
+
+            item.style.display = show ? "block" : "none";
+          });
+        }
+
+        // 设置标签页
+        setupTabs() {
+          const tabs = document.querySelectorAll(".tab");
+          const tabContents = document.querySelectorAll(".tab-content");
+
+          tabs.forEach((tab) => {
+            tab.addEventListener("click", () => {
+              // 移除所有active类
+              tabs.forEach((t) => t.classList.remove("active"));
+              tabContents.forEach((c) => c.classList.remove("active"));
+
+              // 添加active类到当前标签
+              tab.classList.add("active");
+              document
+                .getElementById(`${tab.dataset.tab}-tab`)
+                .classList.add("active");
+
+              // 更新图表大小
+              setTimeout(() => {
+                if (window.loadingChart) {
+                  window.loadingChart.resize();
+                }
+              }, 100);
+            });
+          });
+        }
+
+        // 初始化图表
+        initCharts() {
+          // 加载性能图表
+          const loadingCtx = document
+            .getElementById("loadingChart")
+            .getContext("2d");
+          window.loadingChart = new Chart(loadingCtx, {
+            type: "bar",
+            data: {
+              labels: ["白屏时间", "首屏时间", "TTFB", "DOM Ready", "完全加载"],
+              datasets: [
+                {
+                  label: "时间 (ms)",
+                  data: [0, 0, 0, 0, 0],
+                  backgroundColor: [
+                    "rgba(77, 204, 189, 0.7)",
+                    "rgba(165, 180, 252, 0.7)",
+                    "rgba(255, 107, 107, 0.7)",
+                    "rgba(255, 209, 102, 0.7)",
+                    "rgba(6, 214, 160, 0.7)",
+                  ],
+                  borderColor: [
+                    "#4dccbd",
+                    "#a5b4fc",
+                    "#ff6b6b",
+                    "#ffd166",
+                    "#06d6a0",
+                  ],
+                  borderWidth: 1,
+                },
+              ],
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              scales: {
+                y: {
+                  beginAtZero: true,
+                  grid: {
+                    color: "rgba(255, 255, 255, 0.1)",
+                  },
+                  ticks: {
+                    color: "#b0b7c3",
+                    callback: function (value) {
+                      return value + "ms";
+                    },
+                  },
+                },
+                x: {
+                  grid: {
+                    color: "rgba(255, 255, 255, 0.1)",
+                  },
+                  ticks: {
+                    color: "#b0b7c3",
+                  },
+                },
+              },
+              plugins: {
+                legend: {
+                  display: false,
+                },
+              },
+            },
+          });
+        }
+
+        // 更新图表
+        updateCharts() {
+          if (!window.loadingChart) return;
+
+          // 更新加载性能图表
+          window.loadingChart.data.datasets[0].data = [
+            this.metrics.fpt || 0,
+            this.metrics.fcp || 0,
+            this.metrics.ttfb || 0,
+            this.metrics.ready || 0,
+            this.metrics.load || 0,
+          ];
+
+          window.loadingChart.update();
+        }
+
+        // 清除指标数据
+        clearMetrics() {
+          this.metrics = {
+            fcp: null,
+            lcp: null,
+            fid: null,
+            cls: 0,
+            ttfb: null,
+            fpt: null,
+            tti: null,
+            ready: null,
+            load: null,
+            resources: [],
+          };
+
+          this.metricLogs = [];
+          this.layoutShiftEntries = [];
+
+          this.metricLogArea.innerHTML = `
+                    <div style="text-align: center; color: #666; padding: 60px 20px;">
+                        <div style="font-size: 48px; margin-bottom: 20px;">✅</div>
+                        <div>性能数据已清空</div>
+                    </div>
+                `;
+
+          // 重置指标显示
+          this.fcpValue.textContent = "--";
+          this.fcpBar.style.width = "0%";
+          this.lcpValue.textContent = "--";
+          this.lcpBar.style.width = "0%";
+          this.fidValue.textContent = "--";
+          this.fidBar.style.width = "0%";
+          this.clsValue.textContent = "--";
+          this.clsBar.style.width = "0%";
+
+          // 重置瀑布图
+          this.waterfallContainer.innerHTML = `
+                    <div style="text-align: center; color: #666; padding: 40px 20px;">
+                        <div style="font-size: 36px; margin-bottom: 15px;">🌊</div>
+                        <div>资源加载瀑布图</div>
+                        <div style="font-size: 14px; margin-top: 10px;">开始监控后显示资源加载详情</div>
+                    </div>
+                `;
+
+          this.logPerformanceEvent("性能数据已清空", "info");
+        }
+
+        // 导出数据
+        exportData() {
+          const report = {
+            timestamp: new Date().toISOString(),
+            url: window.location.href,
+            userAgent: navigator.userAgent,
+            metrics: this.metrics,
+            logs: this.metricLogs.slice(0, 100), // 限制日志数量
+          };
+
+          const dataStr = JSON.stringify(report, null, 2);
+          const dataUri =
+            "data:application/json;charset=utf-8," +
+            encodeURIComponent(dataStr);
+
+          const exportFileDefaultName = `performance-report-${new Date()
+            .toISOString()
+            .slice(0, 10)}.json`;
+
+          const linkElement = document.createElement("a");
+          linkElement.setAttribute("href", dataUri);
+          linkElement.setAttribute("download", exportFileDefaultName);
+          linkElement.click();
+
+          this.logPerformanceEvent("性能报告已导出", "success");
+        }
+
+        // 模拟页面加载
+        simulatePageLoad() {
+          this.logPerformanceEvent("模拟页面加载开始", "info");
+
+          // 模拟FCP
+          setTimeout(() => {
+            this.metrics.fcp = 1200;
+            this.updateMetricDisplay("fcp", this.metrics.fcp);
+            this.logPerformanceMetric("FCP", this.metrics.fcp, "core");
+          }, 100);
+
+          // 模拟LCP
+          setTimeout(() => {
+            this.metrics.lcp = 2300;
+            this.updateMetricDisplay("lcp", this.metrics.lcp);
+            this.logPerformanceMetric("LCP", this.metrics.lcp, "core");
+          }, 300);
+
+          // 模拟其他加载指标
+          setTimeout(() => {
+            this.metrics.fpt = 800;
+            this.metrics.ttfb = 150;
+            this.metrics.ready = 1800;
+            this.metrics.load = 3500;
+
+            this.pageLoadTime.textContent = `${this.metrics.ready}ms`;
+            this.logPerformanceMetric("白屏时间", this.metrics.fpt, "loading");
+            this.logPerformanceMetric("TTFB", this.metrics.ttfb, "loading");
+            this.logPerformanceMetric(
+              "DOM Ready",
+              this.metrics.ready,
+              "loading"
+            );
+            this.logPerformanceMetric(
+              "页面完全加载",
+              this.metrics.load,
+              "loading"
+            );
+
+            // 更新图表
+            this.updateCharts();
+
+            this.logPerformanceEvent("模拟页面加载完成", "success");
+          }, 500);
+        }
+
+        // 模拟慢资源
+        simulateSlowResource() {
+          this.logPerformanceEvent("模拟慢资源加载", "warning");
+
+          // 添加一个慢资源
+          const slowResource = {
+            name: "https://example.com/slow-image.jpg",
+            duration: 3500,
+            startTime: performance.now() - 2000,
+            initiatorType: "img",
+            size: 2048000,
+            timing: {
+              dns: 120,
+              tcp: 350,
+              ssl: 450,
+              ttfb: 1200,
+              download: 1380,
+            },
+          };
+
+          this.metrics.resources.push(slowResource);
+          this.updateWaterfallChart();
+          this.logPerformanceMetric(
+            "资源加载: slow-image.jpg",
+            slowResource.duration,
+            "resource"
+          );
+
+          // 显示警告
+          this.showPerformanceAlert("检测到慢资源: slow-image.jpg (3.5s)");
+        }
+
+        // 模拟布局偏移
+        simulateLayoutShift() {
+          this.logPerformanceEvent("模拟布局偏移", "warning");
+
+          // 创建一个会触发布局偏移的元素
+          const container = document.createElement("div");
+          container.style.cssText = `
+                    position: absolute;
+                    top: 100px;
+                    left: 100px;
+                    width: 200px;
+                    height: 100px;
+                    background: rgba(239, 71, 111, 0.3);
+                    border: 2px dashed #ef476f;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    color: white;
+                    font-weight: bold;
+                    z-index: 9999;
+                `;
+          container.textContent = "布局偏移模拟";
+
+          document.body.appendChild(container);
+
+          // 延迟后移动元素，模拟布局偏移
+          setTimeout(() => {
+            container.style.top = "150px";
+            container.style.left = "150px";
+
+            // 模拟CLS增加
+            this.layoutShiftEntries.push({
+              value: 0.15,
+              hadRecentInput: false,
+            });
+            this.metrics.cls = this.calculateCLS();
+            this.updateMetricDisplay("cls", this.metrics.cls);
+            this.logPerformanceMetric("CLS", this.metrics.cls, "visual");
+
+            // 2秒后移除元素
+            setTimeout(() => {
+              if (container.parentNode) {
+                container.parentNode.removeChild(container);
+              }
+            }, 2000);
+          }, 1000);
+        }
+
+        // 模拟用户交互
+        simulateInteraction() {
+          this.logPerformanceEvent("模拟用户交互", "info");
+
+          // 模拟FID
+          this.metrics.fid = 85;
+          this.updateMetricDisplay("fid", this.metrics.fid);
+          this.logPerformanceMetric("FID", this.metrics.fid, "interactivity");
+
+          // 显示成功消息
+          this.logPerformanceEvent("用户交互模拟完成", "success");
+        }
+
+        // 添加自定义指标
+        addCustomMetric() {
+          const metricType = document.getElementById("customMetric").value;
+          const metricValue = parseFloat(
+            document.getElementById("customMetricValue").value
+          );
+
+          if (!metricValue || isNaN(metricValue)) {
+            alert("请输入有效的数值");
+            return;
+          }
+
+          let metricName, category;
+
+          switch (metricType) {
+            case "fcp":
+              metricName = "FCP";
+              category = "core";
+              this.metrics.fcp = metricValue;
+              this.updateMetricDisplay("fcp", metricValue);
+              break;
+            case "lcp":
+              metricName = "LCP";
+              category = "core";
+              this.metrics.lcp = metricValue;
+              this.updateMetricDisplay("lcp", metricValue);
+              break;
+            case "fid":
+              metricName = "FID";
+              category = "interactivity";
+              this.metrics.fid = metricValue;
+              this.updateMetricDisplay("fid", metricValue);
+              break;
+            case "cls":
+              metricName = "CLS";
+              category = "visual";
+              this.metrics.cls = metricValue;
+              this.updateMetricDisplay("cls", metricValue);
+              break;
+            case "tti":
+              metricName = "TTI";
+              category = "loading";
+              this.metrics.tti = metricValue;
+              break;
+          }
+
+          if (metricName && category) {
+            this.logPerformanceMetric(metricName, metricValue, category);
+            document.getElementById("customMetricValue").value = "";
+          }
+        }
+
+        // 模拟初始指标
+        simulateInitialMetrics() {
+          if (!this.isMonitoring) return;
+
+          // 如果还没有数据，模拟一些初始数据
+          if (this.metrics.fcp === null) {
+            this.metrics.fcp = 1450;
+            this.updateMetricDisplay("fcp", this.metrics.fcp);
+            this.logPerformanceMetric("FCP", this.metrics.fcp, "core");
+          }
+
+          if (this.metrics.lcp === null) {
+            this.metrics.lcp = 2100;
+            this.updateMetricDisplay("lcp", this.metrics.lcp);
+            this.logPerformanceMetric("LCP", this.metrics.lcp, "core");
+          }
+
+          if (this.metrics.fid === null) {
+            this.metrics.fid = 65;
+            this.updateMetricDisplay("fid", this.metrics.fid);
+            this.logPerformanceMetric("FID", this.metrics.fid, "interactivity");
+          }
+
+          if (this.metrics.cls === 0) {
+            this.metrics.cls = 0.08;
+            this.updateMetricDisplay("cls", this.metrics.cls);
+            this.logPerformanceMetric("CLS", this.metrics.cls, "visual");
+          }
+
+          // 模拟一些资源
+          if (this.metrics.resources.length === 0) {
+            const sampleResources = [
+              {
+                name: "https://example.com/main.css",
+                duration: 120,
+                initiatorType: "link",
+              },
+              {
+                name: "https://example.com/app.js",
+                duration: 450,
+                initiatorType: "script",
+              },
+              {
+                name: "https://example.com/hero.jpg",
+                duration: 1200,
+                initiatorType: "img",
+              },
+              {
+                name: "https://example.com/font.woff2",
+                duration: 280,
+                initiatorType: "css",
+              },
+              {
+                name: "https://api.example.com/data.json",
+                duration: 320,
+                initiatorType: "fetch",
+              },
+            ];
+
+            sampleResources.forEach((resource, index) => {
+              const fullResource = {
+                ...resource,
+                startTime:
+                  performance.now() - (sampleResources.length - index) * 200,
+                size: Math.floor(Math.random() * 500000) + 10000,
+                timing: {
+                  dns: Math.floor(Math.random() * 50),
+                  tcp: Math.floor(Math.random() * 100),
+                  ssl: Math.floor(Math.random() * 150),
+                  ttfb: Math.floor(Math.random() * 200),
+                  download: resource.duration - 100,
+                },
+              };
+
+              this.metrics.resources.push(fullResource);
+            });
+
+            this.updateWaterfallChart();
+          }
+        }
+      }
+
+      // 初始化性能监控SDK
+      document.addEventListener("DOMContentLoaded", () => {
+        window.performanceMonitor = new PerformanceMonitor();
+
+        // 自动开始监控（在实际应用中可能根据配置决定）
+        window.performanceMonitor.startMonitoring();
+      });
+    </script>
+    <!-- 引入Chart.js用于图表显示 -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  </body>
+</html>

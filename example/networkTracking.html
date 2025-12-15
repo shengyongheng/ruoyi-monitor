@@ -1,0 +1,1156 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>网络请求监控与性能分析</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            color: #333;
+            line-height: 1.6;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        @media (max-width: 1024px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .panel {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            overflow: hidden;
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #2c3e50;
+            grid-column: 1 / -1;
+        }
+        
+        h2 {
+            color: #3498db;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        
+        .demo-area {
+            min-height: 300px;
+            padding: 15px;
+            border: 2px dashed #bdc3c7;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            background: #f8f9fa;
+        }
+        
+        .demo-area button {
+            margin: 5px;
+            padding: 8px 15px;
+            border: none;
+            border-radius: 4px;
+            background: #3498db;
+            color: white;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        
+        .demo-area button:hover {
+            background: #2980b9;
+        }
+        
+        .log-area {
+            height: 300px;
+            overflow-y: auto;
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+        
+        .control-panel {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .control-panel button {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        
+        .start-btn {
+            background: #2ecc71;
+            color: white;
+        }
+        
+        .stop-btn {
+            background: #e74c3c;
+            color: white;
+        }
+        
+        .replay-btn {
+            background: #f39c12;
+            color: white;
+        }
+        
+        .test-btn {
+            background: #9b59b6;
+            color: white;
+        }
+        
+        .control-panel button:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .recording {
+            background: #e74c3c;
+            animation: pulse 1.5s infinite;
+        }
+        
+        .stopped {
+            background: #7f8c8d;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        .event-item {
+            margin-bottom: 5px;
+            padding: 5px;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .request-item {
+            margin-bottom: 8px;
+            padding: 8px;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            border-left: 4px solid #3498db;
+        }
+        
+        .request-error {
+            border-left-color: #e74c3c;
+        }
+        
+        .request-slow {
+            border-left-color: #f39c12;
+        }
+        
+        .event-time {
+            color: #3498db;
+            font-weight: bold;
+        }
+        
+        .event-type {
+            color: #2ecc71;
+        }
+        
+        .event-details {
+            color: #ecf0f1;
+        }
+        
+        .request-url {
+            color: #3498db;
+            font-weight: bold;
+            word-break: break-all;
+        }
+        
+        .request-status {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-left: 5px;
+        }
+        
+        .status-success {
+            background: #2ecc71;
+            color: white;
+        }
+        
+        .status-error {
+            background: #e74c3c;
+            color: white;
+        }
+        
+        .status-warning {
+            background: #f39c12;
+            color: white;
+        }
+        
+        .request-duration {
+            float: right;
+            font-weight: bold;
+        }
+        
+        .fast {
+            color: #2ecc71;
+        }
+        
+        .medium {
+            color: #f39c12;
+        }
+        
+        .slow {
+            color: #e74c3c;
+        }
+        
+        .section-title {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid #eee;
+        }
+        
+        @media (max-width: 768px) {
+            .stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        
+        .stat-item {
+            text-align: center;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #3498db;
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            color: #7f8c8d;
+            margin-top: 5px;
+        }
+        
+        .chart-container {
+            height: 200px;
+            margin-top: 20px;
+        }
+        
+        .slow-requests {
+            margin-top: 20px;
+        }
+        
+        .slow-request-item {
+            padding: 10px;
+            margin-bottom: 8px;
+            background: #fff3cd;
+            border-left: 4px solid #f39c12;
+            border-radius: 4px;
+        }
+        
+        .tab-container {
+            margin-top: 20px;
+        }
+        
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid #ddd;
+            margin-bottom: 15px;
+        }
+        
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+        }
+        
+        .tab.active {
+            border-bottom: 3px solid #3498db;
+            font-weight: bold;
+            color: #3498db;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .filter-controls {
+            margin-bottom: 15px;
+        }
+        
+        .filter-controls select, .filter-controls input {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>网络请求监控与性能分析</h1>
+    
+    <div class="container">
+        <div class="panel">
+            <div class="section-title">
+                <h2>API 测试区域</h2>
+                <div>
+                    <span class="status-indicator stopped" id="statusIndicator"></span>
+                    <span id="statusText">监控已停止</span>
+                </div>
+            </div>
+            
+            <div class="demo-area" id="demoArea">
+                <p>点击按钮发送测试请求，监控将记录所有API调用：</p>
+                <button id="successRequest">成功请求 (200)</button>
+                <button id="clientErrorRequest">客户端错误 (400)</button>
+                <button id="serverErrorRequest">服务器错误 (500)</button>
+                <button id="slowRequest">慢请求 (3秒)</button>
+                <button id="randomRequest">随机请求</button>
+                
+                <div style="margin-top: 20px;">
+                    <p>自定义请求测试:</p>
+                    <input type="text" id="customUrl" placeholder="输入URL" style="width: 70%; padding: 8px;">
+                    <button id="customRequest">发送请求</button>
+                </div>
+            </div>
+            
+            <div class="control-panel">
+                <button class="start-btn" id="startTracking">开始监控</button>
+                <button class="stop-btn" id="stopTracking">停止监控</button>
+                <button class="replay-btn" id="replaySession">回放请求</button>
+                <button class="test-btn" id="batchTest">批量测试 (10个请求)</button>
+            </div>
+            
+            <div class="stats">
+                <div class="stat-item">
+                    <div class="stat-value" id="totalRequests">0</div>
+                    <div class="stat-label">总请求数</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="successRate">100%</div>
+                    <div class="stat-label">成功率</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="avgResponseTime">0ms</div>
+                    <div class="stat-label">平均响应时间</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="slowRequestsCount">0</div>
+                    <div class="stat-label">慢请求数</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="panel">
+            <h2>请求监控日志</h2>
+            
+            <div class="filter-controls">
+                <select id="statusFilter">
+                    <option value="all">所有状态</option>
+                    <option value="success">成功 (200-299)</option>
+                    <option value="clientError">客户端错误 (400-499)</option>
+                    <option value="serverError">服务器错误 (500-599)</option>
+                    <option value="slow">慢请求 (>2s)</option>
+                </select>
+                
+                <input type="text" id="urlFilter" placeholder="过滤URL">
+            </div>
+            
+            <div class="log-area" id="requestLogArea">
+                <!-- 请求日志将在这里显示 -->
+            </div>
+            
+            <div class="tab-container">
+                <div class="tabs">
+                    <div class="tab active" data-tab="slow">慢请求分析</div>
+                    <div class="tab" data-tab="errors">错误分析</div>
+                    <div class="tab" data-tab="stats">性能统计</div>
+                </div>
+                
+                <div class="tab-content active" id="slow-tab">
+                    <div id="slowRequestsList">
+                        <!-- 慢请求列表 -->
+                    </div>
+                </div>
+                
+                <div class="tab-content" id="errors-tab">
+                    <div id="errorRequestsList">
+                        <!-- 错误请求列表 -->
+                    </div>
+                </div>
+                
+                <div class="tab-content" id="stats-tab">
+                    <div class="chart-container" id="responseTimeChart">
+                        <!-- 响应时间图表区域 -->
+                        <canvas id="timeChart" width="400" height="200"></canvas>
+                    </div>
+                    <div class="chart-container" id="statusCodeChart">
+                        <!-- 状态码分布图表区域 -->
+                        <canvas id="statusChart" width="400" height="200"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 网络请求监控SDK
+        class NetworkMonitor {
+            constructor() {
+                this.isTracking = false;
+                this.requests = [];
+                this.stats = {
+                    total: 0,
+                    success: 0,
+                    errors: 0,
+                    slow: 0,
+                    totalResponseTime: 0
+                };
+                
+                // DOM元素引用
+                this.requestLogArea = document.getElementById('requestLogArea');
+                this.statusIndicator = document.getElementById('statusIndicator');
+                this.statusText = document.getElementById('statusText');
+                this.totalRequests = document.getElementById('totalRequests');
+                this.successRate = document.getElementById('successRate');
+                this.avgResponseTime = document.getElementById('avgResponseTime');
+                this.slowRequestsCount = document.getElementById('slowRequestsCount');
+                this.slowRequestsList = document.getElementById('slowRequestsList');
+                this.errorRequestsList = document.getElementById('errorRequestsList');
+                
+                // 原始API引用
+                this.originalFetch = window.fetch;
+                this.originalXHR = window.XMLHttpRequest;
+                
+                // 绑定按钮事件
+                document.getElementById('startTracking').addEventListener('click', () => this.startMonitoring());
+                document.getElementById('stopTracking').addEventListener('click', () => this.stopMonitoring());
+                document.getElementById('replaySession').addEventListener('click', () => this.replayRequests());
+                document.getElementById('batchTest').addEventListener('click', () => this.batchTest());
+                
+                // 绑定测试请求事件
+                this.setupTestRequests();
+                
+                // 绑定过滤事件
+                document.getElementById('statusFilter').addEventListener('change', () => this.filterRequests());
+                document.getElementById('urlFilter').addEventListener('input', () => this.filterRequests());
+                
+                // 绑定标签页事件
+                this.setupTabs();
+                
+                // 初始化图表
+                this.initCharts();
+            }
+            
+            // 开始监控
+            startMonitoring() {
+                if (this.isTracking) return;
+                
+                this.isTracking = true;
+                this.updateStatus();
+                this.logSystemEvent('开始监控网络请求');
+                
+                // 拦截fetch API
+                this.interceptFetch();
+                
+                // 拦截XMLHttpRequest
+                this.interceptXHR();
+            }
+            
+            // 停止监控
+            stopMonitoring() {
+                if (!this.isTracking) return;
+                
+                this.isTracking = false;
+                this.updateStatus();
+                this.logSystemEvent('停止监控网络请求');
+                
+                // 恢复原始API
+                window.fetch = this.originalFetch;
+                window.XMLHttpRequest = this.originalXHR;
+            }
+            
+            // 更新状态显示
+            updateStatus() {
+                if (this.isTracking) {
+                    this.statusIndicator.className = 'status-indicator recording';
+                    this.statusText.textContent = '监控进行中';
+                } else {
+                    this.statusIndicator.className = 'status-indicator stopped';
+                    this.statusText.textContent = '监控已停止';
+                }
+            }
+            
+            // 拦截fetch API
+            interceptFetch() {
+                const self = this;
+                
+                window.fetch = function(...args) {
+                    const startTime = performance.now();
+                    const requestId = self.generateId();
+                    
+                    // 记录请求开始
+                    const requestInfo = {
+                        id: requestId,
+                        method: 'GET',
+                        url: args[0],
+                        startTime: startTime,
+                        type: 'fetch'
+                    };
+                    
+                    // 提取方法（如果提供了options）
+                    if (args[1] && args[1].method) {
+                        requestInfo.method = args[1].method;
+                    }
+                    
+                    self.requests.push(requestInfo);
+                    self.logRequest(requestInfo, 'start');
+                    
+                    // 调用原始fetch
+                    return self.originalFetch.apply(this, args)
+                        .then(response => {
+                            const endTime = performance.now();
+                            const duration = endTime - startTime;
+                            
+                            // 克隆响应以便读取body
+                            const clonedResponse = response.clone();
+                            
+                            // 记录请求完成
+                            self.recordRequestCompletion(requestId, {
+                                status: response.status,
+                                statusText: response.statusText,
+                                duration: duration,
+                                response: clonedResponse
+                            });
+                            
+                            return response;
+                        })
+                        .catch(error => {
+                            const endTime = performance.now();
+                            const duration = endTime - startTime;
+                            
+                            // 记录请求失败
+                            self.recordRequestCompletion(requestId, {
+                                status: 0,
+                                statusText: error.message,
+                                duration: duration,
+                                error: error
+                            });
+                            
+                            throw error;
+                        });
+                };
+            }
+            
+            // 拦截XMLHttpRequest
+            interceptXHR() {
+                const self = this;
+                const OriginalXHR = window.XMLHttpRequest;
+                
+                window.XMLHttpRequest = function() {
+                    const xhr = new OriginalXHR();
+                    const startTime = performance.now();
+                    const requestId = self.generateId();
+                    
+                    let method, url;
+                    
+                    // 拦截open方法获取请求信息
+                    const originalOpen = xhr.open;
+                    xhr.open = function(...args) {
+                        method = args[0];
+                        url = args[1];
+                        
+                        // 记录请求开始
+                        const requestInfo = {
+                            id: requestId,
+                            method: method,
+                            url: url,
+                            startTime: startTime,
+                            type: 'xhr'
+                        };
+                        
+                        self.requests.push(requestInfo);
+                        self.logRequest(requestInfo, 'start');
+                        
+                        return originalOpen.apply(this, args);
+                    };
+                    
+                    // 拦截send方法
+                    const originalSend = xhr.send;
+                    xhr.send = function(...args) {
+                        // 监听请求完成
+                        xhr.addEventListener('load', function() {
+                            const endTime = performance.now();
+                            const duration = endTime - startTime;
+                            
+                            self.recordRequestCompletion(requestId, {
+                                status: xhr.status,
+                                statusText: xhr.statusText,
+                                duration: duration,
+                                response: xhr.response
+                            });
+                        });
+                        
+                        // 监听请求错误
+                        xhr.addEventListener('error', function() {
+                            const endTime = performance.now();
+                            const duration = endTime - startTime;
+                            
+                            self.recordRequestCompletion(requestId, {
+                                status: 0,
+                                statusText: 'Network Error',
+                                duration: duration,
+                                error: new Error('Network request failed')
+                            });
+                        });
+                        
+                        return originalSend.apply(this, args);
+                    };
+                    
+                    return xhr;
+                };
+            }
+            
+            // 记录请求完成
+            recordRequestCompletion(requestId, data) {
+                const request = this.requests.find(req => req.id === requestId);
+                if (!request) return;
+                
+                request.endTime = performance.now();
+                request.duration = data.duration;
+                request.status = data.status;
+                request.statusText = data.statusText;
+                request.completed = true;
+                
+                // 更新统计信息
+                this.updateStats(request);
+                
+                // 记录请求完成日志
+                this.logRequest(request, 'complete');
+                
+                // 更新UI
+                this.updateUI();
+            }
+            
+            // 更新统计信息
+            updateStats(request) {
+                this.stats.total++;
+                this.stats.totalResponseTime += request.duration;
+                
+                if (request.status >= 200 && request.status < 300) {
+                    this.stats.success++;
+                } else {
+                    this.stats.errors++;
+                }
+                
+                if (request.duration > 2000) { // 2秒以上视为慢请求
+                    this.stats.slow++;
+                    request.slow = true;
+                }
+            }
+            
+            // 更新UI显示
+            updateUI() {
+                this.totalRequests.textContent = this.stats.total;
+                
+                const successRate = this.stats.total > 0 ? 
+                    Math.round((this.stats.success / this.stats.total) * 100) : 100;
+                this.successRate.textContent = `${successRate}%`;
+                
+                const avgTime = this.stats.total > 0 ? 
+                    Math.round(this.stats.totalResponseTime / this.stats.total) : 0;
+                this.avgResponseTime.textContent = `${avgTime}ms`;
+                
+                this.slowRequestsCount.textContent = this.stats.slow;
+                
+                // 更新图表
+                this.updateCharts();
+            }
+            
+            // 记录请求日志
+            logRequest(request, stage) {
+                if (stage === 'start') {
+                    const logItem = document.createElement('div');
+                    logItem.className = 'request-item';
+                    logItem.id = `request-${request.id}`;
+                    logItem.innerHTML = `
+                        <div>
+                            <span class="event-time">[${new Date().toLocaleTimeString()}]</span>
+                            <span class="event-type">${request.method}</span>
+                            <span class="request-url">${request.url}</span>
+                            <span class="request-status">发送中...</span>
+                        </div>
+                    `;
+                    
+                    this.requestLogArea.appendChild(logItem);
+                } else if (stage === 'complete') {
+                    const logItem = document.getElementById(`request-${request.id}`);
+                    if (!logItem) return;
+                    
+                    // 确定状态类别
+                    let statusClass = 'status-success';
+                    if (request.status >= 400 && request.status < 500) {
+                        statusClass = 'status-warning';
+                    } else if (request.status >= 500 || request.status === 0) {
+                        statusClass = 'status-error';
+                    }
+                    
+                    // 确定速度类别
+                    let speedClass = 'fast';
+                    if (request.duration > 1000 && request.duration <= 2000) {
+                        speedClass = 'medium';
+                    } else if (request.duration > 2000) {
+                        speedClass = 'slow';
+                    }
+                    
+                    // 更新日志项
+                    logItem.innerHTML = `
+                        <div>
+                            <span class="event-time">[${new Date().toLocaleTimeString()}]</span>
+                            <span class="event-type">${request.method}</span>
+                            <span class="request-url">${request.url}</span>
+                            <span class="request-status ${statusClass}">${request.status} ${request.statusText}</span>
+                            <span class="request-duration ${speedClass}">${Math.round(request.duration)}ms</span>
+                        </div>
+                    `;
+                    
+                    // 如果是慢请求或错误请求，添加特殊样式
+                    if (request.slow) {
+                        logItem.classList.add('request-slow');
+                    }
+                    if (request.status >= 400) {
+                        logItem.classList.add('request-error');
+                    }
+                }
+                
+                this.requestLogArea.scrollTop = this.requestLogArea.scrollHeight;
+            }
+            
+            // 记录系统事件
+            logSystemEvent(message) {
+                const logItem = document.createElement('div');
+                logItem.className = 'event-item';
+                logItem.innerHTML = `
+                    <span class="event-time">[${new Date().toLocaleTimeString()}]</span>
+                    <span class="event-type">SYSTEM</span>
+                    <span class="event-details">: ${message}</span>
+                `;
+                
+                this.requestLogArea.appendChild(logItem);
+                this.requestLogArea.scrollTop = this.requestLogArea.scrollHeight;
+            }
+            
+            // 设置测试请求
+            setupTestRequests() {
+                // 成功请求
+                document.getElementById('successRequest').addEventListener('click', () => {
+                    this.mockRequest('https://api.example.com/users', 200, 500);
+                });
+                
+                // 客户端错误
+                document.getElementById('clientErrorRequest').addEventListener('click', () => {
+                    this.mockRequest('https://api.example.com/users/123', 404, 300);
+                });
+                
+                // 服务器错误
+                document.getElementById('serverErrorRequest').addEventListener('click', () => {
+                    this.mockRequest('https://api.example.com/orders', 500, 400);
+                });
+                
+                // 慢请求
+                document.getElementById('slowRequest').addEventListener('click', () => {
+                    this.mockRequest('https://api.example.com/reports', 200, 3000);
+                });
+                
+                // 随机请求
+                document.getElementById('randomRequest').addEventListener('click', () => {
+                    const statuses = [200, 201, 400, 401, 403, 404, 500, 502];
+                    const durations = [200, 500, 800, 1200, 2500, 4000];
+                    const urls = [
+                        'https://api.example.com/users',
+                        'https://api.example.com/orders',
+                        'https://api.example.com/products',
+                        'https://api.example.com/inventory'
+                    ];
+                    
+                    const url = urls[Math.floor(Math.random() * urls.length)];
+                    const status = statuses[Math.floor(Math.random() * statuses.length)];
+                    const duration = durations[Math.floor(Math.random() * durations.length)];
+                    
+                    this.mockRequest(url, status, duration);
+                });
+                
+                // 自定义请求
+                document.getElementById('customRequest').addEventListener('click', () => {
+                    const url = document.getElementById('customUrl').value;
+                    if (!url) {
+                        alert('请输入URL');
+                        return;
+                    }
+                    
+                    const statuses = [200, 400, 404, 500];
+                    const duration = Math.random() * 4000;
+                    const status = statuses[Math.floor(Math.random() * statuses.length)];
+                    
+                    this.mockRequest(url, status, duration);
+                });
+            }
+            
+            // 模拟请求
+            mockRequest(url, status, duration) {
+                const startTime = performance.now();
+                const requestId = this.generateId();
+                
+                // 记录请求开始
+                const requestInfo = {
+                    id: requestId,
+                    method: 'GET',
+                    url: url,
+                    startTime: startTime,
+                    type: 'mock'
+                };
+                
+                this.requests.push(requestInfo);
+                this.logRequest(requestInfo, 'start');
+                
+                // 模拟网络延迟
+                setTimeout(() => {
+                    const endTime = performance.now();
+                    const actualDuration = endTime - startTime;
+                    
+                    // 记录请求完成
+                    this.recordRequestCompletion(requestId, {
+                        status: status,
+                        statusText: this.getStatusText(status),
+                        duration: actualDuration
+                    });
+                }, duration);
+            }
+            
+            // 获取状态文本
+            getStatusText(status) {
+                const statusTexts = {
+                    200: 'OK',
+                    201: 'Created',
+                    400: 'Bad Request',
+                    401: 'Unauthorized',
+                    403: 'Forbidden',
+                    404: 'Not Found',
+                    500: 'Internal Server Error',
+                    502: 'Bad Gateway'
+                };
+                
+                return statusTexts[status] || 'Unknown';
+            }
+            
+            // 批量测试
+            batchTest() {
+                for (let i = 0; i < 10; i++) {
+                    setTimeout(() => {
+                        const statuses = [200, 201, 400, 404, 500];
+                        const durations = [200, 500, 1000, 1500, 3000];
+                        const urls = [
+                            'https://api.example.com/users',
+                            'https://api.example.com/orders',
+                            'https://api.example.com/products',
+                            'https://api.example.com/inventory'
+                        ];
+                        
+                        const url = urls[Math.floor(Math.random() * urls.length)];
+                        const status = statuses[Math.floor(Math.random() * statuses.length)];
+                        const duration = durations[Math.floor(Math.random() * durations.length)];
+                        
+                        this.mockRequest(url, status, duration);
+                    }, i * 500); // 每隔500ms发送一个请求
+                }
+            }
+            
+            // 回放请求
+            replayRequests() {
+                const completedRequests = this.requests.filter(req => req.completed);
+                if (completedRequests.length === 0) {
+                    alert('没有可回放的请求记录');
+                    return;
+                }
+                
+                this.logSystemEvent(`开始回放 ${completedRequests.length} 个请求`);
+                
+                // 在实际应用中，这里会重新发送请求
+                // 这里我们简单高亮相关日志项来模拟回放效果
+                completedRequests.forEach((request, index) => {
+                    setTimeout(() => {
+                        const logItem = document.getElementById(`request-${request.id}`);
+                        if (logItem) {
+                            logItem.style.backgroundColor = 'rgba(243, 156, 18, 0.3)';
+                            setTimeout(() => {
+                                logItem.style.backgroundColor = '';
+                            }, 1000);
+                        }
+                    }, index * 1000);
+                });
+            }
+            
+            // 过滤请求
+            filterRequests() {
+                const statusFilter = document.getElementById('statusFilter').value;
+                const urlFilter = document.getElementById('urlFilter').value.toLowerCase();
+                
+                const logItems = this.requestLogArea.querySelectorAll('.request-item');
+                
+                logItems.forEach(item => {
+                    let show = true;
+                    
+                    // 状态过滤
+                    if (statusFilter !== 'all') {
+                        const statusMatch = item.textContent.match(/(\d{3})/);
+                        if (statusMatch) {
+                            const status = parseInt(statusMatch[1]);
+                            
+                            if (statusFilter === 'success' && (status < 200 || status >= 300)) {
+                                show = false;
+                            } else if (statusFilter === 'clientError' && (status < 400 || status >= 500)) {
+                                show = false;
+                            } else if (statusFilter === 'serverError' && status < 500) {
+                                show = false;
+                            } else if (statusFilter === 'slow') {
+                                const durationMatch = item.textContent.match(/(\d+)ms/);
+                                if (!durationMatch || parseInt(durationMatch[1]) <= 2000) {
+                                    show = false;
+                                }
+                            }
+                        }
+                    }
+                    
+                    // URL过滤
+                    if (show && urlFilter) {
+                        const url = item.querySelector('.request-url').textContent.toLowerCase();
+                        if (!url.includes(urlFilter)) {
+                            show = false;
+                        }
+                    }
+                    
+                    item.style.display = show ? 'block' : 'none';
+                });
+            }
+            
+            // 设置标签页
+            setupTabs() {
+                const tabs = document.querySelectorAll('.tab');
+                const tabContents = document.querySelectorAll('.tab-content');
+                
+                tabs.forEach(tab => {
+                    tab.addEventListener('click', () => {
+                        // 移除所有active类
+                        tabs.forEach(t => t.classList.remove('active'));
+                        tabContents.forEach(c => c.classList.remove('active'));
+                        
+                        // 添加active类到当前标签
+                        tab.classList.add('active');
+                        document.getElementById(`${tab.dataset.tab}-tab`).classList.add('active');
+                        
+                        // 更新标签页内容
+                        this.updateTabContent(tab.dataset.tab);
+                    });
+                });
+            }
+            
+            // 更新标签页内容
+            updateTabContent(tab) {
+                if (tab === 'slow') {
+                    this.updateSlowRequests();
+                } else if (tab === 'errors') {
+                    this.updateErrorRequests();
+                } else if (tab === 'stats') {
+                    this.updateCharts();
+                }
+            }
+            
+            // 更新慢请求列表
+            updateSlowRequests() {
+                const slowRequests = this.requests.filter(req => req.slow);
+                
+                if (slowRequests.length === 0) {
+                    this.slowRequestsList.innerHTML = '<p>暂无慢请求</p>';
+                    return;
+                }
+                
+                let html = '';
+                slowRequests.forEach(request => {
+                    html += `
+                        <div class="slow-request-item">
+                            <div><strong>URL:</strong> ${request.url}</div>
+                            <div><strong>方法:</strong> ${request.method}</div>
+                            <div><strong>状态码:</strong> ${request.status}</div>
+                            <div><strong>耗时:</strong> ${Math.round(request.duration)}ms</div>
+                        </div>
+                    `;
+                });
+                
+                this.slowRequestsList.innerHTML = html;
+            }
+            
+            // 更新错误请求列表
+            updateErrorRequests() {
+                const errorRequests = this.requests.filter(req => req.status >= 400);
+                
+                if (errorRequests.length === 0) {
+                    this.errorRequestsList.innerHTML = '<p>暂无错误请求</p>';
+                    return;
+                }
+                
+                let html = '';
+                errorRequests.forEach(request => {
+                    html += `
+                        <div class="slow-request-item" style="background: #f8d7da; border-left-color: #e74c3c;">
+                            <div><strong>URL:</strong> ${request.url}</div>
+                            <div><strong>方法:</strong> ${request.method}</div>
+                            <div><strong>状态码:</strong> ${request.status} ${request.statusText}</div>
+                            <div><strong>耗时:</strong> ${Math.round(request.duration)}ms</div>
+                        </div>
+                    `;
+                });
+                
+                this.errorRequestsList.innerHTML = html;
+            }
+            
+            // 初始化图表
+            initCharts() {
+                // 响应时间图表
+                this.timeChart = new Chart(document.getElementById('timeChart'), {
+                    type: 'line',
+                    data: {
+                        labels: [],
+                        datasets: [{
+                            label: '响应时间 (ms)',
+                            data: [],
+                            borderColor: '#3498db',
+                            backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                });
+                
+                // 状态码分布图表
+                this.statusChart = new Chart(document.getElementById('statusChart'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['成功 (2xx)', '客户端错误 (4xx)', '服务器错误 (5xx)', '其他'],
+                        datasets: [{
+                            data: [0, 0, 0, 0],
+                            backgroundColor: [
+                                '#2ecc71',
+                                '#f39c12',
+                                '#e74c3c',
+                                '#95a5a6'
+                            ]
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false
+                    }
+                });
+            }
+            
+            // 更新图表
+            updateCharts() {
+                if (this.requests.length === 0) return;
+                
+                // 更新响应时间图表
+                const recentRequests = this.requests.slice(-20); // 最近20个请求
+                const labels = recentRequests.map((_, i) => i + 1);
+                const data = recentRequests.map(req => Math.round(req.duration));
+                
+                this.timeChart.data.labels = labels;
+                this.timeChart.data.datasets[0].data = data;
+                this.timeChart.update();
+                
+                // 更新状态码分布图表
+                const successCount = this.requests.filter(req => req.status >= 200 && req.status < 300).length;
+                const clientErrorCount = this.requests.filter(req => req.status >= 400 && req.status < 500).length;
+                const serverErrorCount = this.requests.filter(req => req.status >= 500).length;
+                const otherCount = this.requests.length - successCount - clientErrorCount - serverErrorCount;
+                
+                this.statusChart.data.datasets[0].data = [
+                    successCount, clientErrorCount, serverErrorCount, otherCount
+                ];
+                this.statusChart.update();
+            }
+            
+            // 生成唯一ID
+            generateId() {
+                return Date.now().toString(36) + Math.random().toString(36).substr(2);
+            }
+        }
+
+        // 初始化监控SDK
+        document.addEventListener('DOMContentLoaded', () => {
+            window.networkMonitor = new NetworkMonitor();
+        });
+    </script>
+    <!-- 引入Chart.js用于图表显示 -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</body>
+</html>

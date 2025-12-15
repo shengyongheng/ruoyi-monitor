@@ -1,0 +1,2497 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>前端错误监控系统</title>
+    <script src="../dist/index.esm.js"></script>
+    <script src="./notExist.js"></script>
+    <link rel="stylesheet" href="./notExist.css" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=NonexistentFont:wght@400&display=swap" />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      }
+
+      body {
+        background: linear-gradient(
+          135deg,
+          #0f2027 0%,
+          #203a43 50%,
+          #2c5364 100%
+        );
+        color: #e0e0e0;
+        line-height: 1.6;
+        padding: 20px;
+        min-height: 100vh;
+      }
+
+      .container {
+        max-width: 1600px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+      }
+
+      @media (max-width: 1024px) {
+        .container {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .panel {
+        background: rgba(30, 30, 40, 0.85);
+        backdrop-filter: blur(10px);
+        border-radius: 15px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        padding: 25px;
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      h1 {
+        text-align: center;
+        margin-bottom: 30px;
+        color: #4fc3f7;
+        grid-column: 1 / -1;
+        font-size: 2.5rem;
+        text-shadow: 0 2px 10px rgba(79, 195, 247, 0.3);
+      }
+
+      h2 {
+        color: #4fc3f7;
+        margin-bottom: 20px;
+        padding-bottom: 12px;
+        border-bottom: 2px solid rgba(79, 195, 247, 0.3);
+        font-size: 1.5rem;
+      }
+
+      h3 {
+        color: #81c784;
+        margin: 15px 0 10px;
+        font-size: 1.2rem;
+      }
+
+      .demo-area {
+        min-height: 320px;
+        padding: 20px;
+        border: 2px dashed rgba(79, 195, 247, 0.5);
+        border-radius: 12px;
+        margin-bottom: 20px;
+        background: rgba(20, 20, 30, 0.5);
+      }
+
+      .demo-area button {
+        margin: 8px;
+        padding: 12px 20px;
+        border: none;
+        border-radius: 8px;
+        background: linear-gradient(135deg, #4fc3f7 0%, #2196f3 100%);
+        color: white;
+        cursor: pointer;
+        transition: all 0.3s;
+        font-weight: 600;
+        box-shadow: 0 4px 15px rgba(33, 150, 243, 0.3);
+      }
+
+      .demo-area button:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 20px rgba(33, 150, 243, 0.5);
+      }
+
+      .demo-area button.danger {
+        background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%);
+        box-shadow: 0 4px 15px rgba(244, 67, 54, 0.3);
+      }
+
+      .demo-area button.danger:hover {
+        box-shadow: 0 6px 20px rgba(244, 67, 54, 0.5);
+      }
+
+      .demo-area button.warning {
+        background: linear-gradient(135deg, #ffb74d 0%, #f57c00 100%);
+        box-shadow: 0 4px 15px rgba(255, 183, 77, 0.3);
+      }
+
+      .demo-area button.warning:hover {
+        box-shadow: 0 6px 20px rgba(255, 183, 77, 0.5);
+      }
+
+      .demo-area button.success {
+        background: linear-gradient(135deg, #81c784 0%, #388e3c 100%);
+        box-shadow: 0 4px 15px rgba(129, 199, 132, 0.3);
+      }
+
+      .demo-area button.success:hover {
+        box-shadow: 0 6px 20px rgba(129, 199, 132, 0.5);
+      }
+
+      .log-area {
+        height: 400px;
+        overflow-y: auto;
+        background: rgba(10, 15, 20, 0.9);
+        color: #e0e0e0;
+        padding: 15px;
+        border-radius: 12px;
+        font-family: "Courier New", monospace;
+        font-size: 14px;
+        margin-bottom: 20px;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+      }
+
+      .control-panel {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 25px;
+        flex-wrap: wrap;
+      }
+
+      .control-panel button {
+        padding: 12px 20px;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: bold;
+        transition: all 0.3s;
+        min-width: 120px;
+      }
+
+      .start-btn {
+        background: linear-gradient(135deg, #00c853 0%, #64dd17 100%);
+        color: white;
+        box-shadow: 0 4px 15px rgba(0, 200, 83, 0.3);
+      }
+
+      .stop-btn {
+        background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%);
+        color: white;
+        box-shadow: 0 4px 15px rgba(244, 67, 54, 0.3);
+      }
+
+      .clear-btn {
+        background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+        color: white;
+        box-shadow: 0 4px 15px rgba(255, 152, 0, 0.3);
+      }
+
+      .test-btn {
+        background: linear-gradient(135deg, #9c27b0 0%, #7b1fa2 100%);
+        color: white;
+        box-shadow: 0 4px 15px rgba(156, 39, 176, 0.3);
+      }
+
+      .control-panel button:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+      }
+
+      .status-indicator {
+        display: inline-block;
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        margin-right: 10px;
+        vertical-align: middle;
+      }
+
+      .monitoring {
+        background: #00c853;
+        box-shadow: 0 0 10px #00c853;
+        animation: pulse 1.5s infinite;
+      }
+
+      .stopped {
+        background: #f44336;
+        box-shadow: 0 0 10px #f44336;
+      }
+
+      @keyframes pulse {
+        0% {
+          transform: scale(1);
+        }
+        50% {
+          transform: scale(1.1);
+        }
+        100% {
+          transform: scale(1);
+        }
+      }
+
+      .error-item {
+        margin-bottom: 12px;
+        padding: 12px;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.05);
+        border-left: 4px solid #f44336;
+        transition: all 0.3s;
+      }
+
+      .error-item:hover {
+        background: rgba(255, 255, 255, 0.1);
+        transform: translateX(5px);
+      }
+
+      .error-item.warning {
+        border-left-color: #ff9800;
+      }
+
+      .error-item.info {
+        border-left-color: #2196f3;
+      }
+
+      .error-time {
+        color: #4fc3f7;
+        font-weight: bold;
+        font-size: 12px;
+      }
+
+      .error-type {
+        display: inline-block;
+        padding: 3px 10px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: bold;
+        margin-left: 10px;
+        text-transform: uppercase;
+      }
+
+      .type-js {
+        background: rgba(244, 67, 54, 0.2);
+        color: #ef9a9a;
+      }
+
+      .type-promise {
+        background: rgba(255, 152, 0, 0.2);
+        color: #ffcc80;
+      }
+
+      .type-resource {
+        background: rgba(33, 150, 243, 0.2);
+        color: #90caf9;
+      }
+
+      .type-ajax {
+        background: rgba(156, 39, 176, 0.2);
+        color: #ce93d8;
+      }
+
+      .type-cross-origin {
+        background: rgba(0, 150, 136, 0.2);
+        color: #80cbc4;
+      }
+
+      .error-message {
+        margin: 8px 0;
+        color: #fff;
+        font-weight: 500;
+        word-break: break-word;
+      }
+
+      .error-details {
+        color: #b0bec5;
+        font-size: 13px;
+        margin-top: 5px;
+      }
+
+      .error-stack {
+        margin-top: 8px;
+        padding: 8px;
+        background: rgba(0, 0, 0, 0.3);
+        border-radius: 4px;
+        font-size: 12px;
+        color: #ffcc80;
+        max-height: 100px;
+        overflow-y: auto;
+        white-space: pre-wrap;
+        font-family: "Courier New", monospace;
+      }
+
+      .section-title {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 20px;
+      }
+
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 15px;
+        margin-top: 25px;
+        padding-top: 20px;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      @media (max-width: 768px) {
+        .stats {
+          grid-template-columns: repeat(2, 1fr);
+        }
+      }
+
+      .stat-item {
+        text-align: center;
+        padding: 20px 15px;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 12px;
+        transition: all 0.3s;
+      }
+
+      .stat-item:hover {
+        background: rgba(255, 255, 255, 0.1);
+        transform: translateY(-5px);
+      }
+
+      .stat-value {
+        font-size: 32px;
+        font-weight: bold;
+        margin-bottom: 8px;
+      }
+
+      .stat-critical {
+        color: #f44336;
+        text-shadow: 0 0 10px rgba(244, 67, 54, 0.5);
+      }
+
+      .stat-warning {
+        color: #ff9800;
+        text-shadow: 0 0 10px rgba(255, 152, 0, 0.5);
+      }
+
+      .stat-normal {
+        color: #4fc3f7;
+        text-shadow: 0 0 10px rgba(79, 195, 247, 0.5);
+      }
+
+      .stat-label {
+        font-size: 14px;
+        color: #b0bec5;
+      }
+
+      .chart-container {
+        height: 250px;
+        margin-top: 25px;
+        position: relative;
+      }
+
+      .tab-container {
+        margin-top: 25px;
+      }
+
+      .tabs {
+        display: flex;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        margin-bottom: 20px;
+      }
+
+      .tab {
+        padding: 12px 24px;
+        cursor: pointer;
+        border-bottom: 3px solid transparent;
+        color: #b0bec5;
+        transition: all 0.3s;
+        font-weight: 600;
+      }
+
+      .tab:hover {
+        color: #4fc3f7;
+      }
+
+      .tab.active {
+        border-bottom: 3px solid #4fc3f7;
+        color: #4fc3f7;
+      }
+
+      .tab-content {
+        display: none;
+      }
+
+      .tab-content.active {
+        display: block;
+      }
+
+      .filter-controls {
+        margin-bottom: 20px;
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
+      .filter-controls select,
+      .filter-controls input {
+        padding: 10px 15px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        background: rgba(20, 25, 30, 0.8);
+        color: #e0e0e0;
+        min-width: 150px;
+      }
+
+      .filter-controls input {
+        flex-grow: 1;
+      }
+
+      .severity-badge {
+        display: inline-block;
+        padding: 3px 10px;
+        border-radius: 20px;
+        font-size: 11px;
+        font-weight: bold;
+        margin-right: 8px;
+      }
+
+      .severity-critical {
+        background: rgba(244, 67, 54, 0.2);
+        color: #ff8a80;
+      }
+
+      .severity-high {
+        background: rgba(255, 152, 0, 0.2);
+        color: #ffd180;
+      }
+
+      .severity-medium {
+        background: rgba(33, 150, 243, 0.2);
+        color: #82b1ff;
+      }
+
+      .severity-low {
+        background: rgba(76, 175, 80, 0.2);
+        color: #b9f6ca;
+      }
+
+      .error-source {
+        color: #ffcc80;
+        font-family: "Courier New", monospace;
+        font-size: 13px;
+        margin-top: 5px;
+      }
+
+      .error-count {
+        float: right;
+        background: rgba(244, 67, 54, 0.2);
+        color: #ef9a9a;
+        padding: 2px 8px;
+        border-radius: 10px;
+        font-size: 12px;
+        font-weight: bold;
+      }
+
+      .error-actions {
+        margin-top: 10px;
+        display: flex;
+        gap: 8px;
+      }
+
+      .error-actions button {
+        padding: 5px 12px;
+        border: none;
+        border-radius: 4px;
+        background: rgba(255, 255, 255, 0.1);
+        color: #b0bec5;
+        cursor: pointer;
+        font-size: 12px;
+        transition: all 0.3s;
+      }
+
+      .error-actions button:hover {
+        background: rgba(79, 195, 247, 0.3);
+        color: #4fc3f7;
+      }
+
+      .simulate-area {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 15px;
+        margin-top: 20px;
+      }
+
+      @media (max-width: 768px) {
+        .simulate-area {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .simulate-category {
+        padding: 15px;
+        background: rgba(20, 25, 30, 0.5);
+        border-radius: 10px;
+      }
+
+      .floating-alert {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 15px 20px;
+        border-radius: 10px;
+        background: rgba(244, 67, 54, 0.9);
+        color: white;
+        font-weight: bold;
+        box-shadow: 0 5px 20px rgba(244, 67, 54, 0.5);
+        z-index: 1000;
+        animation: slideIn 0.5s, fadeOut 0.5s 4.5s forwards;
+        max-width: 400px;
+      }
+
+      @keyframes slideIn {
+        from {
+          transform: translateX(100%);
+          opacity: 0;
+        }
+        to {
+          transform: translateX(0);
+          opacity: 1;
+        }
+      }
+
+      @keyframes fadeOut {
+        from {
+          opacity: 1;
+        }
+        to {
+          opacity: 0;
+        }
+      }
+
+      .floating-alert.warning {
+        background: rgba(255, 152, 0, 0.9);
+        box-shadow: 0 5px 20px rgba(255, 152, 0, 0.5);
+      }
+
+      .floating-alert.info {
+        background: rgba(33, 150, 243, 0.9);
+        box-shadow: 0 5px 20px rgba(33, 150, 243, 0.5);
+      }
+
+      .error-group {
+        margin-bottom: 20px;
+        padding: 15px;
+        background: rgba(20, 25, 30, 0.5);
+        border-radius: 10px;
+      }
+
+      .error-group-title {
+        font-size: 16px;
+        font-weight: bold;
+        color: #4fc3f7;
+        margin-bottom: 10px;
+        display: flex;
+        justify-content: space-between;
+      }
+
+      .notification-settings {
+        margin-top: 20px;
+        padding: 20px;
+        background: rgba(20, 25, 30, 0.5);
+        border-radius: 10px;
+      }
+
+      .setting-item {
+        margin-bottom: 15px;
+        display: flex;
+        align-items: center;
+      }
+
+      .setting-item label {
+        margin-right: 15px;
+        min-width: 200px;
+      }
+
+      .setting-item input[type="checkbox"] {
+        margin-right: 10px;
+        width: 18px;
+        height: 18px;
+      }
+
+      .setting-item input[type="number"],
+      .setting-item input[type="text"] {
+        padding: 8px 12px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 6px;
+        background: rgba(20, 25, 30, 0.8);
+        color: #e0e0e0;
+        width: 100px;
+      }
+
+      .error-demo-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 10px;
+      }
+
+      .error-demo-btn {
+        padding: 8px 15px;
+        border: none;
+        border-radius: 6px;
+        background: rgba(79, 195, 247, 0.2);
+        color: #4fc3f7;
+        cursor: pointer;
+        transition: all 0.3s;
+        font-size: 13px;
+      }
+
+      .error-demo-btn:hover {
+        background: rgba(79, 195, 247, 0.4);
+        transform: translateY(-2px);
+      }
+    </style>
+  </head>
+  <body>
+    <h1>前端错误监控系统</h1>
+
+    <div class="container">
+      <div class="panel">
+        <div class="section-title">
+          <h2>错误模拟与测试</h2>
+          <div>
+            <span class="status-indicator stopped" id="statusIndicator"></span>
+            <span id="statusText">监控已停止</span>
+          </div>
+        </div>
+
+        <div class="demo-area" id="demoArea">
+          <h3>JavaScript 运行时错误</h3>
+          <div class="error-demo-container">
+            <button class="error-demo-btn" id="jsRefError">
+              引用错误 (ReferenceError)
+            </button>
+            <button class="error-demo-btn" id="jsTypeError">
+              类型错误 (TypeError)
+            </button>
+            <button class="error-demo-btn" id="jsSyntaxError">
+              语法错误 (SyntaxError)
+            </button>
+            <button class="error-demo-btn" id="jsRangeError">
+              范围错误 (RangeError)
+            </button>
+            <button class="error-demo-btn" id="jsUriError">
+              URI错误 (URIError)
+            </button>
+            <button class="error-demo-btn" id="jsEvalError">
+              Eval错误 (EvalError)
+            </button>
+          </div>
+
+          <h3>异步错误</h3>
+          <div class="error-demo-container">
+            <button class="error-demo-btn" id="promiseReject">
+              Promise 拒绝 (未捕获)
+            </button>
+            <button class="error-demo-btn" id="asyncAwaitError">
+              Async/Await 错误
+            </button>
+            <button class="error-demo-btn" id="setTimeoutError">
+              setTimeout 错误
+            </button>
+            <button class="error-demo-btn" id="setIntervalError">
+              setInterval 错误
+            </button>
+            <button class="error-demo-btn" id="requestAnimationFrameError">
+              requestAnimationFrame 错误
+            </button>
+          </div>
+
+          <h3>资源加载错误</h3>
+          <div class="error-demo-container">
+            <button class="error-demo-btn" id="loadImageError">
+              加载不存在图片
+            </button>
+            <button class="error-demo-btn" id="loadScriptError">
+              加载不存在脚本
+            </button>
+            <button class="error-demo-btn" id="loadCssError">
+              加载不存在CSS
+            </button>
+            <button class="error-demo-btn" id="loadFontError">
+              加载不存在字体
+            </button>
+          </div>
+
+          <h3>网络请求错误</h3>
+          <div class="error-demo-container">
+            <button class="error-demo-btn" id="ajax404Error">
+              AJAX 404 错误
+            </button>
+            <button class="error-demo-btn" id="ajax500Error">
+              AJAX 500 错误
+            </button>
+            <button class="error-demo-btn" id="ajaxNetworkError">
+              AJAX 网络错误
+            </button>
+            <button class="error-demo-btn" id="ajaxTimeoutError">
+              AJAX 超时错误
+            </button>
+            <button class="error-demo-btn" id="fetchError">
+              Fetch API 错误
+            </button>
+          </div>
+
+          <h3>跨域错误</h3>
+          <div class="error-demo-container">
+            <button class="error-demo-btn" id="crossOriginScript">
+              跨域脚本错误
+            </button>
+            <button class="error-demo-btn" id="crossOriginResource">
+              跨域资源错误
+            </button>
+            <button class="error-demo-btn" id="corsError">CORS 策略错误</button>
+          </div>
+
+          <h3>自定义错误</h3>
+          <div style="margin-top: 15px">
+            <input
+              type="text"
+              id="customErrorMsg"
+              placeholder="输入错误信息"
+              style="
+                width: 60%;
+                padding: 10px;
+                border-radius: 6px;
+                background: rgba(20, 25, 30, 0.8);
+                color: white;
+                border: 1px solid rgba(255, 255, 255, 0.1);
+              "
+            />
+            <button
+              class="error-demo-btn"
+              id="customErrorBtn"
+              style="margin-left: 10px"
+            >
+              触发自定义错误
+            </button>
+          </div>
+        </div>
+
+        <div class="control-panel">
+          <button class="start-btn" id="startMonitoring">开始监控</button>
+          <button class="stop-btn" id="stopMonitoring">停止监控</button>
+          <button class="clear-btn" id="clearErrors">清除错误日志</button>
+          <button class="test-btn" id="batchErrorTest">批量错误测试</button>
+        </div>
+
+        <div class="notification-settings">
+          <h3>告警设置</h3>
+          <div class="setting-item">
+            <label>
+              <input type="checkbox" id="enableAlert" checked />
+              启用实时告警
+            </label>
+          </div>
+          <div class="setting-item">
+            <label>错误阈值 (触发告警):</label>
+            <input
+              type="number"
+              id="errorThreshold"
+              value="5"
+              min="1"
+              max="100"
+            />
+            个错误/分钟
+          </div>
+          <div class="setting-item">
+            <label>告警接收邮箱:</label>
+            <input
+              type="text"
+              id="alertEmail"
+              placeholder="admin@example.com"
+              value="admin@example.com"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>错误监控面板</h2>
+
+        <div class="filter-controls">
+          <select id="errorTypeFilter">
+            <option value="all">所有错误类型</option>
+            <option value="js">JavaScript 错误</option>
+            <option value="promise">Promise 错误</option>
+            <option value="resource">资源加载错误</option>
+            <option value="ajax">网络请求错误</option>
+            <option value="cross-origin">跨域错误</option>
+          </select>
+
+          <select id="severityFilter">
+            <option value="all">所有严重级别</option>
+            <option value="critical">严重</option>
+            <option value="high">高</option>
+            <option value="medium">中</option>
+            <option value="low">低</option>
+          </select>
+
+          <input type="text" id="errorFilter" placeholder="过滤错误信息" />
+        </div>
+
+        <div class="stats">
+          <div class="stat-item">
+            <div class="stat-value stat-critical" id="totalErrors">0</div>
+            <div class="stat-label">总错误数</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value stat-critical" id="criticalErrors">0</div>
+            <div class="stat-label">严重错误</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value stat-warning" id="unhandledErrors">0</div>
+            <div class="stat-label">未处理错误</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value stat-normal" id="errorRate">0%</div>
+            <div class="stat-label">错误发生率</div>
+          </div>
+        </div>
+
+        <div class="log-area" id="errorLogArea">
+          <!-- 错误日志将在这里显示 -->
+          <div style="text-align: center; color: #666; padding: 50px 20px">
+            <div style="font-size: 48px; margin-bottom: 20px">⚠️</div>
+            <div>错误监控已就绪</div>
+            <div style="font-size: 13px; margin-top: 10px">
+              点击"开始监控"按钮启动错误捕获
+            </div>
+          </div>
+        </div>
+
+        <div class="tab-container">
+          <div class="tabs">
+            <div class="tab active" data-tab="trends">错误趋势</div>
+            <div class="tab" data-tab="sources">错误源分析</div>
+            <div class="tab" data-tab="settings">高级设置</div>
+          </div>
+
+          <div class="tab-content active" id="trends-tab">
+            <div class="chart-container">
+              <canvas id="errorTrendChart" width="400" height="250"></canvas>
+            </div>
+          </div>
+
+          <div class="tab-content" id="sources-tab">
+            <div class="chart-container">
+              <canvas id="errorSourceChart" width="400" height="250"></canvas>
+            </div>
+            <div class="error-group">
+              <div class="error-group-title">
+                <span>常见错误源</span>
+                <span class="error-count" id="commonErrorCount">0</span>
+              </div>
+              <div id="commonErrorsList">
+                <!-- 常见错误列表 -->
+              </div>
+            </div>
+          </div>
+
+          <div class="tab-content" id="settings-tab">
+            <div class="setting-item">
+              <label>
+                <input type="checkbox" id="enableErrorReporting" checked />
+                自动上报错误到服务器
+              </label>
+            </div>
+            <div class="setting-item">
+              <label>
+                <input type="checkbox" id="enableConsoleLog" checked />
+                在控制台显示错误
+              </label>
+            </div>
+            <div class="setting-item">
+              <label>
+                <input type="checkbox" id="enableStacktrace" checked />
+                收集错误堆栈信息
+              </label>
+            </div>
+            <div class="setting-item">
+              <label>
+                <input type="checkbox" id="enableUserTracking" checked />
+                关联用户信息
+              </label>
+            </div>
+            <div class="setting-item">
+              <label>采样率:</label>
+              <input
+                type="range"
+                id="samplingRate"
+                min="0"
+                max="100"
+                value="100"
+              />
+              <span id="samplingValue">100%</span>
+            </div>
+            <div class="setting-item">
+              <label>错误上报URL:</label>
+              <input
+                type="text"
+                id="reportingUrl"
+                value="https://api.example.com/error-log"
+                style="width: 300px"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 用于测试的跨域脚本 -->
+    <!-- <script id="cross-origin-script" src="http://cross-origin.example.com/nonexistent.js" crossorigin></script> -->
+
+    <script>
+      // 错误监控SDK
+      class ErrorMonitor {
+        constructor() {
+          this.isMonitoring = false;
+          this.errors = [];
+          this.stats = {
+            total: 0,
+            jsErrors: 0,
+            promiseErrors: 0,
+            resourceErrors: 0,
+            ajaxErrors: 0,
+            crossOriginErrors: 0,
+            criticalErrors: 0,
+            unhandledErrors: 0,
+            errorRate: 0,
+          };
+
+          // 配置
+          this.config = {
+            enableAlert: true,
+            errorThreshold: 5,
+            alertEmail: "admin@example.com",
+            enableErrorReporting: true,
+            enableConsoleLog: true,
+            enableStacktrace: true,
+            enableUserTracking: true,
+            samplingRate: 100,
+            reportingUrl: "https://api.example.com/error-log",
+          };
+
+          // 错误队列和去重
+          this.errorQueue = [];
+          this.errorMap = new Map(); // 用于错误去重
+
+          // DOM元素引用
+          this.errorLogArea = document.getElementById("errorLogArea");
+          this.statusIndicator = document.getElementById("statusIndicator");
+          this.statusText = document.getElementById("statusText");
+          this.totalErrors = document.getElementById("totalErrors");
+          this.criticalErrors = document.getElementById("criticalErrors");
+          this.unhandledErrors = document.getElementById("unhandledErrors");
+          this.errorRate = document.getElementById("errorRate");
+          this.commonErrorCount = document.getElementById("commonErrorCount");
+          this.commonErrorsList = document.getElementById("commonErrorsList");
+
+          // 原始错误处理函数
+          this.originalOnError = window.onerror;
+          this.originalOnUnhandledRejection = window.onunhandledrejection;
+
+          // 原始API引用
+          this.originalFetch = window.fetch;
+          this.originalXHR = window.XMLHttpRequest;
+
+          // 初始化
+          this.initEventListeners();
+          this.initSettings();
+          this.initCharts();
+
+          // 绑定按钮事件
+          this.bindControlEvents();
+          this.bindErrorDemoEvents();
+
+          // 模拟用户信息
+          this.userInfo = {
+            id: "user_" + Math.random().toString(36).substr(2, 9),
+            sessionId: "session_" + Math.random().toString(36).substr(2, 9),
+            userAgent: navigator.userAgent,
+            url: window.location.href,
+            referrer: document.referrer,
+          };
+
+          // 错误趋势数据
+          this.errorTrendData = [];
+          this.initErrorTrendData();
+
+          // 显示初始化信息
+          this.showAlert("错误监控SDK已加载", "info");
+        }
+
+        // 初始化事件监听器
+        initEventListeners() {
+          // 配置变更监听
+          document
+            .getElementById("enableAlert")
+            .addEventListener("change", (e) => {
+              this.config.enableAlert = e.target.checked;
+            });
+
+          document
+            .getElementById("errorThreshold")
+            .addEventListener("input", (e) => {
+              this.config.errorThreshold = parseInt(e.target.value);
+            });
+
+          document
+            .getElementById("alertEmail")
+            .addEventListener("input", (e) => {
+              this.config.alertEmail = e.target.value;
+            });
+
+          // 过滤监听
+          document
+            .getElementById("errorTypeFilter")
+            .addEventListener("change", () => this.filterErrors());
+          document
+            .getElementById("severityFilter")
+            .addEventListener("change", () => this.filterErrors());
+          document
+            .getElementById("errorFilter")
+            .addEventListener("input", () => this.filterErrors());
+
+          // 标签页切换
+          this.setupTabs();
+
+          // 高级设置
+          this.initAdvancedSettings();
+        }
+
+        // 初始化设置
+        initSettings() {
+          // 设置默认值
+          document.getElementById("enableAlert").checked =
+            this.config.enableAlert;
+          document.getElementById("errorThreshold").value =
+            this.config.errorThreshold;
+          document.getElementById("alertEmail").value = this.config.alertEmail;
+
+          // 采样率
+          const samplingRate = document.getElementById("samplingRate");
+          const samplingValue = document.getElementById("samplingValue");
+          samplingRate.value = this.config.samplingRate;
+          samplingValue.textContent = `${this.config.samplingRate}%`;
+
+          samplingRate.addEventListener("input", (e) => {
+            this.config.samplingRate = parseInt(e.target.value);
+            samplingValue.textContent = `${this.config.samplingRate}%`;
+          });
+        }
+
+        // 初始化高级设置
+        initAdvancedSettings() {
+          document.getElementById("enableErrorReporting").checked =
+            this.config.enableErrorReporting;
+          document.getElementById("enableConsoleLog").checked =
+            this.config.enableConsoleLog;
+          document.getElementById("enableStacktrace").checked =
+            this.config.enableStacktrace;
+          document.getElementById("enableUserTracking").checked =
+            this.config.enableUserTracking;
+          document.getElementById("reportingUrl").value =
+            this.config.reportingUrl;
+
+          document
+            .getElementById("enableErrorReporting")
+            .addEventListener("change", (e) => {
+              this.config.enableErrorReporting = e.target.checked;
+            });
+
+          document
+            .getElementById("enableConsoleLog")
+            .addEventListener("change", (e) => {
+              this.config.enableConsoleLog = e.target.checked;
+            });
+
+          document
+            .getElementById("enableStacktrace")
+            .addEventListener("change", (e) => {
+              this.config.enableStacktrace = e.target.checked;
+            });
+
+          document
+            .getElementById("enableUserTracking")
+            .addEventListener("change", (e) => {
+              this.config.enableUserTracking = e.target.checked;
+            });
+
+          document
+            .getElementById("reportingUrl")
+            .addEventListener("input", (e) => {
+              this.config.reportingUrl = e.target.value;
+            });
+        }
+
+        // 绑定控制事件
+        bindControlEvents() {
+          document
+            .getElementById("startMonitoring")
+            .addEventListener("click", () => this.startMonitoring());
+          document
+            .getElementById("stopMonitoring")
+            .addEventListener("click", () => this.stopMonitoring());
+          document
+            .getElementById("clearErrors")
+            .addEventListener("click", () => this.clearErrors());
+          document
+            .getElementById("batchErrorTest")
+            .addEventListener("click", () => this.batchErrorTest());
+          document
+            .getElementById("customErrorBtn")
+            .addEventListener("click", () => this.triggerCustomError());
+        }
+
+        // 绑定错误演示事件
+        bindErrorDemoEvents() {
+          //#region
+          // JavaScript 错误
+          document
+            .getElementById("jsRefError")
+            .addEventListener("click", () => {
+              // 触发引用错误
+              console.log(undefinedVariable);
+              // try {
+              //   console.log(undefinedVariable);
+              // } catch (error) {
+              //   this.captureError(error, "js");
+              // }
+            });
+
+          document
+            .getElementById("jsTypeError")
+            .addEventListener("click", () => {
+              // 触发类型错误
+              try {
+                const obj = null;
+                obj.someMethod();
+              } catch (error) {
+                this.captureError(error, "js");
+              }
+            });
+
+          document
+            .getElementById("jsSyntaxError")
+            .addEventListener("click", () => {
+              // 触发语法错误
+              try {
+                eval("var x = ;");
+              } catch (error) {
+                this.captureError(error, "js");
+              }
+            });
+
+          document
+            .getElementById("jsRangeError")
+            .addEventListener("click", () => {
+              // 触发范围错误
+              try {
+                const arr = new Array(-1);
+              } catch (error) {
+                this.captureError(error, "js");
+              }
+            });
+
+          document
+            .getElementById("jsUriError")
+            .addEventListener("click", () => {
+              // 触发URI错误
+              try {
+                decodeURIComponent("%");
+              } catch (error) {
+                this.captureError(error, "js");
+              }
+            });
+
+          document
+            .getElementById("jsEvalError")
+            .addEventListener("click", () => {
+              // 触发Eval错误
+              try {
+                throw new EvalError("Eval错误示例");
+              } catch (error) {
+                this.captureError(error, "js");
+              }
+            });
+
+          // Promise 错误
+          document
+            .getElementById("promiseReject")
+            .addEventListener("click", () => {
+              // 触发未处理的Promise拒绝
+              Promise.reject(new Error("未处理的Promise拒绝示例"));
+            });
+
+          document
+            .getElementById("asyncAwaitError")
+            .addEventListener("click", async () => {
+              // 触发async/await错误
+              try {
+                await Promise.reject(new Error("Async/Await错误示例"));
+              } catch (error) {
+                this.captureError(error, "promise");
+              }
+            });
+
+          document
+            .getElementById("setTimeoutError")
+            .addEventListener("click", () => {
+              // 触发setTimeout错误
+              setTimeout(() => {
+                throw new Error("setTimeout中的错误示例");
+              }, 100);
+            });
+
+          document
+            .getElementById("setIntervalError")
+            .addEventListener("click", () => {
+              // 触发setInterval错误
+              const intervalId = setInterval(() => {
+                clearInterval(intervalId);
+                throw new Error("setInterval中的错误示例");
+              }, 100);
+            });
+
+          document
+            .getElementById("requestAnimationFrameError")
+            .addEventListener("click", () => {
+              // 触发requestAnimationFrame错误
+              requestAnimationFrame(() => {
+                throw new Error("requestAnimationFrame中的错误示例");
+              });
+            });
+
+          // 资源加载错误
+          document
+            .getElementById("loadImageError")
+            .addEventListener("click", () => {
+              // 加载不存在的图片
+              const img = new Image();
+              // img.onerror = () => {
+              //   this.captureResourceError(
+              //     "图片加载失败",
+              //     "https://example.com/nonexistent-image.jpg",
+              //     "image"
+              //   );
+              // };
+              img.src = "https://example.com/nonexistent-image.jpg";
+              document.appendChild(img);
+            });
+
+          document
+            .getElementById("loadScriptError")
+            .addEventListener("click", () => {
+              // 加载不存在的脚本
+              const script = document.createElement("script");
+              // script.onerror = () => {
+              //   this.captureResourceError(
+              //     "脚本加载失败",
+              //     "https://example.com/nonexistent-script.js",
+              //     "script"
+              //   );
+              // };
+              script.src = "https://example.com/nonexistent-script.js";
+              document.head.appendChild(script);
+            });
+
+          document
+            .getElementById("loadCssError")
+            .addEventListener("click", () => {
+              // 加载不存在的CSS
+              const link = document.createElement("link");
+              link.rel = "stylesheet";
+              // link.onerror = () => {
+              //   this.captureResourceError(
+              //     "CSS加载失败",
+              //     "https://example.com/nonexistent-style.css",
+              //     "stylesheet"
+              //   );
+              // };
+              link.href = "https://example.com/nonexistent-style.css";
+              document.head.appendChild(link);
+            });
+
+          document
+            .getElementById("loadFontError")
+            .addEventListener("click", () => {
+              // 加载不存在的字体
+              const link = document.createElement("link");
+              link.rel = "stylesheet";
+              // link.onerror = () => {
+              //   this.captureResourceError(
+              //     "字体加载失败",
+              //     "https://example.com/nonexistent-font.woff2",
+              //     "font"
+              //   );
+              // };
+              link.href =
+                "https://fonts.googleapis.com/css2?family=NonexistentFont:wght@400&display=swap";
+              document.head.appendChild(link);
+            });
+
+          // 网络请求错误
+          document
+            .getElementById("ajax404Error")
+            .addEventListener("click", () => {
+              // AJAX 404 错误
+              const xhr = new XMLHttpRequest();
+              xhr.open("GET", "https://httpstat.us/404");
+              xhr.send();
+            });
+
+          document
+            .getElementById("ajax500Error")
+            .addEventListener("click", () => {
+              // AJAX 500 错误
+              const xhr = new XMLHttpRequest();
+              xhr.open("GET", "https://httpstat.us/500");
+              xhr.send();
+            });
+
+          document
+            .getElementById("ajaxNetworkError")
+            .addEventListener("click", () => {
+              // AJAX 网络错误
+              const xhr = new XMLHttpRequest();
+              xhr.open("GET", "https://nonexistent-domain.example.com/api");
+              xhr.send();
+            });
+
+          document
+            .getElementById("ajaxTimeoutError")
+            .addEventListener("click", () => {
+              // AJAX 超时错误
+              const xhr = new XMLHttpRequest();
+              xhr.timeout = 10; // 10ms 超时
+              xhr.open("GET", "https://httpstat.us/200?sleep=100");
+              xhr.send();
+            });
+
+          document
+            .getElementById("fetchError")
+            .addEventListener("click", () => {
+              // Fetch API 错误
+              fetch("https://nonexistent-domain.example.com/api").catch(
+                (error) => {
+                  this.captureError(error, "ajax");
+                }
+              );
+            });
+          //#endregion
+
+          // 跨域错误
+          document
+            .getElementById("crossOriginScript")
+            .addEventListener("click", () => {
+              // 跨域脚本错误
+              const script = document.createElement("script");
+              script.src = "https://cross-origin.example.com/nonexistent.js";
+              script.crossOrigin = "anonymous";
+              document.head.appendChild(script);
+            });
+
+          document
+            .getElementById("crossOriginResource")
+            .addEventListener("click", () => {
+              // 跨域资源错误
+              const img = new Image();
+              img.crossOrigin = "anonymous";
+              img.src = "https://cross-origin.example.com/nonexistent.jpg";
+            });
+
+          document.getElementById("corsError").addEventListener("click", () => {
+            // CORS 策略错误
+            fetch("https://httpstat.us/200", {
+              mode: "no-cors",
+            }).catch((error) => {
+              this.captureError(error, "cross-origin");
+            });
+          });
+        }
+
+        // 开始监控
+        startMonitoring() {
+          if (this.isMonitoring) return;
+
+          this.isMonitoring = true;
+          this.updateStatus();
+          this.showAlert("错误监控已启动", "info");
+
+          // 监听全局错误
+          window.addEventListener(
+            "error",
+            this.handleWindowError.bind(this),
+            true
+          );
+
+          // 监听未处理的Promise拒绝
+          window.addEventListener(
+            "unhandledrejection",
+            this.handleUnhandledRejection.bind(this)
+          );
+
+          // 监听资源加载错误
+          window.addEventListener("load", this.handleResourceErrors.bind(this));
+
+          // 拦截XMLHttpRequest
+          // this.interceptXHR();
+
+          // 拦截fetch API
+          // this.interceptFetch();
+
+          // 开始错误趋势记录
+          this.startErrorTrendRecording();
+        }
+
+        // 停止监控
+        stopMonitoring() {
+          if (!this.isMonitoring) return;
+
+          this.isMonitoring = false;
+          this.updateStatus();
+          this.showAlert("错误监控已停止", "warning");
+
+          // 移除事件监听器
+          window.removeEventListener(
+            "error",
+            this.handleWindowError.bind(this)
+          );
+          window.removeEventListener(
+            "unhandledrejection",
+            this.handleUnhandledRejection.bind(this)
+          );
+          window.removeEventListener(
+            "load",
+            this.handleResourceErrors.bind(this)
+          );
+
+          // 恢复原始API
+          window.fetch = this.originalFetch;
+          window.XMLHttpRequest = this.originalXHR;
+
+          // 停止错误趋势记录
+          clearInterval(this.trendInterval);
+        }
+
+        // 更新状态显示
+        updateStatus() {
+          if (this.isMonitoring) {
+            this.statusIndicator.className = "status-indicator monitoring";
+            this.statusText.textContent = "监控进行中";
+          } else {
+            this.statusIndicator.className = "status-indicator stopped";
+            this.statusText.textContent = "监控已停止";
+          }
+        }
+
+        // 处理窗口错误
+        handleWindowError(event) {
+          const { message, filename, lineno, colno, error } = event;
+          console.log("处理全局错误");
+
+          // 判断错误类型
+          let errorType = "js";
+          let severity = "high";
+
+          // 判断是否为资源加载错误
+          if (
+            event.target &&
+            (event.target.tagName === "IMG" ||
+              event.target.tagName === "SCRIPT" ||
+              event.target.tagName === "LINK" ||
+              event.target.tagName === "VIDEO" ||
+              event.target.tagName === "AUDIO")
+          ) {
+            errorType = "resource";
+            severity = "medium";
+          }
+
+          // 判断是否为跨域脚本错误
+          if (message && message.includes("Script error")) {
+            errorType = "cross-origin";
+            severity = "medium";
+          }
+
+          const errorData = {
+            type: errorType,
+            severity: severity,
+            message: message || "Unknown error",
+            filename: filename || "Unknown file",
+            lineno: lineno || 0,
+            colno: colno || 0,
+            stack: error ? error.stack : "",
+            timestamp: new Date().toISOString(),
+            userInfo: this.config.enableUserTracking ? this.userInfo : null,
+          };
+
+          this.captureErrorData(errorData);
+
+          // 阻止默认错误处理（避免控制台重复显示）
+          event.preventDefault();
+        }
+
+        // 处理未处理的Promise拒绝
+        handleUnhandledRejection(event) {
+          const error = event.reason;
+
+          const errorData = {
+            type: "promise",
+            severity: "high",
+            message: error ? error.message : "Unhandled Promise rejection",
+            stack: error ? error.stack : "",
+            timestamp: new Date().toISOString(),
+            userInfo: this.config.enableUserTracking ? this.userInfo : null,
+          };
+
+          this.captureErrorData(errorData);
+
+          // 阻止默认错误处理
+          event.preventDefault();
+        }
+
+        // 处理资源加载错误
+        handleResourceErrors() {
+          // 检查已加载的资源是否有错误
+          const resources = performance.getEntriesByType("resource");
+
+          resources.forEach((resource) => {
+            // 这里可以检查资源的加载状态
+            // 注意：performance API 不直接提供错误状态
+            // 实际应用中需要结合其他方法
+          });
+        }
+
+        // 拦截XMLHttpRequest
+        interceptXHR() {
+          const self = this;
+          const OriginalXHR = window.XMLHttpRequest;
+
+          window.XMLHttpRequest = function () {
+            const xhr = new OriginalXHR();
+
+            // 保存原始方法
+            const originalOpen = xhr.open;
+            const originalSend = xhr.send;
+
+            let method, url;
+
+            // 拦截open方法
+            xhr.open = function (...args) {
+              method = args[0];
+              url = args[1];
+              return originalOpen.apply(this, args);
+            };
+
+            // 拦截send方法
+            xhr.send = function (...args) {
+              // 监听加载完成
+              xhr.addEventListener("load", function () {
+                if (xhr.status >= 400) {
+                  const errorData = {
+                    type: "ajax",
+                    severity: xhr.status >= 500 ? "high" : "medium",
+                    message: `HTTP ${xhr.status} ${xhr.statusText}`,
+                    url: url,
+                    method: method,
+                    status: xhr.status,
+                    response: xhr.responseText,
+                    timestamp: new Date().toISOString(),
+                    userInfo: self.config.enableUserTracking
+                      ? self.userInfo
+                      : null,
+                  };
+
+                  self.captureErrorData(errorData);
+                }
+              });
+
+              // 监听错误
+              xhr.addEventListener("error", function () {
+                const errorData = {
+                  type: "ajax",
+                  severity: "critical",
+                  message: "网络请求失败",
+                  url: url,
+                  method: method,
+                  status: 0,
+                  timestamp: new Date().toISOString(),
+                  userInfo: self.config.enableUserTracking
+                    ? self.userInfo
+                    : null,
+                };
+
+                self.captureErrorData(errorData);
+              });
+
+              // 监听超时
+              xhr.addEventListener("timeout", function () {
+                const errorData = {
+                  type: "ajax",
+                  severity: "high",
+                  message: "请求超时",
+                  url: url,
+                  method: method,
+                  status: 0,
+                  timestamp: new Date().toISOString(),
+                  userInfo: self.config.enableUserTracking
+                    ? self.userInfo
+                    : null,
+                };
+
+                self.captureErrorData(errorData);
+              });
+
+              return originalSend.apply(this, args);
+            };
+
+            return xhr;
+          };
+        }
+
+        // 拦截fetch API
+        interceptFetch() {
+          const self = this;
+          const originalFetch = window.fetch;
+
+          window.fetch = function (...args) {
+            const url = args[0];
+            const options = args[1] || {};
+            const method = options.method || "GET";
+
+            return originalFetch
+              .apply(this, args)
+              .then((response) => {
+                if (!response.ok) {
+                  const errorData = {
+                    type: "ajax",
+                    severity: response.status >= 500 ? "high" : "medium",
+                    message: `HTTP ${response.status} ${response.statusText}`,
+                    url: url,
+                    method: method,
+                    status: response.status,
+                    timestamp: new Date().toISOString(),
+                    userInfo: self.config.enableUserTracking
+                      ? self.userInfo
+                      : null,
+                  };
+
+                  self.captureErrorData(errorData);
+                }
+                return response;
+              })
+              .catch((error) => {
+                const errorData = {
+                  type: "ajax",
+                  severity: "critical",
+                  message: error.message,
+                  url: url,
+                  method: method,
+                  status: 0,
+                  timestamp: new Date().toISOString(),
+                  userInfo: self.config.enableUserTracking
+                    ? self.userInfo
+                    : null,
+                };
+
+                self.captureErrorData(errorData);
+                throw error;
+              });
+          };
+        }
+
+        // 捕获错误
+        captureError(error, type = "js", severity = "medium") {
+          const errorData = {
+            type: type,
+            severity: severity,
+            message: error.message || String(error),
+            stack: error.stack || "",
+            timestamp: new Date().toISOString(),
+            userInfo: this.config.enableUserTracking ? this.userInfo : null,
+          };
+
+          this.captureErrorData(errorData);
+        }
+
+        // 捕获资源错误
+        captureResourceError(message, url, resourceType) {
+          const errorData = {
+            type: "resource",
+            severity: "medium",
+            message: message,
+            url: url,
+            resourceType: resourceType,
+            timestamp: new Date().toISOString(),
+            userInfo: this.config.enableUserTracking ? this.userInfo : null,
+          };
+
+          this.captureErrorData(errorData);
+        }
+
+        // 捕获错误数据
+        captureErrorData(errorData) {
+          // 采样率控制
+          if (Math.random() * 100 > this.config.samplingRate) {
+            return;
+          }
+
+          // 错误去重：基于错误消息和堆栈的简单去重
+          const errorKey = `${errorData.type}:${errorData.message}:${
+            errorData.filename || ""
+          }:${errorData.lineno || ""}`;
+
+          if (this.errorMap.has(errorKey)) {
+            const existingError = this.errorMap.get(errorKey);
+            existingError.count++;
+            existingError.lastOccurrence = new Date().toISOString();
+
+            // 更新UI中的错误计数
+            this.updateErrorCount(existingError.id, existingError.count);
+
+            // 更新统计信息
+            this.updateErrorStats();
+
+            return;
+          }
+
+          // 生成错误ID
+          errorData.id =
+            "err_" + Date.now() + "_" + Math.random().toString(36).substr(2, 9);
+          errorData.count = 1;
+          errorData.firstOccurrence = errorData.timestamp;
+          errorData.lastOccurrence = errorData.timestamp;
+
+          // 添加到错误列表
+          this.errors.push(errorData);
+          this.errorMap.set(errorKey, errorData);
+
+          // 更新统计信息
+          this.updateErrorStats();
+
+          // 记录到控制台
+          if (this.config.enableConsoleLog) {
+            console.error(
+              `[ErrorMonitor] ${errorData.type.toUpperCase()} Error:`,
+              errorData.message,
+              errorData
+            );
+          }
+
+          // 显示错误日志
+          this.displayError(errorData);
+
+          // 检查是否需要告警
+          this.checkForAlerts();
+
+          // 上报到服务器
+          if (this.config.enableErrorReporting) {
+            this.reportErrorToServer(errorData);
+          }
+
+          // 更新错误趋势数据
+          this.updateErrorTrendData();
+        }
+
+        // 更新错误计数显示
+        updateErrorCount(errorId, count) {
+          const errorElement = document.getElementById(`error-${errorId}`);
+          if (errorElement) {
+            const countElement = errorElement.querySelector(".error-count");
+            if (countElement) {
+              countElement.textContent = count;
+            }
+          }
+        }
+
+        // 更新错误统计信息
+        updateErrorStats() {
+          const total = this.errors.length;
+          const critical = this.errors.filter(
+            (e) => e.severity === "critical"
+          ).length;
+          const unhandled = this.errors.filter(
+            (e) => e.type === "promise" || e.type === "js"
+          ).length;
+
+          // 计算错误发生率（基于最近1分钟的错误数）
+          const oneMinuteAgo = new Date(Date.now() - 60000);
+          const recentErrors = this.errors.filter(
+            (e) => new Date(e.timestamp) > oneMinuteAgo
+          ).length;
+          const errorRate = Math.min(
+            100,
+            Math.round((recentErrors / this.config.errorThreshold) * 100)
+          );
+
+          this.stats.total = total;
+          this.stats.criticalErrors = critical;
+          this.stats.unhandledErrors = unhandled;
+          this.stats.errorRate = errorRate;
+
+          // 更新UI
+          this.totalErrors.textContent = total;
+          this.criticalErrors.textContent = critical;
+          this.unhandledErrors.textContent = unhandled;
+          this.errorRate.textContent = `${errorRate}%`;
+
+          // 更新图表
+          this.updateCharts();
+
+          // 更新常见错误列表
+          this.updateCommonErrors();
+        }
+
+        // 显示错误日志
+        displayError(errorData) {
+          // 如果错误日志区域有初始提示，清除它
+          const initialMessage = this.errorLogArea.querySelector(
+            'div[style*="text-align: center"]'
+          );
+          if (initialMessage) {
+            this.errorLogArea.innerHTML = "";
+          }
+
+          const errorItem = document.createElement("div");
+          errorItem.className = `error-item ${
+            errorData.severity === "critical" ? "warning" : ""
+          }`;
+          errorItem.id = `error-${errorData.id}`;
+
+          // 错误类型图标
+          const typeIcons = {
+            js: "🟥",
+            promise: "🟧",
+            resource: "🟦",
+            ajax: "🟪",
+            "cross-origin": "🟩",
+          };
+
+          // 严重级别文本
+          const severityText = {
+            critical: "严重",
+            high: "高",
+            medium: "中",
+            low: "低",
+          };
+
+          errorItem.innerHTML = `
+                    <div>
+                        <span class="error-time">${new Date(
+                          errorData.timestamp
+                        ).toLocaleTimeString()}</span>
+                        <span class="error-type type-${errorData.type}">${
+            typeIcons[errorData.type] || "🟨"
+          } ${errorData.type.toUpperCase()}</span>
+                        <span class="severity-badge severity-${
+                          errorData.severity
+                        }">${
+            severityText[errorData.severity] || errorData.severity
+          }</span>
+                        <span class="error-count">${errorData.count}</span>
+                    </div>
+                    <div class="error-message">${this.escapeHtml(
+                      errorData.message
+                    )}</div>
+                    ${
+                      errorData.filename
+                        ? `<div class="error-source">${errorData.filename}:${
+                            errorData.lineno || ""
+                          }:${errorData.colno || ""}</div>`
+                        : ""
+                    }
+                    ${
+                      errorData.url
+                        ? `<div class="error-source">${errorData.url}</div>`
+                        : ""
+                    }
+                    ${
+                      this.config.enableStacktrace && errorData.stack
+                        ? `<div class="error-stack">${this.escapeHtml(
+                            errorData.stack
+                          )}</div>`
+                        : ""
+                    }
+                    <div class="error-actions">
+                        <button onclick="errorMonitor.copyErrorDetails('${
+                          errorData.id
+                        }')">复制详情</button>
+                        <button onclick="errorMonitor.ignoreError('${
+                          errorData.id
+                        }')">忽略</button>
+                        <button onclick="errorMonitor.reportErrorManually('${
+                          errorData.id
+                        }')">手动上报</button>
+                    </div>
+                `;
+
+          // 添加到日志区域顶部
+          this.errorLogArea.insertBefore(
+            errorItem,
+            this.errorLogArea.firstChild
+          );
+
+          // 限制显示的错误数量
+          const maxDisplayedErrors = 50;
+          const errorItems = this.errorLogArea.querySelectorAll(".error-item");
+          if (errorItems.length > maxDisplayedErrors) {
+            for (let i = maxDisplayedErrors; i < errorItems.length; i++) {
+              errorItems[i].remove();
+            }
+          }
+        }
+
+        // 转义HTML
+        escapeHtml(text) {
+          const div = document.createElement("div");
+          div.textContent = text;
+          return div.innerHTML;
+        }
+
+        // 检查是否需要告警
+        checkForAlerts() {
+          if (!this.config.enableAlert) return;
+
+          // 检查最近1分钟的错误数是否超过阈值
+          const oneMinuteAgo = new Date(Date.now() - 60000);
+          const recentErrors = this.errors.filter(
+            (e) => new Date(e.timestamp) > oneMinuteAgo
+          ).length;
+
+          if (recentErrors >= this.config.errorThreshold) {
+            this.showAlert(
+              `错误数超过阈值: ${recentErrors}个错误/分钟`,
+              "warning"
+            );
+
+            // 在实际应用中，这里会发送邮件或其他通知
+            if (this.config.alertEmail) {
+              console.log(`发送告警邮件到: ${this.config.alertEmail}`);
+            }
+          }
+
+          // 检查是否有严重错误
+          const recentCriticalErrors = this.errors.filter(
+            (e) =>
+              e.severity === "critical" &&
+              new Date(e.timestamp) > new Date(Date.now() - 300000) // 5分钟内
+          ).length;
+
+          if (recentCriticalErrors > 0) {
+            this.showAlert(
+              `发现 ${recentCriticalErrors} 个严重错误`,
+              "warning"
+            );
+          }
+        }
+
+        // 显示告警
+        showAlert(message, type = "warning") {
+          const alert = document.createElement("div");
+          alert.className = `floating-alert ${type}`;
+          alert.textContent = message;
+
+          document.body.appendChild(alert);
+
+          // 5秒后移除
+          setTimeout(() => {
+            if (alert.parentNode) {
+              alert.parentNode.removeChild(alert);
+            }
+          }, 5000);
+        }
+
+        // 上报错误到服务器
+        reportErrorToServer(errorData) {
+          // 在实际应用中，这里会发送错误数据到服务器
+          // 这里我们模拟一个API调用
+          if (!this.config.reportingUrl) return;
+
+          const reportData = {
+            ...errorData,
+            appVersion: "1.0.0",
+            sdkVersion: "1.0.0",
+            environment: "development",
+          };
+
+          // 使用navigator.sendBeacon或fetch发送数据
+          if (navigator.sendBeacon) {
+            navigator.sendBeacon(
+              this.config.reportingUrl,
+              JSON.stringify(reportData)
+            );
+          } else {
+            fetch(this.config.reportingUrl, {
+              method: "POST",
+              body: JSON.stringify(reportData),
+              headers: {
+                "Content-Type": "application/json",
+              },
+              keepalive: true, // 确保页面卸载时也能发送
+            }).catch(() => {
+              // 静默失败
+            });
+          }
+
+          console.log("[ErrorMonitor] 错误已上报到服务器:", reportData);
+        }
+
+        // 清除错误日志
+        clearErrors() {
+          this.errors = [];
+          this.errorMap.clear();
+          this.errorLogArea.innerHTML = `
+                    <div style="text-align: center; color: #666; padding: 50px 20px;">
+                        <div style="font-size: 48px; margin-bottom: 20px;">✅</div>
+                        <div>错误日志已清空</div>
+                    </div>
+                `;
+
+          this.updateErrorStats();
+          this.showAlert("错误日志已清空", "info");
+        }
+
+        // 批量错误测试
+        batchErrorTest() {
+          this.showAlert("开始批量错误测试", "info");
+
+          // 触发各种类型的错误
+          const errors = [
+            () => {
+              try {
+                console.log(undefinedVariable);
+              } catch (e) {
+                this.captureError(e, "js");
+              }
+            },
+            () =>
+              Promise.reject(new Error("批量测试: Promise拒绝")).catch(
+                () => {}
+              ),
+            () => {
+              setTimeout(() => {
+                throw new Error("批量测试: setTimeout错误");
+              }, 100);
+            },
+            () => {
+              const img = new Image();
+              img.onerror = () =>
+                this.captureResourceError(
+                  "批量测试: 图片加载失败",
+                  "https://example.com/test.jpg",
+                  "image"
+                );
+              img.src = "https://example.com/test.jpg";
+            },
+            () => {
+              const xhr = new XMLHttpRequest();
+              xhr.open("GET", "https://httpstat.us/404");
+              xhr.send();
+            },
+          ];
+
+          // 随机触发5-10个错误
+          const errorCount = Math.floor(Math.random() * 6) + 5;
+
+          for (let i = 0; i < errorCount; i++) {
+            setTimeout(() => {
+              const randomError =
+                errors[Math.floor(Math.random() * errors.length)];
+              randomError.call(this);
+            }, i * 500);
+          }
+        }
+
+        // 触发自定义错误
+        triggerCustomError() {
+          const message =
+            document.getElementById("customErrorMsg").value || "自定义错误示例";
+          const error = new Error(message);
+
+          // 随机选择错误类型
+          const types = ["js", "promise", "ajax"];
+          const type = types[Math.floor(Math.random() * types.length)];
+
+          // 随机选择严重级别
+          const severities = ["low", "medium", "high", "critical"];
+          const severity =
+            severities[Math.floor(Math.random() * severities.length)];
+
+          this.captureError(error, type, severity);
+          document.getElementById("customErrorMsg").value = "";
+        }
+
+        // 复制错误详情
+        copyErrorDetails(errorId) {
+          const error = this.errors.find((e) => e.id === errorId);
+          if (!error) return;
+
+          const text = `
+错误类型: ${error.type}
+严重级别: ${error.severity}
+错误信息: ${error.message}
+发生时间: ${new Date(error.timestamp).toLocaleString()}
+${
+  error.filename
+    ? `文件位置: ${error.filename}:${error.lineno || ""}:${error.colno || ""}`
+    : ""
+}
+${error.url ? `请求URL: ${error.url}` : ""}
+${error.stack ? `堆栈信息:\n${error.stack}` : ""}
+                `.trim();
+
+          navigator.clipboard.writeText(text).then(() => {
+            this.showAlert("错误详情已复制到剪贴板", "info");
+          });
+        }
+
+        // 忽略错误
+        ignoreError(errorId) {
+          const errorElement = document.getElementById(`error-${errorId}`);
+          if (errorElement) {
+            errorElement.style.opacity = "0.5";
+            errorElement.style.textDecoration = "line-through";
+
+            // 在实际应用中，这里会将错误标记为已忽略，不再上报
+            this.showAlert("错误已标记为忽略", "info");
+          }
+        }
+
+        // 手动上报错误
+        reportErrorManually(errorId) {
+          const error = this.errors.find((e) => e.id === errorId);
+          if (!error) return;
+
+          this.reportErrorToServer(error);
+          this.showAlert("错误已手动上报", "info");
+        }
+
+        // 过滤错误
+        filterErrors() {
+          const typeFilter = document.getElementById("errorTypeFilter").value;
+          const severityFilter =
+            document.getElementById("severityFilter").value;
+          const textFilter = document
+            .getElementById("errorFilter")
+            .value.toLowerCase();
+
+          const errorItems = this.errorLogArea.querySelectorAll(".error-item");
+
+          errorItems.forEach((item) => {
+            let show = true;
+
+            // 类型过滤
+            if (typeFilter !== "all") {
+              const typeText = item
+                .querySelector(".error-type")
+                .textContent.toLowerCase();
+              if (!typeText.includes(typeFilter)) {
+                show = false;
+              }
+            }
+
+            // 严重级别过滤
+            if (show && severityFilter !== "all") {
+              const severityText =
+                item.querySelector(".severity-badge").textContent;
+              if (!severityText.includes(severityText[severityFilter])) {
+                show = false;
+              }
+            }
+
+            // 文本过滤
+            if (show && textFilter) {
+              const errorMessage = item
+                .querySelector(".error-message")
+                .textContent.toLowerCase();
+              if (!errorMessage.includes(textFilter)) {
+                show = false;
+              }
+            }
+
+            item.style.display = show ? "block" : "none";
+          });
+        }
+
+        // 设置标签页
+        setupTabs() {
+          const tabs = document.querySelectorAll(".tab");
+          const tabContents = document.querySelectorAll(".tab-content");
+
+          tabs.forEach((tab) => {
+            tab.addEventListener("click", () => {
+              // 移除所有active类
+              tabs.forEach((t) => t.classList.remove("active"));
+              tabContents.forEach((c) => c.classList.remove("active"));
+
+              // 添加active类到当前标签
+              tab.classList.add("active");
+              document
+                .getElementById(`${tab.dataset.tab}-tab`)
+                .classList.add("active");
+
+              // 更新图表大小
+              setTimeout(() => {
+                if (window.errorTrendChart) {
+                  window.errorTrendChart.resize();
+                }
+                if (window.errorSourceChart) {
+                  window.errorSourceChart.resize();
+                }
+              }, 100);
+            });
+          });
+        }
+
+        // 初始化图表
+        initCharts() {
+          // 错误趋势图表
+          const errorTrendCtx = document
+            .getElementById("errorTrendChart")
+            .getContext("2d");
+          window.errorTrendChart = new Chart(errorTrendCtx, {
+            type: "line",
+            data: {
+              labels: Array.from({ length: 24 }, (_, i) => `${i}:00`),
+              datasets: [
+                {
+                  label: "错误数量",
+                  data: Array(24).fill(0),
+                  borderColor: "#f44336",
+                  backgroundColor: "rgba(244, 67, 54, 0.1)",
+                  tension: 0.4,
+                  fill: true,
+                },
+                {
+                  label: "严重错误",
+                  data: Array(24).fill(0),
+                  borderColor: "#ff9800",
+                  backgroundColor: "rgba(255, 152, 0, 0.1)",
+                  tension: 0.4,
+                  fill: true,
+                },
+              ],
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              scales: {
+                y: {
+                  beginAtZero: true,
+                  grid: {
+                    color: "rgba(255, 255, 255, 0.1)",
+                  },
+                  ticks: {
+                    color: "#b0bec5",
+                  },
+                },
+                x: {
+                  grid: {
+                    color: "rgba(255, 255, 255, 0.1)",
+                  },
+                  ticks: {
+                    color: "#b0bec5",
+                  },
+                },
+              },
+              plugins: {
+                legend: {
+                  labels: {
+                    color: "#b0bec5",
+                  },
+                },
+              },
+            },
+          });
+
+          // 错误源分布图表
+          const errorSourceCtx = document
+            .getElementById("errorSourceChart")
+            .getContext("2d");
+          window.errorSourceChart = new Chart(errorSourceCtx, {
+            type: "doughnut",
+            data: {
+              labels: [
+                "JavaScript",
+                "Promise",
+                "资源加载",
+                "网络请求",
+                "跨域错误",
+              ],
+              datasets: [
+                {
+                  data: [0, 0, 0, 0, 0],
+                  backgroundColor: [
+                    "rgba(244, 67, 54, 0.7)",
+                    "rgba(255, 152, 0, 0.7)",
+                    "rgba(33, 150, 243, 0.7)",
+                    "rgba(156, 39, 176, 0.7)",
+                    "rgba(0, 150, 136, 0.7)",
+                  ],
+                  borderColor: [
+                    "#f44336",
+                    "#ff9800",
+                    "#2196f3",
+                    "#9c27b0",
+                    "#009688",
+                  ],
+                  borderWidth: 1,
+                },
+              ],
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: {
+                  position: "right",
+                  labels: {
+                    color: "#b0bec5",
+                  },
+                },
+              },
+            },
+          });
+        }
+
+        // 更新图表
+        updateCharts() {
+          if (!window.errorTrendChart || !window.errorSourceChart) return;
+
+          // 更新错误趋势数据
+          const currentHour = new Date().getHours();
+          window.errorTrendChart.data.datasets[0].data[currentHour] =
+            this.stats.total;
+          window.errorTrendChart.data.datasets[1].data[currentHour] =
+            this.stats.criticalErrors;
+          window.errorTrendChart.update();
+
+          // 更新错误源分布数据
+          const jsErrors = this.errors.filter((e) => e.type === "js").length;
+          const promiseErrors = this.errors.filter(
+            (e) => e.type === "promise"
+          ).length;
+          const resourceErrors = this.errors.filter(
+            (e) => e.type === "resource"
+          ).length;
+          const ajaxErrors = this.errors.filter(
+            (e) => e.type === "ajax"
+          ).length;
+          const crossOriginErrors = this.errors.filter(
+            (e) => e.type === "cross-origin"
+          ).length;
+
+          window.errorSourceChart.data.datasets[0].data = [
+            jsErrors,
+            promiseErrors,
+            resourceErrors,
+            ajaxErrors,
+            crossOriginErrors,
+          ];
+          window.errorSourceChart.update();
+        }
+
+        // 初始化错误趋势数据
+        initErrorTrendData() {
+          const now = new Date();
+          const currentHour = now.getHours();
+
+          // 初始化24小时数据
+          for (let i = 0; i < 24; i++) {
+            this.errorTrendData[i] = {
+              hour: i,
+              errors: i === currentHour ? 0 : Math.floor(Math.random() * 3), // 模拟一些随机数据
+              criticalErrors:
+                i === currentHour ? 0 : Math.floor(Math.random() * 2),
+            };
+          }
+        }
+
+        // 开始错误趋势记录
+        startErrorTrendRecording() {
+          // 每分钟更新一次趋势数据
+          this.trendInterval = setInterval(() => {
+            this.updateErrorTrendData();
+          }, 60000);
+        }
+
+        // 更新错误趋势数据
+        updateErrorTrendData() {
+          const currentHour = new Date().getHours();
+
+          // 获取最近1分钟的错误数
+          const oneMinuteAgo = new Date(Date.now() - 60000);
+          const recentErrors = this.errors.filter(
+            (e) => new Date(e.timestamp) > oneMinuteAgo
+          ).length;
+          const recentCriticalErrors = this.errors.filter(
+            (e) =>
+              e.severity === "critical" && new Date(e.timestamp) > oneMinuteAgo
+          ).length;
+
+          // 更新趋势数据
+          if (this.errorTrendData[currentHour]) {
+            this.errorTrendData[currentHour].errors += recentErrors;
+            this.errorTrendData[currentHour].criticalErrors +=
+              recentCriticalErrors;
+          }
+        }
+
+        // 更新常见错误列表
+        updateCommonErrors() {
+          // 按出现次数排序
+          const sortedErrors = [...this.errors]
+            .sort((a, b) => b.count - a.count)
+            .slice(0, 5); // 取前5个
+
+          if (sortedErrors.length === 0) {
+            this.commonErrorsList.innerHTML =
+              '<div style="color: #666; text-align: center; padding: 20px;">暂无常见错误</div>';
+            this.commonErrorCount.textContent = "0";
+            return;
+          }
+
+          let html = "";
+          sortedErrors.forEach((error, index) => {
+            html += `
+                        <div style="padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center;">
+                            <div style="width: 24px; height: 24px; background: rgba(244,67,54,0.2); color: #f44336; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 10px; font-weight: bold;">
+                                ${index + 1}
+                            </div>
+                            <div style="flex-grow: 1;">
+                                <div style="font-weight: 500; color: #fff;">${this.truncateText(
+                                  error.message,
+                                  60
+                                )}</div>
+                                <div style="font-size: 12px; color: #b0bec5;">
+                                    出现次数: ${error.count} | 类型: ${
+              error.type
+            } | 最后出现: ${new Date(error.lastOccurrence).toLocaleTimeString()}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+          });
+
+          this.commonErrorsList.innerHTML = html;
+          this.commonErrorCount.textContent = sortedErrors.length;
+        }
+
+        // 截断文本
+        truncateText(text, maxLength) {
+          if (text.length <= maxLength) return text;
+          return text.substring(0, maxLength) + "...";
+        }
+      }
+
+      // 初始化错误监控SDK
+      document.addEventListener("DOMContentLoaded", () => {
+        window.errorMonitor = new ErrorMonitor();
+
+        // 自动开始监控（在实际应用中可能根据配置决定）
+        window.errorMonitor.startMonitoring();
+      });
+    </script>
+    <!-- 引入Chart.js用于图表显示 -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  </body>
+</html>
