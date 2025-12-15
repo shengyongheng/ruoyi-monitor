@@ -138,11 +138,35 @@ export class ErrorTrackingPlugin {
 
             // 拦截send方法
             xhr.send = function (...args) {
-                const startTime = performance.now();
+                const startTime = performance.now();  // 毫秒，带小数
+                /**
+                 *  axios
+                        .post("http://127.0.0.1:8080/monitor/test1", {
+                        __skipMonitor: true,
+                        })
+                        .then((response) => {
+                        console.log("输出返回的数据:", response.data); // 输出返回的数据
+                        })
+                        .catch((error) => {
+                        console.error("请求出错：", error);
+                        });
+                    
+                    const xhr = new XMLHttpRequest();
+                    xhr.open("POST", "http://127.0.0.1:8080/monitor/test1");
+                    xhr.send(
+                        JSON.stringify({
+                        __skipMonitor: true,
+                        })
+                    );
+                 */
+                const __skipMonitor = JSON.parse(args[0]).__skipMonitor;
+                // console.log("xhr this:", args[0], __skipMonitor);
                 // 监听加载完成
                 xhr.addEventListener("load", function () {
                     const duration = performance.now() - startTime;
-                    if (xhr.status >= 400 || this.slowRequestThreshold <= duration) {
+
+                    if (!__skipMonitor && (xhr.status >= 400 || self.slowRequestThreshold <= duration)) {
+
                         const errorData = {
                             type: "ajax",
                             // severity: xhr.status >= 500 ? "high" : "medium",
@@ -176,8 +200,9 @@ export class ErrorTrackingPlugin {
                         //     ? self.userInfo
                         //     : null,
                     };
-
-                    sdk.capture(self.name, errorData)
+                    if (!__skipMonitor) {
+                        sdk.capture(self.name, errorData)
+                    }
                 });
 
                 // 监听超时
@@ -195,7 +220,9 @@ export class ErrorTrackingPlugin {
                         //     : null,
                     };
 
-                    sdk.capture(self.name, errorData)
+                    if (!__skipMonitor) {
+                        sdk.capture(self.name, errorData)
+                    }
                 });
 
                 return originalSend.apply(this, args);
@@ -211,8 +238,19 @@ export class ErrorTrackingPlugin {
         const originalFetch = window.fetch;
 
         window.fetch = function (...args) {
+
             const url = args[0];
             const options = args[1] || {};
+            /**
+             *  @description 跳过数据上报请求
+            fetch("http://127.0.0.1:8080/monitor/test1", {
+                method: "POST",
+                __skipMonitor: true,
+            })
+                .then((response) => response.json())
+                .then((data) => console.log(data));
+             */
+            const __skipMonitor = options.__skipMonitor;
             const method = options.method || "GET";
             const startTime = performance.now();
 
@@ -220,7 +258,7 @@ export class ErrorTrackingPlugin {
                 .apply(this, args)
                 .then((response) => {
                     const duration = performance.now() - startTime;
-                    if (!response.ok || this.slowRequestThreshold <= duration) {
+                    if (!__skipMonitor && (!response.ok || self.slowRequestThreshold <= duration)) {
                         const errorData = {
                             type: "fetch",
                             // severity: response.status >= 500 ? "high" : "medium",
@@ -228,6 +266,7 @@ export class ErrorTrackingPlugin {
                             url: url,
                             method: method,
                             status: response.status,
+                            duration: duration,
                             timestamp: new Date().toISOString(),
                             // userInfo: self.config.enableUserTracking
                             //     ? self.userInfo
@@ -251,8 +290,9 @@ export class ErrorTrackingPlugin {
                         //     ? self.userInfo
                         //     : null,
                     };
-
-                    sdk.capture(self.name, errorData)
+                    if (!__skipMonitor) {
+                        sdk.capture(self.name, errorData)
+                    }
                     throw error;
                 });
         };

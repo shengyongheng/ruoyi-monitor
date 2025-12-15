@@ -179,7 +179,6 @@ class DataReporter {
 
     async sendRequest(events) {
         if (events.length === 0) return;
-
         const payload = {
             appId: this.config.appId,
             appVersion: this.config.appVersion,
@@ -187,6 +186,7 @@ class DataReporter {
             events
         };
         console.log("payload:", payload);
+
         // 使用多种方式上报，提高成功率
         // await Promise.race([
         //     this.sendBeacon(payload),
@@ -568,6 +568,7 @@ class EnvironmentInfoPlugin {
 // 错误监控插件
 class ErrorTrackingPlugin {
     name = 'errorTracking';
+    slowRequestThreshold = 3000; // 慢请求阈值
 
     install(sdk) {
         {
@@ -700,9 +701,35 @@ class ErrorTrackingPlugin {
 
             // 拦截send方法
             xhr.send = function (...args) {
+                const startTime = performance.now();  // 毫秒，带小数
+                /**
+                 *  axios
+                        .post("http://127.0.0.1:8080/monitor/test1", {
+                        __skipMonitor: true,
+                        })
+                        .then((response) => {
+                        console.log("输出返回的数据:", response.data); // 输出返回的数据
+                        })
+                        .catch((error) => {
+                        console.error("请求出错：", error);
+                        });
+                    
+                    const xhr = new XMLHttpRequest();
+                    xhr.open("POST", "http://127.0.0.1:8080/monitor/test1");
+                    xhr.send(
+                        JSON.stringify({
+                        __skipMonitor: true,
+                        })
+                    );
+                 */
+                const __skipMonitor = JSON.parse(args[0]).__skipMonitor;
+                // console.log("xhr this:", args[0], __skipMonitor);
                 // 监听加载完成
                 xhr.addEventListener("load", function () {
-                    if (xhr.status >= 400) {
+                    const duration = performance.now() - startTime;
+
+                    if (!__skipMonitor && (xhr.status >= 400 || self.slowRequestThreshold <= duration)) {
+
                         const errorData = {
                             type: "ajax",
                             // severity: xhr.status >= 500 ? "high" : "medium",
@@ -711,6 +738,7 @@ class ErrorTrackingPlugin {
                             method: method,
                             status: xhr.status,
                             response: xhr.responseText,
+                            duration: duration,
                             timestamp: new Date().toISOString(),
                             // userInfo: self.config.enableUserTracking
                             //     ? self.userInfo
@@ -735,8 +763,9 @@ class ErrorTrackingPlugin {
                         //     ? self.userInfo
                         //     : null,
                     };
-
-                    sdk.capture(self.name, errorData);
+                    if (!__skipMonitor) {
+                        sdk.capture(self.name, errorData);
+                    }
                 });
 
                 // 监听超时
@@ -754,7 +783,9 @@ class ErrorTrackingPlugin {
                         //     : null,
                     };
 
-                    sdk.capture(self.name, errorData);
+                    if (!__skipMonitor) {
+                        sdk.capture(self.name, errorData);
+                    }
                 });
 
                 return originalSend.apply(this, args);
@@ -770,14 +801,27 @@ class ErrorTrackingPlugin {
         const originalFetch = window.fetch;
 
         window.fetch = function (...args) {
+
             const url = args[0];
             const options = args[1] || {};
+            /**
+             *  @description 跳过数据上报请求
+            fetch("http://127.0.0.1:8080/monitor/test1", {
+                method: "POST",
+                __skipMonitor: true,
+            })
+                .then((response) => response.json())
+                .then((data) => console.log(data));
+             */
+            const __skipMonitor = options.__skipMonitor;
             const method = options.method || "GET";
+            const startTime = performance.now();
 
             return originalFetch
                 .apply(this, args)
                 .then((response) => {
-                    if (!response.ok) {
+                    const duration = performance.now() - startTime;
+                    if (!__skipMonitor && (!response.ok || self.slowRequestThreshold <= duration)) {
                         const errorData = {
                             type: "fetch",
                             // severity: response.status >= 500 ? "high" : "medium",
@@ -785,6 +829,7 @@ class ErrorTrackingPlugin {
                             url: url,
                             method: method,
                             status: response.status,
+                            duration: duration,
                             timestamp: new Date().toISOString(),
                             // userInfo: self.config.enableUserTracking
                             //     ? self.userInfo
@@ -808,8 +853,9 @@ class ErrorTrackingPlugin {
                         //     ? self.userInfo
                         //     : null,
                     };
-
-                    sdk.capture(self.name, errorData);
+                    if (!__skipMonitor) {
+                        sdk.capture(self.name, errorData);
+                    }
                     throw error;
                 });
         };

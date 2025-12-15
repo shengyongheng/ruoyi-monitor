@@ -7,7 +7,10 @@
     <script src="../dist/index.esm.js"></script>
     <script src="./notExist.js"></script>
     <link rel="stylesheet" href="./notExist.css" />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=NonexistentFont:wght@400&display=swap" />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=NonexistentFont:wght@400&display=swap"
+    />
     <style>
       * {
         margin: 0;
@@ -2493,5 +2496,33 @@ ${error.stack ? `堆栈信息:\n${error.stack}` : ""}
     </script>
     <!-- 引入Chart.js用于图表显示 -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script>
+      // const xhr = new XMLHttpRequest();
+      // xhr.open("POST", "http://127.0.0.1:8080/monitor/test1");
+      // xhr.send(
+      //   JSON.stringify({
+      //     __skipMonitor: true,
+      //   })
+      // );
+
+      // fetch("http://127.0.0.1:8080/monitor/test1", {
+      //   method: "POST",
+      //   __skipMonitor: true,
+      // })
+      //   .then((response) => response.json())
+      //   .then((data) => console.log(data));
+
+      // axios
+      //   .post("http://127.0.0.1:8080/monitor/test1", {
+      //     __skipMonitor: true,
+      //   })
+      //   .then((response) => {
+      //     console.log("输出返回的数据:", response.data); // 输出返回的数据
+      //   })
+      //   .catch((error) => {
+      //     console.error("请求出错：", error);
+      //   });
+    </script>
   </body>
 </html>

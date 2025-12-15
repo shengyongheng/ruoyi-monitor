@@ -86,7 +86,6 @@ export class DataReporter {
 
     async sendRequest(events) {
         if (events.length === 0) return;
-
         const payload = {
             appId: this.config.appId,
             appVersion: this.config.appVersion,
@@ -94,6 +93,7 @@ export class DataReporter {
             events
         };
         console.log("payload:", payload);
+
         // 使用多种方式上报，提高成功率
         // await Promise.race([
         //     this.sendBeacon(payload),
