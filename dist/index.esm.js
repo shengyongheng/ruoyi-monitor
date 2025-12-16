@@ -367,202 +367,6 @@ class MonitoringCore extends EventBus {
     }
 }
 
-// 环境监控插件
-class EnvironmentInfoPlugin {
-    name = 'environmentInfo';
-
-    install(sdk) {
-        // 浏览器环境
-        this.detectBrowserInfo(sdk);
-        // 检测操作系统
-        this.detectOSInfo(sdk);
-        // 检测设备类型
-        this.detectDeviceInfo(sdk);
-        // 获取地理位置
-        this.getGeolocationInfo(sdk);
-    }
-
-    // 
-    uninstall() {
-    }
-
-    detectBrowserInfo(sdk) {
-        const ua = navigator.userAgent;
-        let browserName = "未知";
-        let browserVersion = "未知";
-        let engine = "未知";
-
-        // 检测浏览器
-        if (ua.includes("Chrome") && !ua.includes("Edg")) {
-            browserName = "Chrome";
-            const match = ua.match(/Chrome\/([0-9.]+)/);
-            browserVersion = match ? match[1] : "未知";
-        } else if (ua.includes("Firefox")) {
-            browserName = "Firefox";
-            const match = ua.match(/Firefox\/([0-9.]+)/);
-            browserVersion = match ? match[1] : "未知";
-        } else if (ua.includes("Safari") && !ua.includes("Chrome")) {
-            browserName = "Safari";
-            const match = ua.match(/Version\/([0-9.]+)/);
-            browserVersion = match ? match[1] : "未知";
-        } else if (ua.includes("Edg")) {
-            browserName = "Edge";
-            const match = ua.match(/Edg\/([0-9.]+)/);
-            browserVersion = match ? match[1] : "未知";
-        }
-
-        // 检测引擎
-        if (ua.includes("AppleWebKit")) {
-            engine = "WebKit";
-        } else if (ua.includes("Gecko")) {
-            engine = "Gecko";
-        } else if (ua.includes("Trident")) {
-            engine = "Trident";
-        }
-
-        const data = {
-            name: browserName,
-            version: browserVersion,
-            engine: engine,
-        };
-        sdk.capture("environmentInfo", {
-            type: "browser",
-            data
-        });
-    }
-
-    detectOSInfo(sdk) {
-        const ua = navigator.userAgent;
-        let os = "未知";
-
-        if (ua.includes("Windows")) {
-            os = "Windows";
-            if (ua.includes("Windows NT 10.0")) os = "Windows 10/11";
-            else if (ua.includes("Windows NT 6.3")) os = "Windows 8.1";
-            else if (ua.includes("Windows NT 6.2")) os = "Windows 8";
-            else if (ua.includes("Windows NT 6.1")) os = "Windows 7";
-        } else if (ua.includes("Mac")) {
-            os = "macOS";
-        } else if (ua.includes("Linux")) {
-            os = "Linux";
-        } else if (ua.includes("Android")) {
-            os = "Android";
-        } else if (
-            ua.includes("iOS") ||
-            ua.includes("iPhone") ||
-            ua.includes("iPad")
-        ) {
-            os = "iOS";
-        }
-        sdk.capture("environmentInfo", {
-            type: "os",
-            data: {
-                os
-            }
-        });
-    }
-
-    detectDeviceInfo(sdk) {
-        const ua = navigator.userAgent;
-        const width = window.innerWidth;
-        let device = "";
-
-        if (/(tablet|ipad|playbook|silk)|(android(?!.*mobi))/i.test(ua)) {
-            device = "平板";
-        } else if (
-            /Mobile|Android|iP(hone|od)|IEMobile|BlackBerry|Kindle|Silk-Accelerated|(hpw|web)OS|Opera M(obi|ini)/.test(
-                ua
-            )
-        ) {
-            device = "手机";
-        } else if (width < 768) {
-            device = "手机 (基于屏幕大小)";
-        } else if (width < 834) {
-            device = "平板 (基于屏幕大小)";
-        } else {
-            device = "桌面";
-        }
-        sdk.capture("environmentInfo", {
-            type: "device",
-            data: {
-                device
-            }
-        });
-    }
-
-    getGeolocationInfo(sdk) {
-        if (!navigator.geolocation) return;
-
-        navigator.geolocation.getCurrentPosition(
-            async (position) => {
-                const { latitude, longitude, accuracy } = position.coords;
-
-                // 在实际应用中，这里会调用地理编码服务将坐标转换为地址
-                const { country, city } = await this.getLocationFromCoords(latitude, longitude);
-                sdk.capture("environmentInfo", {
-                    type: "geolocation",
-                    data: {
-                        coordinates: {
-                            latitude,
-                            longitude,
-                            accuracy,
-                        },
-                        country,
-                        city,
-                    }
-                });
-            },
-            (error) => {
-                let errorMessage = "未知错误";
-                switch (error.code) {
-                    case error.PERMISSION_DENIED:
-                        errorMessage = "用户拒绝提供地理位置权限";
-                        break;
-                    case error.POSITION_UNAVAILABLE:
-                        errorMessage = "无法获取当前位置信息";
-                        break;
-                    case error.TIMEOUT:
-                        errorMessage = "获取位置信息超时";
-                        break;
-                }
-
-                sdk.capture("environmentInfo", {
-                    type: "geolocation",
-                    data: {
-                        errorMessage
-                    }
-                });
-            },
-            {
-                enableHighAccuracy: true,
-                timeout: 10000,
-                maximumAge: 60000,
-            }
-        );
-    }
-
-    // 根据坐标获取位置信息（模拟）
-    getLocationFromCoords(latitude, longitude) {
-        // 在实际应用中，这里会调用地理编码API
-        // 这里我们使用模拟数据
-        return new Promise(() => {
-            // this.environmentData.geolocation.country = "中国";
-            // this.environmentData.geolocation.city = "北京";
-
-            // document.getElementById("country").textContent = "中国";
-            // document.getElementById("city").textContent = "北京";
-
-            // this.logEvent("GEOLOCATION", "位置信息解析完成: 中国, 北京");
-            return {
-                country: "中国",
-                city: "北京"
-            }
-        })
-
-    }
-
-}
-
 // 错误监控插件
 class ErrorTrackingPlugin {
     name = 'errorTracking';
@@ -860,122 +664,205 @@ class ErrorTrackingPlugin {
     }
 }
 
+class t{t;o=0;i=[];u(t){if(t.hadRecentInput)return;const e=this.i[0],n=this.i.at(-1);this.o&&e&&n&&t.startTime-n.startTime<1e3&&t.startTime-e.startTime<5e3?(this.o+=t.value,this.i.push(t)):(this.o=t.value,this.i=[t]),this.t?.(t);}}const e=()=>{const t=performance.getEntriesByType("navigation")[0];if(t&&t.responseStart>0&&t.responseStart<performance.now())return t},n=t=>{if("loading"===document.readyState)return "loading";{const n=e();if(n){if(t<n.domInteractive)return "loading";if(0===n.domContentLoadedEventStart||t<n.domContentLoadedEventStart)return "dom-interactive";if(0===n.domComplete||t<n.domComplete)return "dom-content-loaded"}}return "complete"},o=t=>{const e=t.nodeName;return 1===t.nodeType?e.toLowerCase():e.toUpperCase().replace(/^#/,"")},i=t=>{let e="";try{for(;9!==t?.nodeType;){const n=t,i=n.id?"#"+n.id:[o(n),...Array.from(n.classList).sort()].join(".");if(e.length+i.length>99)return e||i;if(e=e?i+">"+e:i,n.id)break;t=n.parentNode;}}catch{}return e},r=new WeakMap;function s(t,e){return r.get(t)||r.set(t,new e),r.get(t)}let a=-1;const c=()=>a,f=t=>{addEventListener("pageshow",(e=>{e.persisted&&(a=e.timeStamp,t(e));}),!0);},u=(t,e,n,o)=>{let i,r;return s=>{e.value>=0&&(s||o)&&(r=e.value-(i??0),(r||void 0===i)&&(i=e.value,e.delta=r,e.rating=((t,e)=>t>e[1]?"poor":t>e[0]?"needs-improvement":"good")(e.value,n),t(e)));}},d=t=>{requestAnimationFrame((()=>requestAnimationFrame((()=>t()))));},l=()=>{const t=e();return t?.activationStart??0},h=(t,n=-1)=>{const o=e();let i="navigate";c()>=0?i="back-forward-cache":o&&(document.prerendering||l()>0?i="prerender":document.wasDiscarded?i="restore":o.type&&(i=o.type.replace(/_/g,"-")));return {name:t,value:n,rating:"good",delta:0,entries:[],id:`v5-${Date.now()}-${Math.floor(8999999999999*Math.random())+1e12}`,navigationType:i}},m=(t,e,n={})=>{try{if(PerformanceObserver.supportedEntryTypes.includes(t)){const o=new PerformanceObserver((t=>{Promise.resolve().then((()=>{e(t.getEntries());}));}));return o.observe({type:t,buffered:!0,...n}),o}}catch{}},p=t=>{let e=!1;return ()=>{e||(t(),e=!0);}};let g=-1;const y=new Set,v=()=>"hidden"!==document.visibilityState||document.prerendering?1/0:0,b=t=>{if("hidden"===document.visibilityState){if("visibilitychange"===t.type)for(const t of y)t();isFinite(g)||(g="visibilitychange"===t.type?t.timeStamp:0,removeEventListener("prerenderingchange",b,!0));}},M=()=>{if(g<0){const t=l(),e=document.prerendering?void 0:globalThis.performance.getEntriesByType("visibility-state").filter((e=>"hidden"===e.name&&e.startTime>t))[0]?.startTime;g=e??v(),addEventListener("visibilitychange",b,!0),addEventListener("prerenderingchange",b,!0),f((()=>{setTimeout((()=>{g=v();}));}));}return {get firstHiddenTime(){return g},onHidden(t){y.add(t);}}},T=t=>{document.prerendering?addEventListener("prerenderingchange",(()=>t()),!0):t();},E=[1800,3e3],D=(t,e={})=>{T((()=>{const n=M();let o,i=h("FCP");const r=m("paint",(t=>{for(const e of t)"first-contentful-paint"===e.name&&(r.disconnect(),e.startTime<n.firstHiddenTime&&(i.value=Math.max(e.startTime-l(),0),i.entries.push(e),o(!0)));}));r&&(o=u(t,i,E,e.reportAllChanges),f((n=>{i=h("FCP"),o=u(t,i,E,e.reportAllChanges),d((()=>{i.value=performance.now()-n.timeStamp,o(!0);}));})));}));},L=[.1,.25],P=t=>t.find((t=>1===t.node?.nodeType))||t[0],S=(e,o={})=>{const r=s(o=Object.assign({},o),t),a=new WeakMap;r.t=t=>{if(t?.sources?.length){const e=P(t.sources),n=e?.node;if(n){const t=o.generateTarget?.(n)??i(n);a.set(e,t);}}};((e,n={})=>{const o=M();D(p((()=>{let i,r=h("CLS",0);const a=s(n,t),c=t=>{for(const e of t)a.u(e);a.o>r.value&&(r.value=a.o,r.entries=a.i,i());},l=m("layout-shift",c);l&&(i=u(e,r,L,n.reportAllChanges),o.onHidden((()=>{c(l.takeRecords()),i(!0);})),f((()=>{a.o=0,r=h("CLS",0),i=u(e,r,L,n.reportAllChanges),d((()=>i()));})),setTimeout(i));})));})((t=>{const o=(t=>{let e={};if(t.entries.length){const o=t.entries.reduce(((t,e)=>t.value>e.value?t:e));if(o?.sources?.length){const t=P(o.sources);t&&(e={largestShiftTarget:a.get(t),largestShiftTime:o.startTime,largestShiftValue:o.value,largestShiftSource:t,largestShiftEntry:o,loadState:n(o.startTime)});}}return Object.assign(t,{attribution:e})})(t);e(o);}),o);},w=(t,o={})=>{D((o=>{const i=(t=>{let o={timeToFirstByte:0,firstByteToFCP:t.value,loadState:n(c())};if(t.entries.length){const i=e(),r=t.entries.at(-1);if(i){const e=i.activationStart||0,s=Math.max(0,i.responseStart-e);o={timeToFirstByte:s,firstByteToFCP:t.value-s,loadState:n(t.entries[0].startTime),navigationEntry:i,fcpEntry:r};}}return Object.assign(t,{attribution:o})})(o);t(i);}),o);};let _=0,F=1/0,k=0;const B=t=>{for(const e of t)e.interactionId&&(F=Math.min(F,e.interactionId),k=Math.max(k,e.interactionId),_=k?(k-F)/7+1:0);};let C;const O=()=>C?_:performance.interactionCount??0,j=()=>{"interactionCount"in performance||C||(C=m("event",B,{type:"event",buffered:!0,durationThreshold:0}));};let I=0;class A{l=[];h=new Map;m;p;v(){I=O(),this.l.length=0,this.h.clear();}M(){const t=Math.min(this.l.length-1,Math.floor((O()-I)/50));return this.l[t]}u(t){if(this.m?.(t),!t.interactionId&&"first-input"!==t.entryType)return;const e=this.l.at(-1);let n=this.h.get(t.interactionId);if(n||this.l.length<10||t.duration>e.T){if(n?t.duration>n.T?(n.entries=[t],n.T=t.duration):t.duration===n.T&&t.startTime===n.entries[0].startTime&&n.entries.push(t):(n={id:t.interactionId,entries:[t],T:t.duration},this.h.set(n.id,n),this.l.push(n)),this.l.sort(((t,e)=>e.T-t.T)),this.l.length>10){const t=this.l.splice(10);for(const e of t)this.h.delete(e.id);}this.p?.(n);}}}const W=t=>{const e=globalThis.requestIdleCallback||setTimeout;"hidden"===document.visibilityState?t():(t=p(t),addEventListener("visibilitychange",t,{once:!0,capture:!0}),e((()=>{t(),removeEventListener("visibilitychange",t,{capture:!0});})));},q=[200,500],x=(t,e={})=>{const o=s(e=Object.assign({},e),A);let r=[],a=[],c=0;const d=new WeakMap,l=new WeakMap;let p=!1;const g=()=>{p||(W(y),p=!0);},y=()=>{const t=o.l.map((t=>d.get(t.entries[0]))),e=a.length-50;a=a.filter(((n,o)=>o>=e||t.includes(n)));const n=new Set;for(const t of a){const e=v(t.startTime,t.processingEnd);for(const t of e)n.add(t);}const i=r.length-1-50;r=r.filter(((t,e)=>t.startTime>c&&e>i||n.has(t))),p=!1;};o.m=t=>{const e=t.startTime+t.duration;let n;c=Math.max(c,t.processingEnd);for(let o=a.length-1;o>=0;o--){const i=a[o];if(Math.abs(e-i.renderTime)<=8){n=i,n.startTime=Math.min(t.startTime,n.startTime),n.processingStart=Math.min(t.processingStart,n.processingStart),n.processingEnd=Math.max(t.processingEnd,n.processingEnd),n.entries.push(t);break}}n||(n={startTime:t.startTime,processingStart:t.processingStart,processingEnd:t.processingEnd,renderTime:e,entries:[t]},a.push(n)),(t.interactionId||"first-input"===t.entryType)&&d.set(t,n),g();},o.p=t=>{if(!l.get(t)){const n=t.entries[0].target;if(n){const o=e.generateTarget?.(n)??i(n);l.set(t,o);}}};const v=(t,e)=>{const n=[];for(const o of r)if(!(o.startTime+o.duration<t)){if(o.startTime>e)break;n.push(o);}return n},b=t=>{const e=t.entries[0],i=d.get(e),r=e.processingStart,s=Math.max(e.startTime+e.duration,r),a=Math.min(i.processingEnd,s),c=i.entries.sort(((t,e)=>t.processingStart-e.processingStart)),f=v(e.startTime,a),u=o.h.get(e.interactionId),h={interactionTarget:l.get(u),interactionType:e.name.startsWith("key")?"keyboard":"pointer",interactionTime:e.startTime,nextPaintTime:s,processedEventEntries:c,longAnimationFrameEntries:f,inputDelay:r-e.startTime,processingDuration:a-r,presentationDelay:s-a,loadState:n(e.startTime),longestScript:void 0,totalScriptDuration:void 0,totalStyleAndLayoutDuration:void 0,totalPaintDuration:void 0,totalUnattributedDuration:void 0};(t=>{if(!t.longAnimationFrameEntries?.length)return;const e=t.interactionTime,n=t.inputDelay,o=t.processingDuration;let i,r,s=0,a=0,c=0,f=0;for(const c of t.longAnimationFrameEntries){a=a+c.startTime+c.duration-c.styleAndLayoutStart;for(const t of c.scripts){const c=t.startTime+t.duration;if(c<e)continue;const u=c-Math.max(e,t.startTime),d=t.duration?u/t.duration*t.forcedStyleAndLayoutDuration:0;s+=u-d,a+=d,u>f&&(r=t.startTime<e+n?"input-delay":t.startTime>=e+n+o?"presentation-delay":"processing-duration",i=t,f=u);}}const u=t.longAnimationFrameEntries.at(-1),d=u?u.startTime+u.duration:0;d>=e+n+o&&(c=t.nextPaintTime-d),i&&r&&(t.longestScript={entry:i,subpart:r,intersectingDuration:f}),t.totalScriptDuration=s,t.totalStyleAndLayoutDuration=a,t.totalPaintDuration=c,t.totalUnattributedDuration=t.nextPaintTime-e-s-a-c;})(h);return Object.assign(t,{attribution:h})};m("long-animation-frame",(t=>{r=r.concat(t),g();})),((t,e={})=>{if(!globalThis.PerformanceEventTiming||!("interactionId"in PerformanceEventTiming.prototype))return;const n=M();T((()=>{j();let o,i=h("INP");const r=s(e,A),a=t=>{W((()=>{for(const e of t)r.u(e);const e=r.M();e&&e.T!==i.value&&(i.value=e.T,i.entries=e.entries,o());}));},c=m("event",a,{durationThreshold:e.durationThreshold??40});o=u(t,i,q,e.reportAllChanges),c&&(c.observe({type:"first-input",buffered:!0}),n.onHidden((()=>{a(c.takeRecords()),o(!0);})),f((()=>{r.v(),i=h("INP"),o=u(t,i,q,e.reportAllChanges);})));}));})((e=>{const n=b(e);t(n);}),e);};class N{m;u(t){this.m?.(t);}}const H=[2500,4e3],R=(t,n={})=>{const o=s(n=Object.assign({},n),N),r=new WeakMap;o.m=t=>{const e=t.element;if(e){const o=n.generateTarget?.(e)??i(e);r.set(t,o);}};((t,e={})=>{T((()=>{const n=M();let o,i=h("LCP");const r=s(e,N),a=t=>{e.reportAllChanges||(t=t.slice(-1));for(const e of t)r.u(e),e.startTime<n.firstHiddenTime&&(i.value=Math.max(e.startTime-l(),0),i.entries=[e],o());},c=m("largest-contentful-paint",a);if(c){o=u(t,i,H,e.reportAllChanges);const n=p((()=>{a(c.takeRecords()),c.disconnect(),o(!0);})),r=t=>{t.isTrusted&&(W(n),removeEventListener(t.type,r,{capture:!0}));};for(const t of ["keydown","click","visibilitychange"])addEventListener(t,r,{capture:!0});f((n=>{i=h("LCP"),o=u(t,i,H,e.reportAllChanges),d((()=>{i.value=performance.now()-n.timeStamp,o(!0);}));}));}}));})((n=>{const o=(t=>{let n={timeToFirstByte:0,resourceLoadDelay:0,resourceLoadDuration:0,elementRenderDelay:t.value};if(t.entries.length){const o=e();if(o){const e=o.activationStart||0,i=t.entries.at(-1),s=i.url&&performance.getEntriesByType("resource").filter((t=>t.name===i.url))[0],a=Math.max(0,o.responseStart-e),c=Math.max(a,s?(s.requestStart||s.startTime)-e:0),f=Math.min(t.value,Math.max(c,s?s.responseEnd-e:0));n={target:r.get(i),timeToFirstByte:a,resourceLoadDelay:c-a,resourceLoadDuration:f-c,elementRenderDelay:t.value-f,navigationEntry:o,lcpEntry:i},i.url&&(n.url=i.url),s&&(n.lcpResourceEntry=s);}}return Object.assign(t,{attribution:n})})(n);t(o);}),n);},U=[800,1800],V=t=>{document.prerendering?T((()=>V(t))):"complete"!==document.readyState?addEventListener("load",(()=>V(t)),!0):setTimeout(t);},$=(t,n={})=>{((t,n={})=>{let o=h("TTFB"),i=u(t,o,U,n.reportAllChanges);V((()=>{const r=e();r&&(o.value=Math.max(r.responseStart-l(),0),o.entries=[r],i(!0),f((()=>{o=h("TTFB",0),i=u(t,o,U,n.reportAllChanges),i(!0);})));}));})((e=>{const n=(t=>{let e={waitingDuration:0,cacheDuration:0,dnsDuration:0,connectionDuration:0,requestDuration:0};if(t.entries.length){const n=t.entries[0],o=n.activationStart||0,i=Math.max((n.workerStart||n.fetchStart)-o,0),r=Math.max(n.domainLookupStart-o,0),s=Math.max(n.connectStart-o,0),a=Math.max(n.connectEnd-o,0);e={waitingDuration:i,cacheDuration:r-i,dnsDuration:s-r,connectionDuration:a-s,requestDuration:t.value-a,navigationEntry:n};}return Object.assign(t,{attribution:e})})(e);t(n);}),n);};
+
 // 性能监控插件
 class PerformancePlugin {
     name = 'performance';
+    sdk = null;
+    metrics = {
+        // Core Web Vitals
+        FCP: null,
+        LCP: null,
+        FID: null,
+        CLS: 0,
+
+        // 加载性能
+        TTFB: null,
+        FPT: null, // 白屏时间 First Paint Time
+        TTI: null, // 可交互时间 Time to Interactive
+        READY: null, // DOM Ready时间
+        LOAD: null, // 页面完全加载时间
+
+        // 资源性能
+        resources: []
+    };
 
     install(sdk) {
-        // 监听性能指标
-        this.observePerformance(sdk);
+        this.sdk = sdk;
+        window.addEventListener("load", this.performanceMetricTracking.bind(this));
     }
 
-    observePerformance(sdk) {
+    uninstall() {
+        window.removeEventListener("load", this.performanceMetricTracking.bind(this));
+    }
 
-        if ('PerformanceObserver' in window) {
-            // 监听LCP
-            const lcpObserver = new PerformanceObserver((entryList) => {
-                const entries = entryList.getEntries();
-                const lastEntry = entries[entries.length - 1];
+    performanceMetricTracking() {
+        // 收集性能指标
+        this.collectPerformanceMetrics();
+        // 监听性能指标
+        this.observePerformance();
+        S(this.webVitalsReport.bind(this));
+        x(this.webVitalsReport.bind(this));
+        R(this.webVitalsReport.bind(this));
+        w(this.webVitalsReport.bind(this));
+        $(this.webVitalsReport.bind(this));
+    }
 
-                sdk.capture('performance', {
-                    type: 'lcp',
-                    value: lastEntry.renderTime || lastEntry.loadTime
+    // 收集性能指标
+    collectPerformanceMetrics() {
+        // 使用Performance Timeline API收集指标
+        if (window.performance && window.performance.timing) {
+            const timing = window.performance.timing;
+            // TTFB (Time to First Byte)
+            this.metrics.TTFB = timing.responseStart - timing.requestStart;
+
+            // 白屏时间 (First Paint Time)
+            // 实际中需要通过PerformanceObserver获取FP/FCP
+            // 这里使用一个近似值
+            this.metrics.FPT = timing.responseEnd - timing.navigationStart;
+
+            // DOM Ready时间
+            this.metrics.READY =
+                timing.domContentLoadedEventEnd - timing.navigationStart;
+
+            setTimeout(() => {
+                // 页面完全加载时间
+                this.metrics.LOAD = timing.loadEventEnd - timing.navigationStart;
+                // console.log("页面完全加载:", this.metrics.LOAD);
+                this.sdk.capture("performance", {
+                    type: "LOAD",
+                    value: this.metrics.LOAD,
+                    description: "页面完全加载"
                 });
             });
 
-            lcpObserver.observe({ entryTypes: ['largest-contentful-paint'] });
-        }
-    }
-}
+            // 常见性能指标
+            // console.log("白屏时间:", this.metrics.FPT);
+            // console.log("DNS 查询:", timing.responseEnd - timing.navigationStart);
+            // console.log("TCP 建连:", timing.responseEnd - timing.navigationStart);
+            // console.log("SSL:", timing.responseEnd - timing.navigationStart);
+            // console.log("TTFB:", this.metrics.TTFB);
+            // console.log("响应传输:", timing.responseEnd - timing.navigationStart);
+            // console.log("DOM 解析:", timing.responseEnd - timing.navigationStart);
+            // console.log("DOM Ready:", this.metrics.READY);
+            // console.log("DCL:", timing.responseEnd - timing.navigationStart);
+            // console.log("页面完全加载:", this.metrics.LOAD);
 
-// 用户行为插件
-class UserBehaviorPlugin {
-    name = 'userBehavior';
-
-    install(sdk) {
-        // 页面停留时长监控
-        {
-            let enterTime = Date.now();
-
-            document.addEventListener('visibilitychange', this.trackPageStayTime.bind(this, sdk, enterTime), true);
-        }
-
-        // 处理用户点击事件
-        {
-            document.addEventListener('click', this.trackClickBehavior.bind(this, sdk), true);
-        }
-
-        // 处理用户输入事件
-        {
-            document.addEventListener('input', this.trackInputBehavior.bind(this, sdk), true);
-        }
-    }
-
-    // 移除事件监听
-    uninstall() {
-        document.removeEventListener("visibilitychange", this.trackPageStayTime.bind(this), true);
-        document.removeEventListener('click', this.trackClickBehavior.bind(this, sdk), true);
-        document.removeEventListener('input', this.trackInputBehavior.bind(this, sdk), true);
-    }
-
-    trackPageStayTime(sdk, enterTime, event) {
-        // console.log(arguments);
-        if (document.visibilityState === 'hidden') {
-            const stayTime = Date.now() - enterTime;
-            sdk.capture('userAction', {
-                type: 'pageStay',
-                stayTime
+            this.sdk.capture("performance", {
+                type: "FPT",
+                value: this.metrics.FPT,
+                description: "白屏时间"
             });
-        } else {
-            enterTime = Date.now();
+            this.sdk.capture("performance", {
+                type: "READY",
+                value: this.metrics.READY,
+                description: "DOM Ready时间"
+            });
+        }
+
+        // 使用PerformanceNavigationTiming API (如果可用)
+        if (window.performance && window.performance.getEntriesByType) {
+            const navigationEntries =
+                performance.getEntriesByType("navigation");
+            if (navigationEntries.length > 0) {
+                const navigation = navigationEntries[0];
+
+                // 更精确的TTFB
+                this.metrics.TTFB = navigation.responseStart;
+                // console.log("TTFB (Navigation Timing):", this.metrics.TTFB);
+            }
         }
     }
 
-    // 处理用户点击事件
-    trackClickBehavior(sdk, e) {
-        const target = e.target;
-        let description = `点击了 ${target.tagName}`;
+    observePerformance() {
+        if ('PerformanceObserver' in window) {
+            // FP(first-paint): 从页面加载开始到第一个像素绘制到屏幕上的时间，也可以把 FP 理解成白屏时间。
+            // new PerformanceObserver((entryList) => {
+            //     for (const entry of entryList.getEntries()) {
+            //         this.sdk.capture("performance", {
+            //             type: "FP",
+            //             metric: entry
+            //         })
+            //     }
+            // }).observe({ type: 'paint', buffered: true })
 
-        if (target.id) description += ` #${target.id}`;
-        if (target.className) description += ` .${target.className}`;
-        if (target.textContent && target.textContent.length < 30) {
-            description += ` (${target.textContent.trim()})`;
+            // FCP观察者 https://web.developers.google.cn/articles/fcp?hl=zh-cn
+            // new PerformanceObserver((entryList) => {
+            //     const entries = entryList.getEntries();
+            //     for (const entry of entries) {
+            //         if (entry.name === "first-contentful-paint") {
+            //             this.sdk.capture('performance', {
+            //                 type: 'FCP',
+            //                 value: entry.startTime
+            //             });
+            //         }
+            //     }
+            // }).observe({ entryTypes: ["paint"] });
+
+            // LCP观察者 https://web.developers.google.cn/articles/clp?hl=zh-cn
+            // new PerformanceObserver((entryList) => {
+            //     const entries = entryList.getEntries();
+            //     const lastEntry = entries[entries.length - 1];
+
+            //     this.sdk.capture('performance', {
+            //         type: 'LCP',
+            //         value: lastEntry.renderTime || lastEntry.loadTime
+            //     });
+            // }).observe({ entryTypes: ['largest-contentful-paint'] });
+
+            // CLS观察者 https://web.developers.google.cn/articles/cls?hl=zh-cn#measure-cls
+            // new PerformanceObserver((entryList) => {
+            //     for (const entry of entryList.getEntries()) {
+            //         this.sdk.capture('performance', {
+            //             type: 'CLS',
+            //             value: entry
+            //         });
+            //     }
+            // }).observe({ type: 'layout-shift', buffered: true });
+
+            // TTFB观察者 https://web.developers.google.cn/articles/ttfb?hl=zh-cn
+            // new PerformanceObserver((entryList) => {
+            //     const [pageNav] = entryList.getEntriesByType('navigation');
+            //     this.sdk.capture('performance', {
+            //         type: 'TTFB',
+            //         value: pageNav.responseStart
+            //     });
+            // }).observe({
+            //     type: 'navigation',
+            //     buffered: true
+            // });
+
+            // FID观察者 https://web.developers.google.cn/articles/fid?hl=zh-cn#how_to_measure_fid
+            new PerformanceObserver((entryList) => {
+                for (const entry of entryList.getEntries()) {
+                    const delay = entry.processingStart - entry.startTime;
+                    this.metrics.FID = delay;
+                    this.sdk.capture("performance", {
+                        type: "FID",
+                        value: this.metrics.FID
+                    });
+                }
+            }).observe({ type: 'first-input', buffered: true });
         }
-        sdk.capture('userAction', {
-            type: 'click',
-            data: {
-                description
-            }
-        });
     }
 
-    // 处理用户输入事件
-    trackInputBehavior(sdk, e) {
-        const target = e.target;
-        let description = `在 ${target.tagName}`;
-
-        if (target.id) description += ` #${target.id}`;
-        if (target.placeholder) description += ` [${target.placeholder}]`;
-
-        description += ` 输入: "${target.value}"`;
-
-        sdk.capture('userAction', {
-            type: 'input',
-            data: {
-                description
-            }
+    webVitalsReport(metric) {
+        // console.log(`metric name: ${metric.name}`, metric);
+        this.metrics[metric.name] = metric.value;
+        this.sdk.capture("performance", {
+            type: metric.name,
+            metric
         });
     }
-
-    // 处理用户滚动事件
-
-    // 处理页面卸载事件
 }
+
+// import { UserBehaviorPlugin } from "@plugins/UserBehaviorPlugin";
 
 new MonitoringCore({
     appId: "abc",
 })
     .use(new PerformancePlugin())
-    .use(new UserBehaviorPlugin())
-    .use(new EnvironmentInfoPlugin())
+    // .use(new UserBehaviorPlugin())
+    // .use(new EnvironmentInfoPlugin())
     .use(new ErrorTrackingPlugin());

@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>前端性能监控系统</title>
+    <script src="../dist/index.esm.js"></script>
     <style>
       * {
         margin: 0;
@@ -1495,7 +1496,11 @@
           this.logPerformanceEvent("性能监控已启动", "info");
 
           // 开始收集性能指标
-          this.collectPerformanceMetrics();
+          // this.collectPerformanceMetrics();
+          window.addEventListener(
+            "load",
+            this.collectPerformanceMetrics.bind(this)
+          );
 
           // 监听页面性能事件
           this.setupPerformanceObservers();
@@ -2383,7 +2388,7 @@
               datasets: [
                 {
                   label: "时间 (ms)",
-                  data: [0, 0, 0, 0, 0],
+                  data: [100, 200, 300, 400, 500],
                   backgroundColor: [
                     "rgba(77, 204, 189, 0.7)",
                     "rgba(165, 180, 252, 0.7)",
@@ -2809,5 +2814,62 @@
     </script>
     <!-- 引入Chart.js用于图表显示 -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+      // 1. 创建 PerformanceObserver 实例
+      // const observer = new PerformanceObserver((entryList, observer) => {
+      //   // 2. 回调函数，当有新的性能条目时会被调用
+      //   const entries = entryList.getEntries();
+      //   // console.log("entryList:", entryList);
+      //   // console.log("entries:", entries);
+
+      //   entries.forEach((entry) => {
+      //     // 处理每个性能条目
+      //     // console.log(`Entry Type: ${entry.entryType}`);
+      //     // console.log(`Name: ${entry.name}`);
+      //     // console.log(`Start Time: ${entry.startTime}`);
+      //     // console.log(`Duration: ${entry.duration}`);
+      //     // 根据 entry.entryType 可能会有更多属性
+      //   });
+
+      //   // 可选：在某些条件下断开观察器，以停止接收通知
+      //   // observer.disconnect();
+      // });
+
+      // 3. 指定要观察的性能条目类型
+      // 例如，观察 'paint' (首次绘制, 首次内容绘制) 和 'resource' (资源加载) 事件
+      // observer.observe({
+      //   entryTypes: [
+      //     "paint",
+      //     "resource",
+      //     "navigation",
+      //     "longtask",
+      //     "mark",
+      //     "measure",
+      //     "element",
+      //     "layout-shift",
+      //   ],
+      //   buffered: true, // 收集在 observe() 调用之前发生的条目
+      // });
+
+      // // 示例：手动触发一些性能条目
+      // performance.mark("start_app");
+      // // 模拟一些耗时操作
+      // for (let i = 0; i < 1000000; i++) {
+      //   Math.random();
+      // }
+      // performance.mark("end_app");
+      // performance.measure("app_load_time", "start_app", "end_app");
+
+      // console.log("PerformanceObserver 已启动，请查看控制台输出。");
+    </script>
+    <!-- <script>
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", "http://127.0.0.1:8080/monitor/test1");
+      xhr.send(
+        JSON.stringify({
+          __skipMonitor: true,
+        })
+      );
+    </script> -->
   </body>
 </html>
