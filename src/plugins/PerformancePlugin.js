@@ -31,10 +31,9 @@ export class PerformancePlugin {
     }
 
     performanceMetricTracking() {
-        // 收集性能指标
         this.collectPerformanceMetrics()
-        // 监听性能指标
         this.observePerformance();
+        this.collectResourceTiming();
         onCLS(this.webVitalsReport.bind(this));
         onINP(this.webVitalsReport.bind(this));
         onLCP(this.webVitalsReport.bind(this));
@@ -108,6 +107,7 @@ export class PerformancePlugin {
         }
     }
 
+    // 监听性能指标
     observePerformance() {
         if ('PerformanceObserver' in window) {
             // FP(first-paint): 从页面加载开始到第一个像素绘制到屏幕上的时间，也可以把 FP 理解成白屏时间。
@@ -180,6 +180,49 @@ export class PerformancePlugin {
         }
     }
 
+    // 收集资源性能数据
+    collectResourceTiming() {
+        if (window.performance && window.performance.getEntriesByType) {
+            const resources = performance.getEntriesByType("resource");
+            for (const resource of resources) {
+                this.processResourceEntry(resource);
+                // console.log("resource:", resource);
+            }
+        }
+    }
+
+    // 处理资源条目
+    processResourceEntry(entry) {
+        const resource = {
+            name: entry.name,
+            duration: entry.duration,
+            startTime: entry.startTime,
+            initiatorType: entry.initiatorType,
+            size: entry.transferSize || 0,
+            timing: {
+                dns: entry.domainLookupEnd - entry.domainLookupStart,
+                tcp: entry.connectEnd - entry.connectStart,
+                ssl:
+                    entry.secureConnectionStart > 0
+                        ? entry.connectEnd - entry.secureConnectionStart
+                        : 0,
+                ttfb: entry.responseStart - entry.requestStart,
+                download: entry.responseEnd - entry.responseStart,
+            },
+        };
+
+        this.metrics.resources.push(resource);
+        console.log(`资源加载: ${this.getResourceName(resource.name)}`,
+            resource.duration,);
+    }
+
+    // 获取资源名称
+    getResourceName(fullName) {
+        const urlParts = fullName.split("/");
+        return urlParts[urlParts.length - 1] || fullName;
+    }
+
+    // web-vitals 指标上报
     webVitalsReport(metric) {
         // console.log(`metric name: ${metric.name}`, metric);
         this.metrics[metric.name] = metric.value

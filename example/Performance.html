@@ -5,6 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>前端性能监控系统</title>
     <script src="../dist/index.esm.js"></script>
+    <link
+      data-n-head="ssr"
+      rel="apple-touch-icon"
+      sizes="180x180"
+      href="https://lf-web-assets.juejin.cn/obj/juejin-web/xitu_juejin_web/static/favicons/apple-touch-icon.png"
+    />
+    <link
+      rel="preload"
+      as="style"
+      href="//lf-web-assets.juejin.cn/obj/juejin-web/xitu_juejin_web/34.f6517d5.css"
+    />
     <style>
       * {
         margin: 0;
@@ -940,7 +951,6 @@
   </head>
   <body>
     <h1>前端性能监控系统</h1>
-
     <div class="container">
       <div class="panel">
         <div class="section-title">
@@ -2862,7 +2872,7 @@
 
       // console.log("PerformanceObserver 已启动，请查看控制台输出。");
     </script>
-    <!-- <script>
+    <script>
       const xhr = new XMLHttpRequest();
       xhr.open("POST", "http://127.0.0.1:8080/monitor/test1");
       xhr.send(
@@ -2870,6 +2880,6 @@
           __skipMonitor: true,
         })
       );
-    </script> -->
+    </script>
   </body>
 </html>
