@@ -95,7 +95,7 @@
         <button id="replayBtn" disabled>回放</button>
       </div>
       <div class="textArea-wrap">
-        <textarea rows="10" cols="50">这里是一个文本输入框</textarea>
+        <textarea rows="10" cols="50" placeholder="请输入..."></textarea>
       </div>
       <div id="replay"></div>
     </div>
@@ -104,85 +104,23 @@
       // 状态管理
       let stopFn = null;
       let replayInstance = null;
-      let events = [];
+      // We use a two-dimensional array to store multiple events array
+      let eventsMatrix = [[]];
       let isPlaying = false;
       let cleanupTimer = null;
-      const MAX_RECORD_TIME = 10 * 1000; // 10秒，单位：毫秒
+      const MAX_RECORD_TIME = 5 * 1000; // 5秒，单位：毫秒
 
       // DOM 元素
       const startBtn = document.getElementById("startBtn");
       const replayBtn = document.getElementById("replayBtn");
       const replayContainer = document.getElementById("replay");
 
-      // 清理超过10秒的事件
-      function cleanupOldEvents() {
-        if (events.length === 0) return;
-
-        // 始终保留第一个事件（初始DOM快照，type: 2）
-        if (events.length <= 1) return;
-
-        const firstEvent = events[0];
-        const firstEventTimestamp = firstEvent.timestamp || 0;
-        
-        // 获取最后一个事件的时间戳（最新的时间）
-        const lastEvent = events[events.length - 1];
-        const lastEventTimestamp = lastEvent.timestamp || 0;
-        
-        // 如果录制时间少于10秒，不需要清理
-        if (lastEventTimestamp - firstEventTimestamp <= MAX_RECORD_TIME) {
-          return;
-        }
-        
-        // 计算10秒前的时间戳（相对于第一个事件）
-        // 只保留从 (lastEventTimestamp - 10秒) 到 lastEventTimestamp 之间的事件
-        const cutoffTimestamp = lastEventTimestamp - MAX_RECORD_TIME;
-
-        // 记录清理前的事件数量
-        const beforeCount = events.length;
-
-        // 过滤出最近10秒的事件（保留第一个事件）
-        const recentEvents = events.filter((event, index) => {
-          // 始终保留第一个事件（初始快照）
-          if (index === 0) return true;
-          // 对于其他事件，检查时间戳是否在最近10秒内
-          // rrweb 的时间戳是相对于录制开始的相对时间，单位是毫秒
-          const eventTimestamp = event.timestamp || 0;
-          return eventTimestamp >= cutoffTimestamp;
-        });
-
-        // 更新 events 数组
-        if (recentEvents.length === 0 || recentEvents[0] !== firstEvent) {
-          events = [
-            firstEvent,
-            ...recentEvents.filter((e) => e !== firstEvent),
-          ];
-        } else {
-          events = recentEvents;
-        }
-
-        // 记录清理信息
-        const afterCount = events.length;
-        const currentTime = lastEventTimestamp / 1000;
-        if (beforeCount !== afterCount) {
-          console.log(
-            `清理事件: ${beforeCount} -> ${afterCount} 个（保留最近10秒，已录制 ${Math.round(currentTime)} 秒，cutoff: ${Math.round(cutoffTimestamp / 1000)} 秒）`
-          );
-        }
-      }
-
       // 开始录制
       function start() {
         // 重置状态
-        events = [];
+        eventsMatrix = [[]];
         isPlaying = false;
         replayBtn.disabled = true;
-
-        // 清除之前的清理定时器
-        if (cleanupTimer) {
-          clearInterval(cleanupTimer);
-          cleanupTimer = null;
-        }
-
         // 如果已有回放实例，先销毁
         if (replayInstance) {
           replayInstance.destroy();
@@ -192,20 +130,18 @@
 
         // 开始录制
         stopFn = rrweb.record({
-          emit(event) {
-            // 将 event 存入 events 数组中
-            events.push(event);
-            console.log("rrweb event:", event);
-
-            // 每次添加事件后立即清理超过10秒的事件
-            cleanupOldEvents();
+          emit(event, isCheckout) {
+            // isCheckout 是一个标识，告诉你重新制作了快照
+            // isCheckout is a flag to tell you the events has been checkout
+            if (isCheckout) {
+              eventsMatrix.push([]);
+            }
+            const lastEvents = eventsMatrix[eventsMatrix.length - 1];
+            lastEvents.push(event);
           },
+          checkoutEveryNms: 5 * 1000, // 每5s重新制作快照
+          // checkoutEveryNth: 200, // 每 200 个 event 重新制作快照
         });
-
-        // 定期清理旧事件（每1秒清理一次，确保及时清理超过10秒的数据）
-        cleanupTimer = setInterval(() => {
-          cleanupOldEvents();
-        }, 1 * 1000);
 
         // 更新按钮状态
         startBtn.disabled = true;
@@ -219,15 +155,6 @@
         // 停止录制
         stopFn();
         stopFn = null;
-
-        // 清除清理定时器
-        if (cleanupTimer) {
-          clearInterval(cleanupTimer);
-          cleanupTimer = null;
-        }
-
-        // 最后一次清理，确保只保留最近10秒的数据
-        cleanupOldEvents();
 
         isPlaying = true;
         startBtn.disabled = false;
@@ -246,7 +173,9 @@
               target: replayContainer, // 可以自定义 DOM 元素
               // 配置项
               props: {
-                events,
+                events: eventsMatrix[eventsMatrix.length - 2].concat(
+                  eventsMatrix[eventsMatrix.length - 1]
+                ),
               },
             });
           }

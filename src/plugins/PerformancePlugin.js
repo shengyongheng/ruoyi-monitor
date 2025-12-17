@@ -20,6 +20,7 @@ export class PerformancePlugin {
         // 资源性能
         resources: []
     };
+    performanceObservers = [];
 
     install(sdk) {
         this.sdk = sdk
@@ -27,6 +28,12 @@ export class PerformancePlugin {
     }
 
     uninstall() {
+        // 断开所有PerformanceObserver
+        this.performanceObservers.forEach((observer) => {
+            if (observer) observer.disconnect();
+        });
+        this.performanceObservers = [];
+
         window.removeEventListener("load", this.performanceMetricTracking.bind(this))
     }
 
@@ -186,7 +193,26 @@ export class PerformancePlugin {
             const resources = performance.getEntriesByType("resource");
             for (const resource of resources) {
                 this.processResourceEntry(resource);
-                // console.log("resource:", resource);
+                console.log("resource:", resource);
+            }
+
+            // 观察新的资源加载
+            if ("PerformanceObserver" in window) {
+                try {
+                    const resourceObserver = new PerformanceObserver(
+                        (entryList) => {
+                            const entries = entryList.getEntries();
+                            for (const entry of entries) {
+                                this.processResourceEntry(entry);
+                            }
+                        }
+                    );
+
+                    resourceObserver.observe({ entryTypes: ["resource"] });
+                    this.performanceObservers = [resourceObserver];
+                } catch (e) {
+                    console.error("PerformanceObserver error:", e);
+                }
             }
         }
     }
@@ -195,10 +221,14 @@ export class PerformancePlugin {
     processResourceEntry(entry) {
         const resource = {
             name: entry.name,
+            type: entry.initiatorType,
             duration: entry.duration,
             startTime: entry.startTime,
             initiatorType: entry.initiatorType,
             size: entry.transferSize || 0,
+            decodedSize: entry.decodedBodySize || 0,
+            encodedSize: entry.encodedBodySize || 0,
+            cached: this.isCachedResource(entry),
             timing: {
                 dns: entry.domainLookupEnd - entry.domainLookupStart,
                 tcp: entry.connectEnd - entry.connectStart,
@@ -209,11 +239,20 @@ export class PerformancePlugin {
                 ttfb: entry.responseStart - entry.requestStart,
                 download: entry.responseEnd - entry.responseStart,
             },
+            serverTiming: entry.serverTiming || [],
         };
 
         this.metrics.resources.push(resource);
         console.log(`资源加载: ${this.getResourceName(resource.name)}`,
-            resource.duration,);
+            resource.duration, `是否是缓存资源: ${resource.cached}`);
+    }
+
+
+    // 判断资源是否从缓存加载
+    isCachedResource(entry) {
+        // 如果transferSize为0且encodedBodySize不为0，说明是从缓存加载
+        // 注意：跨域资源可能无法获取这些字段
+        return entry.transferSize === 0 && entry.encodedBodySize > 0;
     }
 
     // 获取资源名称
