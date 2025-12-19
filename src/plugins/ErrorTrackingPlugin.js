@@ -159,7 +159,7 @@ export class ErrorTrackingPlugin {
                         })
                     );
                  */
-                const __skipMonitor = JSON.parse(args[0]).__skipMonitor;
+                const __skipMonitor = JSON.parse(args[0])?.__skipMonitor;
                 // console.log("xhr this:", args[0], __skipMonitor);
                 // 监听加载完成
                 xhr.addEventListener("load", function () {

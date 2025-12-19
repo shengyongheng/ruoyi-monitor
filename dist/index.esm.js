@@ -367,6 +367,202 @@ class MonitoringCore extends EventBus {
     }
 }
 
+// 环境监控插件
+class EnvironmentInfoPlugin {
+    name = 'environmentInfo';
+
+    install(sdk) {
+        // 浏览器环境
+        this.detectBrowserInfo(sdk);
+        // 检测操作系统
+        this.detectOSInfo(sdk);
+        // 检测设备类型
+        this.detectDeviceInfo(sdk);
+        // 获取地理位置
+        this.getGeolocationInfo(sdk);
+    }
+
+    // 
+    uninstall() {
+    }
+
+    detectBrowserInfo(sdk) {
+        const ua = navigator.userAgent;
+        let browserName = "未知";
+        let browserVersion = "未知";
+        let engine = "未知";
+
+        // 检测浏览器
+        if (ua.includes("Chrome") && !ua.includes("Edg")) {
+            browserName = "Chrome";
+            const match = ua.match(/Chrome\/([0-9.]+)/);
+            browserVersion = match ? match[1] : "未知";
+        } else if (ua.includes("Firefox")) {
+            browserName = "Firefox";
+            const match = ua.match(/Firefox\/([0-9.]+)/);
+            browserVersion = match ? match[1] : "未知";
+        } else if (ua.includes("Safari") && !ua.includes("Chrome")) {
+            browserName = "Safari";
+            const match = ua.match(/Version\/([0-9.]+)/);
+            browserVersion = match ? match[1] : "未知";
+        } else if (ua.includes("Edg")) {
+            browserName = "Edge";
+            const match = ua.match(/Edg\/([0-9.]+)/);
+            browserVersion = match ? match[1] : "未知";
+        }
+
+        // 检测引擎
+        if (ua.includes("AppleWebKit")) {
+            engine = "WebKit";
+        } else if (ua.includes("Gecko")) {
+            engine = "Gecko";
+        } else if (ua.includes("Trident")) {
+            engine = "Trident";
+        }
+
+        const data = {
+            name: browserName,
+            version: browserVersion,
+            engine: engine,
+        };
+        sdk.capture("environmentInfo", {
+            type: "browser",
+            data
+        });
+    }
+
+    detectOSInfo(sdk) {
+        const ua = navigator.userAgent;
+        let os = "未知";
+
+        if (ua.includes("Windows")) {
+            os = "Windows";
+            if (ua.includes("Windows NT 10.0")) os = "Windows 10/11";
+            else if (ua.includes("Windows NT 6.3")) os = "Windows 8.1";
+            else if (ua.includes("Windows NT 6.2")) os = "Windows 8";
+            else if (ua.includes("Windows NT 6.1")) os = "Windows 7";
+        } else if (ua.includes("Mac")) {
+            os = "macOS";
+        } else if (ua.includes("Linux")) {
+            os = "Linux";
+        } else if (ua.includes("Android")) {
+            os = "Android";
+        } else if (
+            ua.includes("iOS") ||
+            ua.includes("iPhone") ||
+            ua.includes("iPad")
+        ) {
+            os = "iOS";
+        }
+        sdk.capture("environmentInfo", {
+            type: "os",
+            data: {
+                os
+            }
+        });
+    }
+
+    detectDeviceInfo(sdk) {
+        const ua = navigator.userAgent;
+        const width = window.innerWidth;
+        let device = "";
+
+        if (/(tablet|ipad|playbook|silk)|(android(?!.*mobi))/i.test(ua)) {
+            device = "平板";
+        } else if (
+            /Mobile|Android|iP(hone|od)|IEMobile|BlackBerry|Kindle|Silk-Accelerated|(hpw|web)OS|Opera M(obi|ini)/.test(
+                ua
+            )
+        ) {
+            device = "手机";
+        } else if (width < 768) {
+            device = "手机 (基于屏幕大小)";
+        } else if (width < 834) {
+            device = "平板 (基于屏幕大小)";
+        } else {
+            device = "桌面";
+        }
+        sdk.capture("environmentInfo", {
+            type: "device",
+            data: {
+                device
+            }
+        });
+    }
+
+    getGeolocationInfo(sdk) {
+        if (!navigator.geolocation) return;
+
+        navigator.geolocation.getCurrentPosition(
+            async (position) => {
+                const { latitude, longitude, accuracy } = position.coords;
+
+                // 在实际应用中，这里会调用地理编码服务将坐标转换为地址
+                const { country, city } = await this.getLocationFromCoords(latitude, longitude);
+                sdk.capture("environmentInfo", {
+                    type: "geolocation",
+                    data: {
+                        coordinates: {
+                            latitude,
+                            longitude,
+                            accuracy,
+                        },
+                        country,
+                        city,
+                    }
+                });
+            },
+            (error) => {
+                let errorMessage = "未知错误";
+                switch (error.code) {
+                    case error.PERMISSION_DENIED:
+                        errorMessage = "用户拒绝提供地理位置权限";
+                        break;
+                    case error.POSITION_UNAVAILABLE:
+                        errorMessage = "无法获取当前位置信息";
+                        break;
+                    case error.TIMEOUT:
+                        errorMessage = "获取位置信息超时";
+                        break;
+                }
+
+                sdk.capture("environmentInfo", {
+                    type: "geolocation",
+                    data: {
+                        errorMessage
+                    }
+                });
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 60000,
+            }
+        );
+    }
+
+    // 根据坐标获取位置信息（模拟）
+    getLocationFromCoords(latitude, longitude) {
+        // 在实际应用中，这里会调用地理编码API
+        // 这里我们使用模拟数据
+        return new Promise(() => {
+            // this.environmentData.geolocation.country = "中国";
+            // this.environmentData.geolocation.city = "北京";
+
+            // document.getElementById("country").textContent = "中国";
+            // document.getElementById("city").textContent = "北京";
+
+            // this.logEvent("GEOLOCATION", "位置信息解析完成: 中国, 北京");
+            return {
+                country: "中国",
+                city: "北京"
+            }
+        })
+
+    }
+
+}
+
 // 错误监控插件
 class ErrorTrackingPlugin {
     name = 'errorTracking';
@@ -524,7 +720,7 @@ class ErrorTrackingPlugin {
                         })
                     );
                  */
-                const __skipMonitor = JSON.parse(args[0]).__skipMonitor;
+                const __skipMonitor = JSON.parse(args[0])?.__skipMonitor;
                 // console.log("xhr this:", args[0], __skipMonitor);
                 // 监听加载完成
                 xhr.addEventListener("load", function () {
@@ -939,12 +1135,94 @@ class PerformancePlugin {
     }
 }
 
-// import { UserBehaviorPlugin } from "@plugins/UserBehaviorPlugin";
+// 用户行为插件
+class UserBehaviorPlugin {
+    name = 'userBehavior';
+
+    install(sdk) {
+        // 页面停留时长监控
+        {
+            let enterTime = Date.now();
+
+            document.addEventListener('visibilitychange', this.trackPageStayTime.bind(this, sdk, enterTime), true);
+        }
+
+        // 处理用户点击事件
+        {
+            document.addEventListener('click', this.trackClickBehavior.bind(this, sdk), true);
+        }
+
+        // 处理用户输入事件
+        {
+            document.addEventListener('input', this.trackInputBehavior.bind(this, sdk), true);
+        }
+    }
+
+    // 移除事件监听
+    uninstall() {
+        document.removeEventListener("visibilitychange", this.trackPageStayTime.bind(this), true);
+        document.removeEventListener('click', this.trackClickBehavior.bind(this, sdk), true);
+        document.removeEventListener('input', this.trackInputBehavior.bind(this, sdk), true);
+    }
+
+    trackPageStayTime(sdk, enterTime, event) {
+        // console.log(arguments);
+        if (document.visibilityState === 'hidden') {
+            const stayTime = Date.now() - enterTime;
+            sdk.capture('userAction', {
+                type: 'pageStay',
+                stayTime
+            });
+        } else {
+            enterTime = Date.now();
+        }
+    }
+
+    // 处理用户点击事件
+    trackClickBehavior(sdk, e) {
+        const target = e.target;
+        let description = `点击了 ${target.tagName}`;
+
+        if (target.id) description += ` #${target.id}`;
+        if (target.className) description += ` .${target.className}`;
+        if (target.textContent && target.textContent.length < 30) {
+            description += ` (${target.textContent.trim()})`;
+        }
+        sdk.capture('userAction', {
+            type: 'click',
+            data: {
+                description
+            }
+        });
+    }
+
+    // 处理用户输入事件
+    trackInputBehavior(sdk, e) {
+        const target = e.target;
+        let description = `在 ${target.tagName}`;
+
+        if (target.id) description += ` #${target.id}`;
+        if (target.placeholder) description += ` [${target.placeholder}]`;
+
+        description += ` 输入: "${target.value}"`;
+
+        sdk.capture('userAction', {
+            type: 'input',
+            data: {
+                description
+            }
+        });
+    }
+
+    // 处理用户滚动事件
+
+    // 处理页面卸载事件
+}
 
 new MonitoringCore({
     appId: "abc",
 })
     .use(new PerformancePlugin())
-    // .use(new UserBehaviorPlugin())
-    // .use(new EnvironmentInfoPlugin())
+    .use(new UserBehaviorPlugin())
+    .use(new EnvironmentInfoPlugin())
     .use(new ErrorTrackingPlugin());
