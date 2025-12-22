@@ -23,14 +23,17 @@ export function start() {
     });
 }
 
-export function stop() {
+export function stop(data) {
+    const { id = null, sdk = null } = data;
     if (!stopRecord) return;
     // 停止录制
     stopRecord();
     stopRecord = null;
-    console.log("eventsMatrix:", eventsMatrix);
-
-    // console.log("events:", eventsMatrix[eventsMatrix.length - 2].concat(
-    //     eventsMatrix[eventsMatrix.length - 1]
-    // ));
+    sdk?.capture("rrweb", {
+        id,
+        events: eventsMatrix[eventsMatrix.length - 2] ? eventsMatrix[eventsMatrix.length - 2].concat(
+            eventsMatrix[eventsMatrix.length - 1]
+        ) : eventsMatrix[eventsMatrix.length - 1]
+    });
+    start();
 }

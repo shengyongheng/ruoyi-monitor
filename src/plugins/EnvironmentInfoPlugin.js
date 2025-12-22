@@ -52,6 +52,7 @@ export class EnvironmentInfoPlugin {
         }
 
         const data = {
+            id: genRandomUUID(),
             name: browserName,
             version: browserVersion,
             engine: engine,
@@ -86,6 +87,7 @@ export class EnvironmentInfoPlugin {
             os = "iOS";
         }
         sdk.capture("environmentInfo", {
+            id: genRandomUUID(),
             type: "os",
             data: {
                 os
@@ -114,6 +116,7 @@ export class EnvironmentInfoPlugin {
             device = "桌面";
         }
         sdk.capture("environmentInfo", {
+            id: genRandomUUID(),
             type: "device",
             data: {
                 device
@@ -132,6 +135,7 @@ export class EnvironmentInfoPlugin {
                 const { country, city } = await this.getLocationFromCoords(latitude, longitude);
                 sdk.capture("environmentInfo", {
                     type: "geolocation",
+                    id: genRandomUUID(),
                     data: {
                         coordinates: {
                             latitude,
@@ -159,6 +163,7 @@ export class EnvironmentInfoPlugin {
 
                 sdk.capture("environmentInfo", {
                     type: "geolocation",
+                    id: genRandomUUID(),
                     data: {
                         errorMessage
                     }

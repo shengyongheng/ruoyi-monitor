@@ -71,6 +71,7 @@ export class PerformancePlugin {
                 // console.log("页面完全加载:", this.metrics.LOAD);
                 this.sdk.capture("performance", {
                     type: "LOAD",
+                    id: genRandomUUID(),
                     value: this.metrics.LOAD,
                     description: "页面完全加载"
                 })
@@ -90,11 +91,13 @@ export class PerformancePlugin {
 
             this.sdk.capture("performance", {
                 type: "FPT",
+                id: genRandomUUID(),
                 value: this.metrics.FPT,
                 description: "白屏时间"
             })
             this.sdk.capture("performance", {
                 type: "READY",
+                id: genRandomUUID(),
                 value: this.metrics.READY,
                 description: "DOM Ready时间"
             })
@@ -179,6 +182,7 @@ export class PerformancePlugin {
                     const delay = entry.processingStart - entry.startTime;
                     this.metrics.FID = delay;
                     this.sdk.capture("performance", {
+                        id: genRandomUUID(),
                         type: "FID",
                         value: this.metrics.FID
                     })

@@ -1,6 +1,7 @@
 // 错误监控插件
-import { RRWEB_RECORD_START_EVENT, RRWEB_RECORD_STOP_EVENT } from "@common/constants.js/rrweb";
+import { RRWEB_RECORD_START_EVENT, RRWEB_RECORD_STOP_EVENT } from "@common/constants/rrweb";
 import { EventBus } from "@common/eventBus/EventBus";
+import { genRandomUUID } from "@common/utils/randomUUID";
 import { start, stop } from "@common/utils/rrweb";
 
 export class ErrorTrackingPlugin extends EventBus {
@@ -74,8 +75,9 @@ export class ErrorTrackingPlugin extends EventBus {
             errorType = "cross-origin";
             // severity = "medium";
         }
-
+        const id = genRandomUUID();
         const errorData = {
+            id,
             type: errorType,
             /**
              * tagName src href 加载资源时有效
@@ -95,7 +97,9 @@ export class ErrorTrackingPlugin extends EventBus {
 
         sdk.capture(this.name, errorData)
         if (errorData === "js") {
-            this.emit(RRWEB_RECORD_STOP_EVENT)
+            this.emit(RRWEB_RECORD_STOP_EVENT, {
+                id, sdk
+            })
         }
         // 阻止默认错误处理（避免控制台重复显示）
         event.preventDefault();
@@ -106,6 +110,7 @@ export class ErrorTrackingPlugin extends EventBus {
         const error = event.reason;
 
         const errorData = {
+            id: genRandomUUID(),
             type: "promise",
             // severity: "high",
             message: error ? error.message : "Unhandled Promise rejection",
@@ -186,6 +191,7 @@ export class ErrorTrackingPlugin extends EventBus {
                     if (!__skipMonitor && (xhr.status >= 400 || self.slowRequestThreshold <= duration)) {
 
                         const errorData = {
+                            id: genRandomUUID(),
                             type: "ajax",
                             // severity: xhr.status >= 500 ? "high" : "medium",
                             message: `HTTP ${xhr.status} ${xhr.statusText}`,
@@ -207,6 +213,7 @@ export class ErrorTrackingPlugin extends EventBus {
                 // 监听错误
                 xhr.addEventListener("error", function () {
                     const errorData = {
+                        id: genRandomUUID(),
                         type: "ajax",
                         // severity: "critical",
                         message: "网络请求失败",
@@ -226,6 +233,7 @@ export class ErrorTrackingPlugin extends EventBus {
                 // 监听超时
                 xhr.addEventListener("timeout", function () {
                     const errorData = {
+                        id: genRandomUUID(),
                         type: "ajax",
                         // severity: "high",
                         message: "请求超时",
@@ -278,6 +286,7 @@ export class ErrorTrackingPlugin extends EventBus {
                     const duration = performance.now() - startTime;
                     if (!__skipMonitor && (!response.ok || self.slowRequestThreshold <= duration)) {
                         const errorData = {
+                            id: genRandomUUID(),
                             type: "fetch",
                             // severity: response.status >= 500 ? "high" : "medium",
                             message: `HTTP ${response.status} ${response.statusText}`,
@@ -297,6 +306,7 @@ export class ErrorTrackingPlugin extends EventBus {
                 })
                 .catch((error) => {
                     const errorData = {
+                        id: genRandomUUID(),
                         type: "fetch",
                         // severity: "critical",
                         message: error.message,

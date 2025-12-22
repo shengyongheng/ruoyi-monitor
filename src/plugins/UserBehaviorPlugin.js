@@ -36,6 +36,7 @@ export class UserBehaviorPlugin {
         if (document.visibilityState === 'hidden') {
             const stayTime = Date.now() - enterTime;
             sdk.capture('userAction', {
+                id: genRandomUUID(),
                 type: 'pageStay',
                 stayTime
             });
@@ -55,6 +56,7 @@ export class UserBehaviorPlugin {
             description += ` (${target.textContent.trim()})`;
         }
         sdk.capture('userAction', {
+            id: genRandomUUID(),
             type: 'click',
             data: {
                 description
@@ -73,6 +75,7 @@ export class UserBehaviorPlugin {
         description += ` 输入: "${target.value}"`;
 
         sdk.capture('userAction', {
+            id: genRandomUUID(),
             type: 'input',
             data: {
                 description
