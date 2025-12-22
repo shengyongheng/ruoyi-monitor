@@ -8,6 +8,7 @@ export class MonitoringCore extends EventBus {
         super();
         const configManager = new ConfigManager();
         this.config = configManager.mergeConfig(config);
+        this.Vue = null;
         this.plugins = new Map();
         this.state = {
             initialized: false,
@@ -16,13 +17,21 @@ export class MonitoringCore extends EventBus {
         }
         // this.processor = new DataProcessor(this.config); // 数据处理器
         this.reporter = new DataReporter(this.config); // 上报器
-        this.init()
+        // this.init()
     }
 
     // 初始化SDK
-    init() {
+    init({
+        Vue
+    }) {
         if (this.state.initialized) return;
+
+        this.Vue = Vue
+
         try {
+            // 初始化插件
+            this.config.plugins.forEach(plugin => this.use(plugin))
+
             // 注册内置插件
             // this.registerCorePlugins();
 

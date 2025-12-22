@@ -1,13 +1,22 @@
 import { MonitoringCore } from "@core/core";
-import { EnvironmentInfoPlugin } from "@plugins/EnvironmentInfoPlugin";
+// import { EnvironmentInfoPlugin } from "@plugins/EnvironmentInfoPlugin";
 import { ErrorTrackingPlugin } from "@plugins/ErrorTrackingPlugin";
-import { PerformancePlugin } from "@plugins/PerformancePlugin";
-import { UserBehaviorPlugin } from "@plugins/UserBehaviorPlugin";
+// import { PerformancePlugin } from "@plugins/PerformancePlugin";
+// import { UserBehaviorPlugin } from "@plugins/UserBehaviorPlugin";
+import { Vue2Plugin } from "@plugins/Vue2Plugin";
 
-new MonitoringCore({
+const RuoyiMonitor = new MonitoringCore({
     appId: "abc",
+    plugins: [
+        new Vue2Plugin(),
+        // new PerformancePlugin(),
+        // new UserBehaviorPlugin(),
+        // new EnvironmentInfoPlugin(),
+        new ErrorTrackingPlugin(),
+    ]
 })
-    .use(new PerformancePlugin())
-    .use(new UserBehaviorPlugin())
-    .use(new EnvironmentInfoPlugin())
-    .use(new ErrorTrackingPlugin());
+
+export {
+    RuoyiMonitor
+};
+

@@ -1,11 +1,25 @@
 // 错误监控插件
-export class ErrorTrackingPlugin {
+import { RRWEB_RECORD_START_EVENT, RRWEB_RECORD_STOP_EVENT } from "@common/constants.js/rrweb";
+import { EventBus } from "@common/eventBus/EventBus";
+import { start, stop } from "@common/utils/rrweb";
+
+export class ErrorTrackingPlugin extends EventBus {
     name = 'errorTracking';
     slowRequestThreshold = 3000; // 慢请求阈值
+
+    constructor() {
+        super();
+        this.on(RRWEB_RECORD_START_EVENT, start);
+        this.on(RRWEB_RECORD_STOP_EVENT, stop);
+        this.emit(RRWEB_RECORD_START_EVENT)
+    }
 
     install(sdk) {
         {
             // 监听全局错误
+            // JS 执行错误（语法错误、运行时错误）
+            // 资源加载错误（图片、脚本、样式等）
+            // 不能捕获 Promise 错误
             window.addEventListener("error", this.windowErrorTracking.bind(this, sdk), true);
         }
         {
@@ -31,6 +45,8 @@ export class ErrorTrackingPlugin {
             this.unhandledRejectionTracking.bind(this)
         );
         // window.removeEventListener("load", this.resourceErrorTracking.bind(this));
+        this.off(RRWEB_RECORD_START_EVENT);
+        this.off(RRWEB_RECORD_STOP_EVENT);
     }
 
     windowErrorTracking(sdk, event) {
@@ -78,7 +94,9 @@ export class ErrorTrackingPlugin {
         };
 
         sdk.capture(this.name, errorData)
-
+        if (errorData === "js") {
+            this.emit(RRWEB_RECORD_STOP_EVENT)
+        }
         // 阻止默认错误处理（避免控制台重复显示）
         event.preventDefault();
     }

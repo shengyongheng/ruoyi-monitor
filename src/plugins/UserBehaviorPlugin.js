@@ -2,6 +2,8 @@
 export class UserBehaviorPlugin {
     name = 'userBehavior';
 
+
+
     install(sdk) {
         // 页面停留时长监控
         {
@@ -26,9 +28,10 @@ export class UserBehaviorPlugin {
         document.removeEventListener("visibilitychange", this.trackPageStayTime.bind(this), true)
         document.removeEventListener('click', this.trackClickBehavior.bind(this, sdk), true);
         document.removeEventListener('input', this.trackInputBehavior.bind(this, sdk), true);
+      
     }
 
-    trackPageStayTime(sdk, enterTime, event) {
+    trackPageStayTime(sdk, enterTime) {
         // console.log(arguments);
         if (document.visibilityState === 'hidden') {
             const stayTime = Date.now() - enterTime;

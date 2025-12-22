@@ -13,7 +13,7 @@ export class ConfigManager {
         errorSampleRate: 1,
         performanceSampleRate: 0.1,
         user: {},
-        plugins: {},
+        plugins: [],
         hooks: {}
     };
 

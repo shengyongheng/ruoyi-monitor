@@ -1,4 +1,5 @@
 import alias from '@rollup/plugin-alias';
+import babel from '@rollup/plugin-babel';
 import commonjs from '@rollup/plugin-commonjs';
 import resolve from '@rollup/plugin-node-resolve';
 import terser from '@rollup/plugin-terser';
@@ -19,11 +20,13 @@ export default [
         input: 'src/index.js',
         output: [
             {
-                file: 'dist/index.esm.js',
+                // file: 'dist/index.esm.js',
+                file: "D:/hengshengyong/Java/codes/RuoYi-Vue/ruoyi-ui/public/index.esm.js",
                 format: 'esm'
             },
             {
-                file: 'dist/index.cjs.js',
+                // file: 'dist/index.cjs.js', 
+                file: 'D:/hengshengyong/Java/codes/RuoYi-Vue/ruoyi-ui/public/index.cjs.js',
                 format: 'cjs'
             }
         ],
@@ -31,6 +34,10 @@ export default [
             resolve(),
             commonjs(),
             env === "production" && terser(),
+            babel({
+                babelHelpers: 'bundled',
+                presets: ['@babel/preset-env']
+            }),
             alias({
                 entries: [
                     { find: '@common', replacement: path.resolve(projectRootDir, 'src/common') },

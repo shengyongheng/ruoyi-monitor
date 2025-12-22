@@ -6,7 +6,7 @@
   "module": "dist/index.esm.js",
   "scripts": {
     "build": "cross-env NODE_ENV=production rollup -c",
-    "dev":"cross-env NODE_ENV=development rollup -c",
+    "dev": "cross-env NODE_ENV=development rollup -c",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "files": [
@@ -26,15 +26,23 @@
   "author": "hengshengyong <3271660881@qq.com> (https://github.com/shengyongheng)",
   "license": "ISC",
   "devDependencies": {
+    "@babel/core": "^7.28.5",
+    "@babel/preset-env": "^7.28.5",
     "@rollup/plugin-alias": "^6.0.0",
+    "@rollup/plugin-babel": "^6.1.0",
     "@rollup/plugin-commonjs": "^25.0.0",
     "@rollup/plugin-node-resolve": "^15.0.0",
     "@rollup/plugin-terser": "^0.4.4",
     "cross-env": "^10.1.0",
-    "rollup": "^3.0.0"
+    "rollup": "^3.0.0",
+    "vue": "2.6.12"
+  },
+  "peerDependencies": {
+    "vue": "2.6.12"
   },
   "packageManager": "pnpm@10.14.0",
   "dependencies": {
+    "rrweb": "2.0.0-alpha.4",
     "web-vitals": "^5.1.0"
   }
 }
