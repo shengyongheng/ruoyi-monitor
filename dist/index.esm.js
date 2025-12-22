@@ -351,32 +351,31 @@ function _unsupportedIterableToArray(r, a) {
 var EventBus = /*#__PURE__*/function () {
   function EventBus() {
     _classCallCheck(this, EventBus);
-    // 使用 Map 存储事件与回调列表
-    // key: eventName, value: Set<handler>
-    this._events = new Map();
-  }
+  } // 使用 Map 存储事件与回调列表
+  // key: eventName, value: Set<handler>
+  // this._events = new Map();
 
   // 订阅事件
   return _createClass(EventBus, [{
     key: "on",
     value: function on(event, handler) {
-      if (!this._events.has(event)) {
-        this._events.set(event, new Set());
+      if (!EventBus._events.has(event)) {
+        EventBus._events.set(event, new Set());
       }
-      this._events.get(event).add(handler);
+      EventBus._events.get(event).add(handler);
     }
 
     // 取消订阅
   }, {
     key: "off",
     value: function off(event, handler) {
-      if (!this._events.has(event)) return;
-      var handlers = this._events.get(event);
+      if (!EventBus._events.has(event)) return;
+      var handlers = EventBus._events.get(event);
       handlers["delete"](handler);
 
       // 若此事件无监听者则自动清理
       if (handlers.size === 0) {
-        this._events["delete"](event);
+        EventBus._events["delete"](event);
       }
     }
 
@@ -384,8 +383,8 @@ var EventBus = /*#__PURE__*/function () {
   }, {
     key: "emit",
     value: function emit(event, data) {
-      if (!this._events.has(event)) return;
-      var handlers = this._events.get(event);
+      if (!EventBus._events.has(event)) return;
+      var handlers = EventBus._events.get(event);
       var _iterator = _createForOfIteratorHelper(handlers),
         _step;
       try {
@@ -413,6 +412,7 @@ var EventBus = /*#__PURE__*/function () {
     }
   }]);
 }();
+_defineProperty(EventBus, "_events", new Map());
 
 var ConfigManager = /*#__PURE__*/function () {
   function ConfigManager() {
@@ -433,7 +433,7 @@ var ConfigManager = /*#__PURE__*/function () {
       errorSampleRate: 1,
       performanceSampleRate: 0.1,
       user: {},
-      plugins: {},
+      plugins: [],
       hooks: {}
     });
   }
@@ -786,6 +786,7 @@ var MonitoringCore = /*#__PURE__*/function (_EventBus) {
     _this = _callSuper(this, MonitoringCore);
     var configManager = new ConfigManager();
     _this.config = configManager.mergeConfig(config);
+    _this.Vue = null;
     _this.plugins = new Map();
     _this.state = {
       initialized: false,
@@ -794,7 +795,7 @@ var MonitoringCore = /*#__PURE__*/function (_EventBus) {
     };
     // this.processor = new DataProcessor(this.config); // 数据处理器
     _this.reporter = new DataReporter(_this.config); // 上报器
-    _this.init();
+    // this.init()
     return _this;
   }
 
@@ -802,9 +803,17 @@ var MonitoringCore = /*#__PURE__*/function (_EventBus) {
   _inherits(MonitoringCore, _EventBus);
   return _createClass(MonitoringCore, [{
     key: "init",
-    value: function init() {
+    value: function init(_ref) {
+      var _this2 = this;
+      var Vue = _ref.Vue;
       if (this.state.initialized) return;
+      this.Vue = Vue;
       try {
+        // 初始化插件
+        this.config.plugins.forEach(function (plugin) {
+          return _this2.use(plugin);
+        });
+
         // 注册内置插件
         // this.registerCorePlugins();
 
@@ -928,6 +937,14 @@ var MonitoringCore = /*#__PURE__*/function (_EventBus) {
 // event
 var RRWEB_RECORD_START_EVENT = "rrweb_record_start_event";
 var RRWEB_RECORD_STOP_EVENT = "rrweb_record_stop_event";
+
+/**
+ * 获取唯一 ID
+ */
+function genRandomUUID() {
+  var _crypto;
+  return (_crypto = crypto) !== null && _crypto !== void 0 && _crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
+}
 
 var NodeType;
 (function (NodeType) {
@@ -5093,16 +5110,20 @@ function start() {
     // checkoutEveryNth: 200, // 每 200 个 event 重新制作快照
   });
 }
-function stop() {
+function stop(data) {
+  var _data$id = data.id,
+    id = _data$id === void 0 ? null : _data$id,
+    _data$sdk = data.sdk,
+    sdk = _data$sdk === void 0 ? null : _data$sdk;
   if (!stopRecord) return;
   // 停止录制
   stopRecord();
   stopRecord = null;
-  console.log("eventsMatrix:", eventsMatrix);
-
-  // console.log("events:", eventsMatrix[eventsMatrix.length - 2].concat(
-  //     eventsMatrix[eventsMatrix.length - 1]
-  // ));
+  sdk === null || sdk === void 0 || sdk.capture("rrweb", {
+    id: id,
+    events: eventsMatrix[eventsMatrix.length - 2] ? eventsMatrix[eventsMatrix.length - 2].concat(eventsMatrix[eventsMatrix.length - 1]) : eventsMatrix[eventsMatrix.length - 1]
+  });
+  start();
 }
 
 var ErrorTrackingPlugin = /*#__PURE__*/function (_EventBus) {
@@ -5172,7 +5193,9 @@ var ErrorTrackingPlugin = /*#__PURE__*/function (_EventBus) {
         errorType = "cross-origin";
         // severity = "medium";
       }
+      var id = genRandomUUID();
       var errorData = {
+        id: id,
         type: errorType,
         /**
          * tagName src href 加载资源时有效
@@ -5191,7 +5214,10 @@ var ErrorTrackingPlugin = /*#__PURE__*/function (_EventBus) {
       };
       sdk.capture(this.name, errorData);
       if (errorData === "js") {
-        this.emit(RRWEB_RECORD_STOP_EVENT);
+        this.emit(RRWEB_RECORD_STOP_EVENT, {
+          id: id,
+          sdk: sdk
+        });
       }
       // 阻止默认错误处理（避免控制台重复显示）
       event.preventDefault();
@@ -5203,6 +5229,7 @@ var ErrorTrackingPlugin = /*#__PURE__*/function (_EventBus) {
     value: function unhandledRejectionTracking(sdk, event) {
       var error = event.reason;
       var errorData = {
+        id: genRandomUUID(),
         type: "promise",
         // severity: "high",
         message: error ? error.message : "Unhandled Promise rejection",
@@ -5288,6 +5315,7 @@ var ErrorTrackingPlugin = /*#__PURE__*/function (_EventBus) {
             var duration = performance.now() - startTime;
             if (!__skipMonitor && (xhr.status >= 400 || self.slowRequestThreshold <= duration)) {
               var errorData = {
+                id: genRandomUUID(),
                 type: "ajax",
                 // severity: xhr.status >= 500 ? "high" : "medium",
                 message: "HTTP ".concat(xhr.status, " ").concat(xhr.statusText),
@@ -5308,6 +5336,7 @@ var ErrorTrackingPlugin = /*#__PURE__*/function (_EventBus) {
           // 监听错误
           xhr.addEventListener("error", function () {
             var errorData = {
+              id: genRandomUUID(),
               type: "ajax",
               // severity: "critical",
               message: "网络请求失败",
@@ -5327,6 +5356,7 @@ var ErrorTrackingPlugin = /*#__PURE__*/function (_EventBus) {
           // 监听超时
           xhr.addEventListener("timeout", function () {
             var errorData = {
+              id: genRandomUUID(),
               type: "ajax",
               // severity: "high",
               message: "请求超时",
@@ -5376,6 +5406,7 @@ var ErrorTrackingPlugin = /*#__PURE__*/function (_EventBus) {
           var duration = performance.now() - startTime;
           if (!__skipMonitor && (!response.ok || self.slowRequestThreshold <= duration)) {
             var errorData = {
+              id: genRandomUUID(),
               type: "fetch",
               // severity: response.status >= 500 ? "high" : "medium",
               message: "HTTP ".concat(response.status, " ").concat(response.statusText),
@@ -5393,6 +5424,7 @@ var ErrorTrackingPlugin = /*#__PURE__*/function (_EventBus) {
           return response;
         })["catch"](function (error) {
           var errorData = {
+            id: genRandomUUID(),
             type: "fetch",
             // severity: "critical",
             message: error.message,
@@ -5414,15 +5446,94 @@ var ErrorTrackingPlugin = /*#__PURE__*/function (_EventBus) {
   }]);
 }(EventBus);
 
-// import { PerformancePlugin } from "@plugins/PerformancePlugin";
-// import { UserBehaviorPlugin } from "@plugins/UserBehaviorPlugin";
+// Vue2 集成插件
+var Vue2Plugin = /*#__PURE__*/function (_EventBus) {
+  function Vue2Plugin() {
+    var _this;
+    _classCallCheck(this, Vue2Plugin);
+    for (var _len = arguments.length, args = new Array(_len), _key = 0; _key < _len; _key++) {
+      args[_key] = arguments[_key];
+    }
+    _this = _callSuper(this, Vue2Plugin, [].concat(args));
+    _defineProperty(_this, "name", "vue2Plugin");
+    return _this;
+  }
+  _inherits(Vue2Plugin, _EventBus);
+  return _createClass(Vue2Plugin, [{
+    key: "install",
+    value: function () {
+      var _install = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee(sdk) {
+        var sleep;
+        return _regenerator().w(function (_context) {
+          while (1) switch (_context.n) {
+            case 0:
+              sleep = function _sleep(ms) {
+                return new Promise(function (resolve) {
+                  return setTimeout(resolve, ms);
+                });
+              }; // TODO 暂时如此，待优化
+              _context.n = 1;
+              return sleep(0);
+            case 1:
+              this.globalErrorHandle(sdk);
+            case 2:
+              return _context.a(2);
+          }
+        }, _callee, this);
+      }));
+      function install(_x) {
+        return _install.apply(this, arguments);
+      }
+      return install;
+    }()
+  }, {
+    key: "uninstall",
+    value: function uninstall() {}
+
+    // 全局错误捕获
+  }, {
+    key: "globalErrorHandle",
+    value: function globalErrorHandle(sdk) {
+      var self = this;
+      // quit if Vue isn't on the page
+      if (!sdk.Vue || !sdk.Vue.config) return;
+      // 为什么这么做？
+      var _oldOnError = sdk.Vue.config.errorHandler;
+      sdk.Vue.config.errorHandler = function VueErrorHandler(error, vm, info) {
+        var id = genRandomUUID();
+        sdk.capture("errorTracking", {
+          type: "vue2",
+          data: {
+            id: id,
+            error: error,
+            vm: vm,
+            info: info
+          }
+        });
+        self.emit(RRWEB_RECORD_STOP_EVENT, {
+          id: id,
+          sdk: sdk
+        });
+        // ...
+        if (typeof _oldOnError === 'function') {
+          // 为什么这么做？
+          _oldOnError.call(this, error, vm, info);
+        }
+      };
+    }
+  }]);
+}(EventBus);
 
 var RuoyiMonitor = new MonitoringCore({
-  appId: "abc"
-})
-// .use(new PerformancePlugin())
-// .use(new UserBehaviorPlugin())
-// .use(new EnvironmentInfoPlugin())
-.use(new ErrorTrackingPlugin());
+  appId: "abc",
+  plugins: [new Vue2Plugin(),
+  // new PerformancePlugin(),
+  // new UserBehaviorPlugin(),
+  // new EnvironmentInfoPlugin(),
+  new ErrorTrackingPlugin()]
+});
+RuoyiMonitor.init({});
 
-export { RuoyiMonitor };
+// export {
+//     RuoyiMonitor
+// };

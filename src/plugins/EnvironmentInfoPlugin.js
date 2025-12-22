@@ -1,4 +1,5 @@
 // 环境监控插件
+import { genRandomUUID } from "@common/utils/randomUUID";
 export class EnvironmentInfoPlugin {
     name = 'environmentInfo';
 

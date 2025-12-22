@@ -1,4 +1,5 @@
 // 性能监控插件
+import { genRandomUUID } from '@common/utils/randomUUID';
 import { onCLS, onFCP, onINP, onLCP, onTTFB } from 'web-vitals/attribution';
 export class PerformancePlugin {
     name = 'performance';

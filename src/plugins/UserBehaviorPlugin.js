@@ -1,4 +1,5 @@
 // 用户行为插件
+import { genRandomUUID } from "@common/utils/randomUUID";
 export class UserBehaviorPlugin {
     name = 'userBehavior';
 
@@ -28,7 +29,7 @@ export class UserBehaviorPlugin {
         document.removeEventListener("visibilitychange", this.trackPageStayTime.bind(this), true)
         document.removeEventListener('click', this.trackClickBehavior.bind(this, sdk), true);
         document.removeEventListener('input', this.trackInputBehavior.bind(this, sdk), true);
-      
+
     }
 
     trackPageStayTime(sdk, enterTime) {

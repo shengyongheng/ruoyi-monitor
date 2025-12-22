@@ -31,9 +31,9 @@ export function stop(data) {
     stopRecord = null;
     sdk?.capture("rrweb", {
         id,
-        events: eventsMatrix[eventsMatrix.length - 2] ? eventsMatrix[eventsMatrix.length - 2].concat(
+        events: JSON.stringify(eventsMatrix[eventsMatrix.length - 2] ? eventsMatrix[eventsMatrix.length - 2].concat(
             eventsMatrix[eventsMatrix.length - 1]
-        ) : eventsMatrix[eventsMatrix.length - 1]
+        ) : eventsMatrix[eventsMatrix.length - 1])
     });
     start();
 }

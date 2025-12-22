@@ -26,7 +26,7 @@ export class Vue2Plugin extends EventBus {
         var _oldOnError = sdk.Vue.config.errorHandler;
         sdk.Vue.config.errorHandler = function VueErrorHandler(error, vm, info) {
             const id = genRandomUUID();
-            sdk.capture("errorTracking", {
+            sdk.capture(this.name, {
                 type: "vue2",
                 data: {
                     id,

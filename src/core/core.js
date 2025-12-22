@@ -1,46 +1,58 @@
 import { EventBus } from "@common/eventBus/EventBus";
+import { parseDsn, validateDsn } from "@common/utils/dsn";
 import { ConfigManager } from "./ConfigManager";
 import { DataReporter } from "./DataReporter";
 
 export class MonitoringCore extends EventBus {
 
+    plugins = new Map();
+    config = {}
+    reporter = null;
+    processor = null;
+
     constructor(config = {}) {
         super();
-        const configManager = new ConfigManager();
-        this.config = configManager.mergeConfig(config);
-        this.Vue = null;
-        this.plugins = new Map();
+        this.config = config;
         this.state = {
             initialized: false,
             enabled: true,
             queue: []
         }
-        // this.processor = new DataProcessor(this.config); // 数据处理器
-        this.reporter = new DataReporter(this.config); // 上报器
-        // this.init()
     }
 
     // 初始化SDK
-    init({
-        Vue
-    }) {
+    init(options = {}) {
         if (this.state.initialized) return;
 
-        this.Vue = Vue
+        // 初始化配置
+        const configManager = new ConfigManager();
+        this.config = configManager.mergeConfig({ ...this.config, ...options });
 
         try {
-            // 初始化插件
-            this.config.plugins.forEach(plugin => this.use(plugin))
+            // 校验并解析 dsn
+            validateDsn(this.config.dsn);
+            const dsnInfo = parseDsn(this.config.dsn);
+
+            this.config.dsnInfo = dsnInfo;
+
+            // 设置上报地址
+            this.config.reportUrl = dsnInfo.protocol + "://" + dsnInfo.host + "/ruoyi-monitor/report";
 
             // 注册内置插件
             // this.registerCorePlugins();
 
             // 初始化处理器和上报器
+            // this.processor = new DataProcessor(this.config); // 数据处理器
+            this.reporter = new DataReporter(this.config); // 上报器
+
             // this.processor.init();
             this.reporter.init();
 
             // 设置全局错误捕获
             // this.setupGlobalErrorHandling();
+
+            // 初始化插件
+            this.config.plugins.forEach(plugin => this.use(plugin))
 
             this.state.initialized = true;
             this.emit('sdk:init');

@@ -9,6 +9,13 @@ export class DataReporter {
         this.isReporting = false
     }
 
+    get sendHeaders() {
+        return {
+            type: 'application/json',
+            'Ruoyi-monitor-SDK-Key': this.config.dsnInfo.publicKey
+        }
+    }
+
     init() { }
 
     async report(event) {
@@ -87,7 +94,7 @@ export class DataReporter {
     async sendRequest(events) {
         if (events.length === 0) return;
         const payload = {
-            appId: this.config.appId,
+            projectKey: this.config.dsnInfo.projectKey,
             appVersion: this.config.appVersion,
             timestamp: Date.now(),
             events
@@ -105,9 +112,7 @@ export class DataReporter {
     async sendBeacon(payload) {
         if (!navigator.sendBeacon) return false;
 
-        const blob = new Blob([JSON.stringify(payload)], {
-            type: 'application/json'
-        });
+        const blob = new Blob([JSON.stringify(payload)], this.sendHeaders);
 
         return navigator.sendBeacon(this.config.reportUrl, blob);
     }
@@ -116,9 +121,7 @@ export class DataReporter {
         try {
             const response = await fetch(this.config.reportUrl, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
+                headers: this.sendHeaders,
                 body: JSON.stringify(payload),
                 keepalive: true
             });
@@ -136,6 +139,7 @@ export class DataReporter {
             const xhr = new XMLHttpRequest();
             xhr.open('POST', this.config.reportUrl, true);
             xhr.setRequestHeader('Content-Type', 'application/json');
+            xhr.setRequestHeader('Ruoyi-monitor-SDK-Key', this.config.dsnInfo.publicKey);
 
             xhr.onreadystatechange = () => {
                 if (xhr.readyState === 4) {
