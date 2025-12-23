@@ -4,7 +4,7 @@ import { genRandomUUID } from "@common/utils/randomUUID";
 
 // Vue2 集成插件
 export class Vue2Plugin extends EventBus {
-    name = "vue2Plugin"
+    name = "vue2"
 
     async install(sdk) {
         // TODO 暂时如此，待优化
@@ -19,21 +19,22 @@ export class Vue2Plugin extends EventBus {
 
     // 全局错误捕获
     globalErrorHandle(sdk) {
+        const { Vue = null } = sdk.config;
         const self = this;
         // quit if Vue isn't on the page
-        if (!sdk.Vue || !sdk.Vue.config) return;
+        if (!Vue || !Vue.config) return;
         // 为什么这么做？
-        var _oldOnError = sdk.Vue.config.errorHandler;
-        sdk.Vue.config.errorHandler = function VueErrorHandler(error, vm, info) {
+        var _oldOnError = Vue.config.errorHandler;
+        Vue.config.errorHandler = function VueErrorHandler(error, vm, info) {
             const id = genRandomUUID();
-            sdk.capture(this.name, {
-                type: "vue2",
-                data: {
-                    id,
-                    error,
-                    vm,
-                    info
-                }
+            sdk.capture(self.name, {
+                type: "globalError",
+                id,
+                error,
+                // vm,
+                component: vm?.$options?.name,
+                file: vm?.$options.__file,
+                info
             });
             self.emit(RRWEB_RECORD_STOP_EVENT, {
                 id, sdk

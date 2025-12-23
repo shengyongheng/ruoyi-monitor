@@ -3,8 +3,6 @@ import { genRandomUUID } from "@common/utils/randomUUID";
 export class UserBehaviorPlugin {
     name = 'userBehavior';
 
-
-
     install(sdk) {
         // 页面停留时长监控
         {
@@ -59,9 +57,7 @@ export class UserBehaviorPlugin {
         sdk.capture('userAction', {
             id: genRandomUUID(),
             type: 'click',
-            data: {
-                description
-            }
+            description
         });
     }
 
@@ -78,9 +74,7 @@ export class UserBehaviorPlugin {
         sdk.capture('userAction', {
             id: genRandomUUID(),
             type: 'input',
-            data: {
-                description
-            }
+            description
         });
     }
 

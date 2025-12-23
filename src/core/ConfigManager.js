@@ -13,7 +13,7 @@ export class ConfigManager {
         },
         reportUrl: "",
         reportStrategy: 'immediate', // immediate batch throttle
-        batchSize: 10,
+        batchSize: 5,
         reportInterval: 10000, // 延迟上报时间 reportStrategy 为 batch throttle 时有效
         maxQueueSize: 100,
         sampleRate: 1,

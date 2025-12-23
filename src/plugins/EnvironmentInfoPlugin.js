@@ -52,15 +52,12 @@ export class EnvironmentInfoPlugin {
             engine = "Trident";
         }
 
-        const data = {
+        sdk.capture("environmentInfo", {
+            type: "browser",
             id: genRandomUUID(),
             name: browserName,
             version: browserVersion,
             engine: engine,
-        };
-        sdk.capture("environmentInfo", {
-            type: "browser",
-            data
         })
     }
 
@@ -90,9 +87,7 @@ export class EnvironmentInfoPlugin {
         sdk.capture("environmentInfo", {
             id: genRandomUUID(),
             type: "os",
-            data: {
-                os
-            }
+            os
         })
     }
 
@@ -119,9 +114,7 @@ export class EnvironmentInfoPlugin {
         sdk.capture("environmentInfo", {
             id: genRandomUUID(),
             type: "device",
-            data: {
-                device
-            }
+            device
         })
     }
 
@@ -137,15 +130,13 @@ export class EnvironmentInfoPlugin {
                 sdk.capture("environmentInfo", {
                     type: "geolocation",
                     id: genRandomUUID(),
-                    data: {
-                        coordinates: {
-                            latitude,
-                            longitude,
-                            accuracy,
-                        },
-                        country,
-                        city,
-                    }
+                    coordinates: {
+                        latitude,
+                        longitude,
+                        accuracy,
+                    },
+                    country,
+                    city,
                 })
             },
             (error) => {
@@ -165,9 +156,7 @@ export class EnvironmentInfoPlugin {
                 sdk.capture("environmentInfo", {
                     type: "geolocation",
                     id: genRandomUUID(),
-                    data: {
-                        errorMessage
-                    }
+                    errorMessage
                 })
             },
             {

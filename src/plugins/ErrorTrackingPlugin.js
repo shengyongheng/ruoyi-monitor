@@ -138,7 +138,12 @@ export class ErrorTrackingPlugin extends EventBus {
         });
     }
 
-    // 拦截XMLHttpRequest
+    /**
+     * 拦截XMLHttpRequest
+     * 重写XMLHttpRequest可以监控到axios的请求，因为axios在浏览器环境中是基于XMLHttpRequest实现的
+     * （axios在浏览器端使用XMLHttpRequest，在Node.js中使用http模块）。
+     * 但是，axios也可能使用fetch（如果配置了fetch选项，但默认不启用）。
+     * */
     xHRErrorTracking(sdk) {
         const self = this;
         const OriginalXHR = window.XMLHttpRequest;
@@ -182,13 +187,16 @@ export class ErrorTrackingPlugin extends EventBus {
                         })
                     );
                  */
-                const __skipMonitor = JSON.parse(args[0])?.__skipMonitor;
+                const __skipMonitor = JSON.parse(args[0] || "{}")?.__skipMonitor;
                 // console.log("xhr this:", args[0], __skipMonitor);
                 // 监听加载完成
                 xhr.addEventListener("load", function () {
                     const duration = performance.now() - startTime;
 
-                    if (!__skipMonitor && (xhr.status >= 400 || self.slowRequestThreshold <= duration)) {
+                    if (!__skipMonitor && (xhr.status >= 400 ||
+                        // 超出慢请求阈值
+                        self.slowRequestThreshold <= duration
+                    )) {
 
                         const errorData = {
                             id: genRandomUUID(),
@@ -201,6 +209,7 @@ export class ErrorTrackingPlugin extends EventBus {
                             response: xhr.responseText,
                             duration: duration,
                             timestamp: new Date().toISOString(),
+                            description: self.slowRequestThreshold <= duration ? "慢请求" : ""
                             // userInfo: self.config.enableUserTracking
                             //     ? self.userInfo
                             //     : null,
@@ -219,7 +228,7 @@ export class ErrorTrackingPlugin extends EventBus {
                         message: "网络请求失败",
                         url: url,
                         method: method,
-                        status: 0,
+                        status: xhr.status || 0,
                         timestamp: new Date().toISOString(),
                         // userInfo: self.config.enableUserTracking
                         //     ? self.userInfo
@@ -232,6 +241,7 @@ export class ErrorTrackingPlugin extends EventBus {
 
                 // 监听超时
                 xhr.addEventListener("timeout", function () {
+                    const duration = performance.now() - startTime;
                     const errorData = {
                         id: genRandomUUID(),
                         type: "ajax",
@@ -239,7 +249,8 @@ export class ErrorTrackingPlugin extends EventBus {
                         message: "请求超时",
                         url: url,
                         method: method,
-                        status: 0,
+                        status: xhr.status || 0,
+                        duration,
                         timestamp: new Date().toISOString(),
                         // userInfo: self.config.enableUserTracking
                         //     ? self.userInfo
