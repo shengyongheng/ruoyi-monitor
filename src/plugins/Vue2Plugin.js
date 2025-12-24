@@ -1,4 +1,4 @@
-// import { RRWEB_RECORD_STOP_EVENT } from "@common/constants/rrweb";
+import { RRWEB_RECORD_STOP_EVENT } from "@common/constants/rrweb";
 import { EventBus } from "@common/eventBus/EventBus";
 import { genRandomUUID } from "@common/utils/randomUUID";
 
@@ -39,9 +39,9 @@ export class Vue2Plugin extends EventBus {
                 file: vm?.$options.__file,
                 info
             });
-            // self.emit(RRWEB_RECORD_STOP_EVENT, {
-            //     id, sdk
-            // })
+            self.emit(RRWEB_RECORD_STOP_EVENT, {
+                id, sdk
+            })
             // ...
             if (typeof _oldOnError === 'function') {
                 // 为什么这么做？

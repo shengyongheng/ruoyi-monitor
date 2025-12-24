@@ -1,3 +1,5 @@
+import { generateSessionId } from "@common/utils/genSessionId";
+import { genRandomUUID } from "@common/utils/randomUUID";
 export class ConfigManager {
     defaultConfig = {
         appId: '',
@@ -19,7 +21,11 @@ export class ConfigManager {
         sampleRate: 1,
         errorSampleRate: 1,
         performanceSampleRate: 0.1,
-        user: {},
+        user: {
+            userId: genRandomUUID(),
+            username: "游客"
+        },
+        sessionId: "", // 会话 id
         plugins: [],
         hooks: {}
     };
@@ -31,6 +37,9 @@ export class ConfigManager {
         // if (typeof window !== 'undefined') {
         //     merged.reportUrl = merged.reportUrl || '/monitoring/report';
         // }
+
+        // 初始化 sessionId
+        merged.sessionId = generateSessionId();
 
         // 验证必要配置
         this.validateConfig(merged);

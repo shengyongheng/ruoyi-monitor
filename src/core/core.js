@@ -1,3 +1,4 @@
+import { SESSIONID_REFRESH_EVENT } from "@common/constants/session";
 import { EventBus } from "@common/eventBus/EventBus";
 import { parseDsn, validateDsn } from "@common/utils/dsn";
 import { ConfigManager } from "./ConfigManager";
@@ -18,6 +19,7 @@ export class MonitoringCore extends EventBus {
             enabled: true,
             queue: []
         }
+        this.on(SESSIONID_REFRESH_EVENT, this.refreshSessionId.bind(this))
     }
 
     // 初始化SDK
@@ -89,9 +91,9 @@ export class MonitoringCore extends EventBus {
             eventType,
             timestamp: Date.now(),
             data,
-            // sessionId: this.getSessionId(),
+            sessionId: this.config.sessionId,
             // pageViewId: this.getPageViewId(),
-            // userId: this.getUserId()
+            userId: this.config.user
         };
 
         // 处理并上报数据
@@ -122,6 +124,16 @@ export class MonitoringCore extends EventBus {
             console.error('Event processing failed:', error);
             this.emit('event:error', { event, error });
         }
+    }
+
+    // 设置用户
+    setUser(userInfo) {
+        this.config.user = userInfo
+    }
+
+    // 刷新 sessionId
+    refreshSessionId(sessionId) {
+        this.config.sessionId = sessionId
     }
 
     // 销毁SDK

@@ -1,4 +1,6 @@
+import { SESSIONID_REFRESH_EVENT } from "@common/constants/session";
 import { record } from "rrweb";
+import { generateSessionId } from "./genSessionId";
 
 let eventsMatrix = [[]];
 let stopRecord = null;
@@ -35,5 +37,6 @@ export function stop(data) {
             eventsMatrix[eventsMatrix.length - 1]
         ) : eventsMatrix[eventsMatrix.length - 1])
     });
+    sdk.emit(SESSIONID_REFRESH_EVENT, generateSessionId());
     start();
 }
