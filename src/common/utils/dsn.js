@@ -9,9 +9,9 @@ export function validateDsn(dsn) {
         throw new Error("DSN parse failed");
     }
 
-    if (parsed.protocol !== "https") {
-        throw new Error("DSN must use https");
-    }
+    // if (parsed.protocol !== "https") {
+    //     throw new Error("DSN must use https");
+    // }
 
     if (!parsed.publicKey || parsed.publicKey.length < 16) {
         throw new Error("Invalid publicKey");

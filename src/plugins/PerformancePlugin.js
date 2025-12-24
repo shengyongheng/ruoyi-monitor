@@ -17,9 +17,6 @@ export class PerformancePlugin {
         TTI: null, // 可交互时间 Time to Interactive
         READY: null, // DOM Ready时间
         LOAD: null, // 页面完全加载时间
-
-        // 资源性能
-        resources: []
     };
     performanceObservers = [];
 
@@ -41,7 +38,6 @@ export class PerformancePlugin {
     performanceMetricTracking() {
         this.collectPerformanceMetrics()
         this.observePerformance();
-        // this.collectResourceTiming();
         onCLS(this.webVitalsReport.bind(this));
         onINP(this.webVitalsReport.bind(this));
         onLCP(this.webVitalsReport.bind(this));
@@ -70,11 +66,11 @@ export class PerformancePlugin {
                 // 页面完全加载时间
                 this.metrics.LOAD = timing.loadEventEnd - timing.navigationStart;
                 // console.log("页面完全加载:", this.metrics.LOAD);
+                // 页面完全加载
                 this.sdk.capture("performance", {
                     type: "LOAD",
                     id: genRandomUUID(),
                     value: this.metrics.LOAD,
-                    description: "页面完全加载"
                 })
             })
 
@@ -90,17 +86,17 @@ export class PerformancePlugin {
             // console.log("DCL:", timing.responseEnd - timing.navigationStart);
             // console.log("页面完全加载:", this.metrics.LOAD);
 
+            // 白屏时间
             this.sdk.capture("performance", {
                 type: "FPT",
                 id: genRandomUUID(),
                 value: this.metrics.FPT,
-                description: "白屏时间"
             })
+            // DOM Ready时间
             this.sdk.capture("performance", {
                 type: "READY",
                 id: genRandomUUID(),
                 value: this.metrics.READY,
-                description: "DOM Ready时间"
             })
         }
 
@@ -122,17 +118,19 @@ export class PerformancePlugin {
     observePerformance() {
         if ('PerformanceObserver' in window) {
             // FP(first-paint): 从页面加载开始到第一个像素绘制到屏幕上的时间，也可以把 FP 理解成白屏时间。
-            // new PerformanceObserver((entryList) => {
+            // const fpObserver = new PerformanceObserver((entryList) => {
             //     for (const entry of entryList.getEntries()) {
             //         this.sdk.capture("performance", {
             //             type: "FP",
             //             metric: entry
             //         })
             //     }
-            // }).observe({ type: 'paint', buffered: true })
+            // });
+            // fpObserver.observe({ type: 'paint', buffered: true })
+            // this.performanceObservers.push(fpObserver)
 
             // FCP观察者 https://web.developers.google.cn/articles/fcp?hl=zh-cn
-            // new PerformanceObserver((entryList) => {
+            // const fcpObserver = new PerformanceObserver((entryList) => {
             //     const entries = entryList.getEntries();
             //     for (const entry of entries) {
             //         if (entry.name === "first-contentful-paint") {
@@ -142,10 +140,12 @@ export class PerformancePlugin {
             //             });
             //         }
             //     }
-            // }).observe({ entryTypes: ["paint"] });
+            // });
+            // fcpObserver.observe({ entryTypes: ["paint"] });
+            // this.performanceObservers.push(fcpObserver)
 
             // LCP观察者 https://web.developers.google.cn/articles/clp?hl=zh-cn
-            // new PerformanceObserver((entryList) => {
+            // const lcpObserver = new PerformanceObserver((entryList) => {
             //     const entries = entryList.getEntries();
             //     const lastEntry = entries[entries.length - 1];
 
@@ -153,32 +153,38 @@ export class PerformancePlugin {
             //         type: 'LCP',
             //         value: lastEntry.renderTime || lastEntry.loadTime
             //     });
-            // }).observe({ entryTypes: ['largest-contentful-paint'] });
+            // });
+            // lcpObserver.observe({ entryTypes: ['largest-contentful-paint'] });
+            // this.performanceObservers.push(lcpObserver)
 
             // CLS观察者 https://web.developers.google.cn/articles/cls?hl=zh-cn#measure-cls
-            // new PerformanceObserver((entryList) => {
+            // const clsObserver = new PerformanceObserver((entryList) => {
             //     for (const entry of entryList.getEntries()) {
             //         this.sdk.capture('performance', {
             //             type: 'CLS',
             //             value: entry
             //         });
             //     }
-            // }).observe({ type: 'layout-shift', buffered: true });
+            // });
+            // clsObserver.observe({ type: 'layout-shift', buffered: true });
+            // this.performanceObservers.push(clsObserver)
 
             // TTFB观察者 https://web.developers.google.cn/articles/ttfb?hl=zh-cn
-            // new PerformanceObserver((entryList) => {
+            // const ttfbObserver = new PerformanceObserver((entryList) => {
             //     const [pageNav] = entryList.getEntriesByType('navigation');
             //     this.sdk.capture('performance', {
             //         type: 'TTFB',
             //         value: pageNav.responseStart
             //     });
-            // }).observe({
+            // });
+            // ttfbObserver.observe({
             //     type: 'navigation',
             //     buffered: true
             // });
+            // this.performanceObservers.push(ttfbObserver)
 
             // FID观察者 https://web.developers.google.cn/articles/fid?hl=zh-cn#how_to_measure_fid
-            new PerformanceObserver((entryList) => {
+            const fidObserver = new PerformanceObserver((entryList) => {
                 for (const entry of entryList.getEntries()) {
                     const delay = entry.processingStart - entry.startTime;
                     this.metrics.FID = delay;
@@ -188,97 +194,18 @@ export class PerformancePlugin {
                         value: this.metrics.FID
                     })
                 }
-            }).observe({ type: 'first-input', buffered: true });
+            });
+            fidObserver.observe({ type: 'first-input', buffered: true });
+            this.performanceObservers.push(fidObserver)
         }
     }
-
-    // #region 收集资源性能数据
-    // collectResourceTiming() {
-    //     if (window.performance && window.performance.getEntriesByType) {
-    //         const resources = performance.getEntriesByType("resource");
-    //         for (const resource of resources) {
-    //             this.processResourceEntry(resource);
-    //             console.log("resource:", resource);
-    //         }
-
-    //         // 观察新的资源加载
-    //         if ("PerformanceObserver" in window) {
-    //             try {
-    //                 const resourceObserver = new PerformanceObserver(
-    //                     (entryList) => {
-    //                         const entries = entryList.getEntries();
-    //                         for (const entry of entries) {
-    //                             this.processResourceEntry(entry);
-    //                         }
-    //                     }
-    //                 );
-
-    //                 resourceObserver.observe({ entryTypes: ["resource"] });
-    //                 this.performanceObservers = [resourceObserver];
-    //             } catch (e) {
-    //                 console.error("PerformanceObserver error:", e);
-    //             }
-    //         }
-    //     }
-    // }
-
-    // // 处理资源条目
-    // processResourceEntry(entry) {
-    //     const resource = {
-    //         name: entry.name,
-    //         type: entry.initiatorType,
-    //         duration: entry.duration,
-    //         startTime: entry.startTime,
-    //         initiatorType: entry.initiatorType,
-    //         size: entry.transferSize || 0,
-    //         decodedSize: entry.decodedBodySize || 0,
-    //         encodedSize: entry.encodedBodySize || 0,
-    //         transferSize: entry.transferSize || 0,
-    //         cached: this.isCachedResource(entry),
-    //         timing: {
-    //             dns: entry.domainLookupEnd - entry.domainLookupStart,
-    //             tcp: entry.connectEnd - entry.connectStart,
-    //             ssl:
-    //                 entry.secureConnectionStart > 0
-    //                     ? entry.connectEnd - entry.secureConnectionStart
-    //                     : 0,
-    //             ttfb: entry.responseStart - entry.requestStart,
-    //             download: entry.responseEnd - entry.responseStart,
-    //         },
-    //         serverTiming: entry.serverTiming || [],
-    //     };
-
-    //     this.metrics.resources.push(resource);
-    //     console.log(`资源加载: ${this.getResourceName(resource.name)}`,
-    //         resource.duration, `是否是缓存资源: ${resource.cached}`);
-    //     this.sdk.capture(this.name, {
-    //         type: "resource",
-    //         resource
-    //     })
-    // }
-
-
-    // // 判断资源是否从缓存加载
-    // isCachedResource(entry) {
-    //     // 如果transferSize为0且encodedBodySize不为0，说明是从缓存加载
-    //     // 注意：跨域资源可能无法获取这些字段
-    //     return entry.transferSize === 0 && entry.encodedBodySize > 0;
-    // }
-
-    // // 获取资源名称
-    // getResourceName(fullName) {
-    //     const urlParts = fullName.split("/");
-    //     return urlParts[urlParts.length - 1] || fullName;
-    // }
-    //#endregion
-
     // web-vitals 指标上报
     webVitalsReport(metric) {
         // console.log(`metric name: ${metric.name}`, metric);
         this.metrics[metric.name] = metric.value
         this.sdk.capture("performance", {
             type: metric.name,
-            metric
+            value: metric.value
         })
     }
 }

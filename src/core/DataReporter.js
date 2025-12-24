@@ -11,7 +11,7 @@ export class DataReporter {
 
     get sendHeaders() {
         return {
-            type: 'application/json',
+            "Content-Type": 'application/json',
             'Ruoyi-monitor-SDK-Key': this.config.dsnInfo.publicKey
         }
     }
@@ -96,17 +96,15 @@ export class DataReporter {
         const payload = {
             projectKey: this.config.dsnInfo.projectKey,
             appVersion: this.config.appVersion,
-            timestamp: Date.now(),
             events
         };
         console.log("payload:", payload);
-
         // 使用多种方式上报，提高成功率
-        // await Promise.race([
-        //     this.sendBeacon(payload),
-        //     this.sendFetch(payload),
-        //     this.sendXHR(payload)
-        // ]);
+        await Promise.race([
+            // this.sendBeacon(payload),
+            // this.sendFetch(payload),
+            this.sendXHR(payload)
+        ]);
     }
 
     async sendBeacon(payload) {

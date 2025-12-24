@@ -70,10 +70,10 @@ export class ResourcePlugin {
                     entry.secureConnectionStart > 0
                         ? entry.connectEnd - entry.secureConnectionStart
                         : 0,
-                ttfb: entry.responseStart - entry.requestStart,
+                // ttfb: entry.responseStart - entry.requestStart,
                 download: entry.responseEnd - entry.responseStart,
             },
-            serverTiming: entry.serverTiming || [],
+            // serverTiming: entry.serverTiming || [], // 不知道作用暂时注释
         };
 
         this.resources.push(resource);
@@ -81,7 +81,7 @@ export class ResourcePlugin {
         //     resource.duration, `是否是缓存资源: ${resource.cached}`);
         this.sdk.capture(this.name, {
             type: "resource",
-            resource
+            ...resource
         })
     }
 

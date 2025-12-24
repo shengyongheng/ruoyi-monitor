@@ -1,4 +1,4 @@
-import { RRWEB_RECORD_STOP_EVENT } from "@common/constants/rrweb";
+// import { RRWEB_RECORD_STOP_EVENT } from "@common/constants/rrweb";
 import { EventBus } from "@common/eventBus/EventBus";
 import { genRandomUUID } from "@common/utils/randomUUID";
 
@@ -26,19 +26,22 @@ export class Vue2Plugin extends EventBus {
         // 为什么这么做？
         var _oldOnError = Vue.config.errorHandler;
         Vue.config.errorHandler = function VueErrorHandler(error, vm, info) {
+
             const id = genRandomUUID();
             sdk.capture(self.name, {
                 type: "globalError",
                 id,
-                error,
+                message: error.message,
+                errorType: error.name,
+                stack: error.stack,
                 // vm,
                 component: vm?.$options?.name,
                 file: vm?.$options.__file,
                 info
             });
-            self.emit(RRWEB_RECORD_STOP_EVENT, {
-                id, sdk
-            })
+            // self.emit(RRWEB_RECORD_STOP_EVENT, {
+            //     id, sdk
+            // })
             // ...
             if (typeof _oldOnError === 'function') {
                 // 为什么这么做？

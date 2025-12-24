@@ -1,6 +1,6 @@
 import { MonitoringCore } from "@core/core";
 // import { EnvironmentInfoPlugin } from "@plugins/EnvironmentInfoPlugin";
-import { ErrorTrackingPlugin } from "@plugins/ErrorTrackingPlugin";
+// import { ErrorTrackingPlugin } from "@plugins/ErrorTrackingPlugin";
 // import { PerformancePlugin } from "@plugins/PerformancePlugin";
 import { ResourcePlugin } from "@plugins/ResourcePlugin";
 // import { UserBehaviorPlugin } from "@plugins/UserBehaviorPlugin";
@@ -14,7 +14,7 @@ const RuoyiMonitor = new MonitoringCore({
         new ResourcePlugin(),
         // new UserBehaviorPlugin(),
         // new EnvironmentInfoPlugin(),
-        new ErrorTrackingPlugin(),
+        // new ErrorTrackingPlugin(),
     ]
 })
 
