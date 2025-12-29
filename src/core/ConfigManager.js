@@ -1,5 +1,5 @@
 import { generateSessionId } from "@common/utils/genSessionId";
-import { genRandomUUID } from "@common/utils/randomUUID";
+// import { genRandomUUID } from "@common/utils/randomUUID";
 export class ConfigManager {
     defaultConfig = {
         appId: '',
@@ -22,7 +22,8 @@ export class ConfigManager {
         errorSampleRate: 1,
         performanceSampleRate: 0.1,
         user: {
-            userId: genRandomUUID(),
+            // userId: genRandomUUID(),
+            userId: 0,
             username: "游客"
         },
         sessionId: "", // 会话 id

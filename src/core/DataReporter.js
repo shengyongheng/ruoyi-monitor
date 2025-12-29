@@ -1,6 +1,5 @@
 // 数据上报层 - 上报管理器
 export class DataReporter {
-    // private queue: MonitoringEvent[] = [];
 
     constructor(config) {
         this.config = config;
@@ -98,7 +97,7 @@ export class DataReporter {
             appVersion: this.config.appVersion,
             events
         };
-        console.log("payload:", payload);
+        console.log(`payload eventType:${events[0].eventType}`, payload);
         // 使用多种方式上报，提高成功率
         await Promise.race([
             // this.sendBeacon(payload),
@@ -117,11 +116,13 @@ export class DataReporter {
 
     async sendFetch(payload) {
         try {
+            // 使用 fetch + keepalive
+            // 即使页面关闭，keepalive 也能保证请求发出
             const response = await fetch(this.config.reportUrl, {
                 method: 'POST',
                 headers: this.sendHeaders,
                 body: JSON.stringify(payload),
-                keepalive: true
+                keepalive: true // 关键参数！防止页面关闭时请求被杀
             });
 
             if (!response.ok) {

@@ -6,7 +6,7 @@
   "module": "dist/index.esm.js",
   "scripts": {
     "build": "cross-env NODE_ENV=production rollup -c",
-    "dev": "cross-env NODE_ENV=development rollup -c",
+    "dev": "cross-env NODE_ENV=development rollup -c --watch",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "files": [
@@ -42,6 +42,7 @@
   },
   "packageManager": "pnpm@10.14.0",
   "dependencies": {
+    "blueimp-md5": "^2.19.0",
     "rrweb": "2.0.0-alpha.4",
     "web-vitals": "^5.1.0"
   }

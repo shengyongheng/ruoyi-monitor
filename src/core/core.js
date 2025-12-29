@@ -1,6 +1,7 @@
 import { SESSIONID_REFRESH_EVENT } from "@common/constants/session";
 import { EventBus } from "@common/eventBus/EventBus";
 import { parseDsn, validateDsn } from "@common/utils/dsn";
+import { genPageViewId } from "@common/utils/genPageViewId";
 import { ConfigManager } from "./ConfigManager";
 import { DataReporter } from "./DataReporter";
 
@@ -92,8 +93,8 @@ export class MonitoringCore extends EventBus {
             timestamp: Date.now(),
             data,
             sessionId: this.config.sessionId,
-            // pageViewId: this.getPageViewId(),
-            userId: this.config.user
+            pageViewId: genPageViewId(),
+            userInfo: this.config.user
         };
 
         // 处理并上报数据

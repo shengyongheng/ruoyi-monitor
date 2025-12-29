@@ -2,23 +2,50 @@
 import { genRandomUUID } from "@common/utils/randomUUID";
 export class UserBehaviorPlugin {
     name = 'userBehavior';
+    sdk = null;
+    enterTime = Date.now();
+    from = location.href;
+    hashEnterTime = 0;
 
     install(sdk) {
+        this.sdk = sdk
+        /**
+         * MDN：https://developer.mozilla.org/zh-CN/docs/Web/API/Window/popstate_event
+         * 备注：
+         *  popstate 事件在调用浏览器的前进、后退以及执行 history.forward、history.back、和 history.go 触发。
+         *  即，在同一文档的两个历史记录条目之间导航会触发该事件。
+         *  调用 history.pushState() 或者 history.replaceState() 不会触发 popstate 事件。
+         */
+        this.patchHistoryApi();
         // 页面停留时长监控
         {
-            let enterTime = Date.now();
-
-            document.addEventListener('visibilitychange', this.trackPageStayTime.bind(this, sdk, enterTime), true);
+            document.addEventListener('visibilitychange', this.trackPageStayTime.bind(this), true);
         }
 
         // 处理用户点击事件
         {
-            document.addEventListener('click', this.trackClickBehavior.bind(this, sdk), true);
+            document.addEventListener('click', this.trackClickBehavior.bind(this), true);
         }
 
         // 处理用户输入事件
         {
-            document.addEventListener('input', this.trackInputBehavior.bind(this, sdk), true);
+            document.addEventListener('input', this.trackInputBehavior.bind(this), true);
+        }
+
+        // 处理页面卸载事件
+        {
+            window.addEventListener("unload", this.trackPageUnload.bind(this), true)
+        }
+
+        // 处理页面路由变化事件
+        {
+            // 浏览器前进后退触发
+            window.addEventListener('popstate', this.trackRouteChange.bind(this, "popstate"), true);
+        }
+
+        // 处理页面 hash 变化
+        {
+            window.addEventListener('hashchange', this.trackHashChange.bind(this), true);
         }
     }
 
@@ -30,22 +57,38 @@ export class UserBehaviorPlugin {
 
     }
 
-    trackPageStayTime(sdk, enterTime) {
-        // console.log(arguments);
+    patchHistoryApi() {
+        const self = this;
+        const originPushState = history.pushState;
+        const originReplaceState = history.replaceState;
+
+        history.pushState = function (...args) {
+            originPushState.apply(history, args);
+            self.trackRouteChange('pushState');
+        };
+
+        history.replaceState = function (...args) {
+            originReplaceState.apply(history, args);
+            self.trackRouteChange('replaceState');
+        };
+
+    }
+
+    trackPageStayTime() {
         if (document.visibilityState === 'hidden') {
-            const stayTime = Date.now() - enterTime;
-            sdk.capture('userAction', {
+            const stayTime = Date.now() - this.enterTime;
+            this.sdk.capture('userAction', {
                 id: genRandomUUID(),
                 type: 'pageStay',
                 stayTime
             });
         } else {
-            enterTime = Date.now();
+            this.enterTime = Date.now();
         }
     }
 
     // 处理用户点击事件
-    trackClickBehavior(sdk, e) {
+    trackClickBehavior(e) {
         const target = e.target;
         let description = `点击了 ${target.tagName}`;
 
@@ -54,7 +97,7 @@ export class UserBehaviorPlugin {
         if (target.textContent && target.textContent.length < 30) {
             description += ` (${target.textContent.trim()})`;
         }
-        sdk.capture('userAction', {
+        this.sdk.capture('userAction', {
             id: genRandomUUID(),
             type: 'click',
             description
@@ -62,7 +105,7 @@ export class UserBehaviorPlugin {
     }
 
     // 处理用户输入事件
-    trackInputBehavior(sdk, e) {
+    trackInputBehavior(e) {
         const target = e.target;
         let description = `在 ${target.tagName}`;
 
@@ -71,7 +114,7 @@ export class UserBehaviorPlugin {
 
         description += ` 输入: "${target.value}"`;
 
-        sdk.capture('userAction', {
+        this.sdk.capture('userAction', {
             id: genRandomUUID(),
             type: 'input',
             description
@@ -80,5 +123,27 @@ export class UserBehaviorPlugin {
 
     // 处理用户滚动事件
 
-    // 处理页面卸载事件
+    trackPageUnload(e) {
+        console.log("处理页面卸载事件:", e);
+    }
+
+    trackRouteChange(trigerType) {
+        this.sdk.capture(this.name, {
+            type: "history",
+            trigerType: trigerType,
+            from: this.from,
+            to: location.href,
+        })
+        this.from = location.href
+    }
+
+    trackHashChange(e) {
+        this.sdk.capture(this.name, {
+            type: "hashchange",
+            from: e.oldURL,
+            to: e.newURL,
+            hashStayTime: e.timeStamp - this.hashEnterTime
+        })
+        this.hashEnterTime = e.timeStamp;
+    }
 }

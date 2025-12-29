@@ -7,6 +7,7 @@ import { start, stop } from "@common/utils/rrweb";
 export class ErrorTrackingPlugin extends EventBus {
     name = 'errorTracking';
     slowRequestThreshold = 3000; // 慢请求阈值
+    sdk = null
 
     constructor() {
         super();
@@ -16,12 +17,17 @@ export class ErrorTrackingPlugin extends EventBus {
     }
 
     install(sdk) {
+        this.sdk = sdk
+        {
+            // console.log("inline 预埋脚本采集的数据:", window.__MONITOR_BOOT__ ?? window.__MONITOR_BOOT__.logs);
+            (window.__MONITOR_BOOT__ ?? []).forEach(event => this.windowErrorTracking(event))
+        }
         {
             // 监听全局错误
             // JS 执行错误（语法错误、运行时错误）
             // 资源加载错误（图片、脚本、样式等）
             // 不能捕获 Promise 错误
-            window.addEventListener("error", this.windowErrorTracking.bind(this, sdk), true);
+            window.addEventListener("error", this.windowErrorTracking.bind(this), true);
         }
         {
             // 监听未处理的Promise拒绝
@@ -30,27 +36,22 @@ export class ErrorTrackingPlugin extends EventBus {
                 this.unhandledRejectionTracking.bind(this)
             );
         }
-        {
-            // 监听资源加载错误
-            // window.addEventListener("load", this.resourceErrorTracking.bind(this));
-        }
-        this.xHRErrorTracking(sdk)
-        this.fetchErrorTracking(sdk)
+        this.xHRErrorTracking()
+        this.fetchErrorTracking()
     }
 
     // 
     uninstall() {
-        window.removeEventListener("error", this.windowErrorTracking.bind(this, sdk), true);
+        window.removeEventListener("error", this.windowErrorTracking.bind(this), true);
         window.removeEventListener(
             "unhandledrejection",
             this.unhandledRejectionTracking.bind(this)
         );
-        // window.removeEventListener("load", this.resourceErrorTracking.bind(this));
         this.off(RRWEB_RECORD_START_EVENT);
         this.off(RRWEB_RECORD_STOP_EVENT);
     }
 
-    windowErrorTracking(sdk, event) {
+    windowErrorTracking(event) {
         const { message, filename, lineno, colno, error } = event;
 
         // 判断错误类型
@@ -95,10 +96,10 @@ export class ErrorTrackingPlugin extends EventBus {
             // userInfo: this.config.enableUserTracking ? this.userInfo : null,
         };
 
-        sdk.capture(this.name, errorData)
+        this.sdk.capture(this.name, errorData)
         if (errorData === "js") {
             this.emit(RRWEB_RECORD_STOP_EVENT, {
-                id, sdk
+                id, sdk: this.sdk
             })
         }
         // 阻止默认错误处理（避免控制台重复显示）
@@ -106,7 +107,7 @@ export class ErrorTrackingPlugin extends EventBus {
     }
 
     // 处理未处理的Promise拒绝
-    unhandledRejectionTracking(sdk, event) {
+    unhandledRejectionTracking(event) {
         const error = event.reason;
 
         const errorData = {
@@ -119,23 +120,10 @@ export class ErrorTrackingPlugin extends EventBus {
             // userInfo: this.config.enableUserTracking ? this.userInfo : null,
         };
 
-        sdk.capture(this.name, errorData)
+        this.sdk.capture(this.name, errorData)
 
         // 阻止默认错误处理
         event.preventDefault();
-    }
-
-    // 处理资源加载错误
-    resourceErrorTracking() {
-        // 检查已加载的资源是否有错误
-        const resources = performance.getEntriesByType("resource");
-        console.log("处理资源加载错误:", resources);
-
-        resources.forEach((resource) => {
-            // 这里可以检查资源的加载状态
-            // 注意：performance API 不直接提供错误状态
-            // 实际应用中需要结合其他方法
-        });
     }
 
     /**
@@ -144,7 +132,7 @@ export class ErrorTrackingPlugin extends EventBus {
      * （axios在浏览器端使用XMLHttpRequest，在Node.js中使用http模块）。
      * 但是，axios也可能使用fetch（如果配置了fetch选项，但默认不启用）。
      * */
-    xHRErrorTracking(sdk) {
+    xHRErrorTracking() {
         const self = this;
         const OriginalXHR = window.XMLHttpRequest;
 
@@ -215,7 +203,7 @@ export class ErrorTrackingPlugin extends EventBus {
                             //     : null,
                         };
 
-                        sdk.capture(self.name, errorData)
+                        this.sdk.capture(self.name, errorData)
                     }
                 });
 
@@ -235,7 +223,7 @@ export class ErrorTrackingPlugin extends EventBus {
                         //     : null,
                     };
                     if (!__skipMonitor) {
-                        sdk.capture(self.name, errorData)
+                        this.sdk.capture(self.name, errorData)
                     }
                 });
 
@@ -258,7 +246,7 @@ export class ErrorTrackingPlugin extends EventBus {
                     };
 
                     if (!__skipMonitor) {
-                        sdk.capture(self.name, errorData)
+                        this.sdk.capture(self.name, errorData)
                     }
                 });
 
@@ -270,7 +258,7 @@ export class ErrorTrackingPlugin extends EventBus {
     }
 
     // 拦截fetch API
-    fetchErrorTracking(sdk) {
+    fetchErrorTracking() {
         const self = this;
         const originalFetch = window.fetch;
 
@@ -311,7 +299,7 @@ export class ErrorTrackingPlugin extends EventBus {
                             // : null,
                         };
 
-                        sdk.capture(self.name, errorData)
+                        this.sdk.capture(self.name, errorData)
                     }
                     return response;
                 })
@@ -330,7 +318,7 @@ export class ErrorTrackingPlugin extends EventBus {
                         //     : null,
                     };
                     if (!__skipMonitor) {
-                        sdk.capture(self.name, errorData)
+                        this.sdk.capture(self.name, errorData)
                     }
                     throw error;
                 });

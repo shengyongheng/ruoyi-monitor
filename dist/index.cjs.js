@@ -1,4655 +1,1241 @@
 'use strict';
 
-class EventBus {
-    constructor() {
-        // 使用 Map 存储事件与回调列表
-        // key: eventName, value: Set<handler>
-        this._events = new Map();
-    }
-
-    // 订阅事件
-    on(event, handler) {
-        if (!this._events.has(event)) {
-            this._events.set(event, new Set());
-        }
-        this._events.get(event).add(handler);
-    }
-
-    // 取消订阅
-    off(event, handler) {
-        if (!this._events.has(event)) return;
-        const handlers = this._events.get(event);
-        handlers.delete(handler);
-
-        // 若此事件无监听者则自动清理
-        if (handlers.size === 0) {
-            this._events.delete(event);
-        }
-    }
-
-    // 发布事件
-    emit(event, data) {
-        if (!this._events.has(event)) return;
-        const handlers = this._events.get(event);
-
-        for (const handler of handlers) {
-            handler(data);
-        }
-    }
-
-    // 一次性订阅
-    once(event, handler) {
-        const wrapper = (data) => {
-            handler(data);
-            this.unsubscribe(event, wrapper);
-        };
-        this.subscribe(event, wrapper);
-    }
+function _arrayLikeToArray(r, a) {
+  (null == a || a > r.length) && (a = r.length);
+  for (var e = 0, n = Array(a); e < a; e++) n[e] = r[e];
+  return n;
 }
-
-class ConfigManager {
-    defaultConfig = {
-        appId: '',
-        appVersion: '1.0.0',
-        debug: false,
-        enabled: true,
-        reportUrl: '',
-        reportStrategy: 'immediate', // immediate batch throttle
-        batchSize: 10,
-        reportInterval: 10000, // 延迟上报时间 reportStrategy 为 batch throttle 时有效
-        maxQueueSize: 100,
-        sampleRate: 1,
-        errorSampleRate: 1,
-        performanceSampleRate: 0.1,
-        user: {},
-        plugins: {},
-        hooks: {}
+function _arrayWithHoles(r) {
+  if (Array.isArray(r)) return r;
+}
+function _arrayWithoutHoles(r) {
+  if (Array.isArray(r)) return _arrayLikeToArray(r);
+}
+function _assertThisInitialized(e) {
+  if (void 0 === e) throw new ReferenceError("this hasn't been initialised - super() hasn't been called");
+  return e;
+}
+function asyncGeneratorStep(n, t, e, r, o, a, c) {
+  try {
+    var i = n[a](c),
+      u = i.value;
+  } catch (n) {
+    return void e(n);
+  }
+  i.done ? t(u) : Promise.resolve(u).then(r, o);
+}
+function _asyncToGenerator(n) {
+  return function () {
+    var t = this,
+      e = arguments;
+    return new Promise(function (r, o) {
+      var a = n.apply(t, e);
+      function _next(n) {
+        asyncGeneratorStep(a, r, o, _next, _throw, "next", n);
+      }
+      function _throw(n) {
+        asyncGeneratorStep(a, r, o, _next, _throw, "throw", n);
+      }
+      _next(void 0);
+    });
+  };
+}
+function _callSuper(t, o, e) {
+  return o = _getPrototypeOf(o), _possibleConstructorReturn(t, _isNativeReflectConstruct() ? Reflect.construct(o, e || [], _getPrototypeOf(t).constructor) : o.apply(t, e));
+}
+function _classCallCheck(a, n) {
+  if (!(a instanceof n)) throw new TypeError("Cannot call a class as a function");
+}
+function _defineProperties(e, r) {
+  for (var t = 0; t < r.length; t++) {
+    var o = r[t];
+    o.enumerable = o.enumerable || !1, o.configurable = !0, "value" in o && (o.writable = !0), Object.defineProperty(e, _toPropertyKey(o.key), o);
+  }
+}
+function _createClass(e, r, t) {
+  return r && _defineProperties(e.prototype, r), t && _defineProperties(e, t), Object.defineProperty(e, "prototype", {
+    writable: !1
+  }), e;
+}
+function _createForOfIteratorHelper(r, e) {
+  var t = "undefined" != typeof Symbol && r[Symbol.iterator] || r["@@iterator"];
+  if (!t) {
+    if (Array.isArray(r) || (t = _unsupportedIterableToArray(r)) || e && r && "number" == typeof r.length) {
+      t && (r = t);
+      var n = 0,
+        F = function () {};
+      return {
+        s: F,
+        n: function () {
+          return n >= r.length ? {
+            done: !0
+          } : {
+            done: !1,
+            value: r[n++]
+          };
+        },
+        e: function (r) {
+          throw r;
+        },
+        f: F
+      };
+    }
+    throw new TypeError("Invalid attempt to iterate non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
+  }
+  var o,
+    a = !0,
+    u = !1;
+  return {
+    s: function () {
+      t = t.call(r);
+    },
+    n: function () {
+      var r = t.next();
+      return a = r.done, r;
+    },
+    e: function (r) {
+      u = !0, o = r;
+    },
+    f: function () {
+      try {
+        a || null == t.return || t.return();
+      } finally {
+        if (u) throw o;
+      }
+    }
+  };
+}
+function _defineProperty(e, r, t) {
+  return (r = _toPropertyKey(r)) in e ? Object.defineProperty(e, r, {
+    value: t,
+    enumerable: !0,
+    configurable: !0,
+    writable: !0
+  }) : e[r] = t, e;
+}
+function _getPrototypeOf(t) {
+  return _getPrototypeOf = Object.setPrototypeOf ? Object.getPrototypeOf.bind() : function (t) {
+    return t.__proto__ || Object.getPrototypeOf(t);
+  }, _getPrototypeOf(t);
+}
+function _inherits(t, e) {
+  if ("function" != typeof e && null !== e) throw new TypeError("Super expression must either be null or a function");
+  t.prototype = Object.create(e && e.prototype, {
+    constructor: {
+      value: t,
+      writable: !0,
+      configurable: !0
+    }
+  }), Object.defineProperty(t, "prototype", {
+    writable: !1
+  }), e && _setPrototypeOf(t, e);
+}
+function _isNativeReflectConstruct() {
+  try {
+    var t = !Boolean.prototype.valueOf.call(Reflect.construct(Boolean, [], function () {}));
+  } catch (t) {}
+  return (_isNativeReflectConstruct = function () {
+    return !!t;
+  })();
+}
+function _iterableToArray(r) {
+  if ("undefined" != typeof Symbol && null != r[Symbol.iterator] || null != r["@@iterator"]) return Array.from(r);
+}
+function _iterableToArrayLimit(r, l) {
+  var t = null == r ? null : "undefined" != typeof Symbol && r[Symbol.iterator] || r["@@iterator"];
+  if (null != t) {
+    var e,
+      n,
+      i,
+      u,
+      a = [],
+      f = !0,
+      o = !1;
+    try {
+      if (i = (t = t.call(r)).next, 0 === l) {
+        if (Object(t) !== t) return;
+        f = !1;
+      } else for (; !(f = (e = i.call(t)).done) && (a.push(e.value), a.length !== l); f = !0);
+    } catch (r) {
+      o = !0, n = r;
+    } finally {
+      try {
+        if (!f && null != t.return && (u = t.return(), Object(u) !== u)) return;
+      } finally {
+        if (o) throw n;
+      }
+    }
+    return a;
+  }
+}
+function _nonIterableRest() {
+  throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
+}
+function _nonIterableSpread() {
+  throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
+}
+function ownKeys(e, r) {
+  var t = Object.keys(e);
+  if (Object.getOwnPropertySymbols) {
+    var o = Object.getOwnPropertySymbols(e);
+    r && (o = o.filter(function (r) {
+      return Object.getOwnPropertyDescriptor(e, r).enumerable;
+    })), t.push.apply(t, o);
+  }
+  return t;
+}
+function _objectSpread2(e) {
+  for (var r = 1; r < arguments.length; r++) {
+    var t = null != arguments[r] ? arguments[r] : {};
+    r % 2 ? ownKeys(Object(t), !0).forEach(function (r) {
+      _defineProperty(e, r, t[r]);
+    }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys(Object(t)).forEach(function (r) {
+      Object.defineProperty(e, r, Object.getOwnPropertyDescriptor(t, r));
+    });
+  }
+  return e;
+}
+function _possibleConstructorReturn(t, e) {
+  if (e && ("object" == typeof e || "function" == typeof e)) return e;
+  if (void 0 !== e) throw new TypeError("Derived constructors may only return object or undefined");
+  return _assertThisInitialized(t);
+}
+function _regenerator() {
+  /*! regenerator-runtime -- Copyright (c) 2014-present, Facebook, Inc. -- license (MIT): https://github.com/babel/babel/blob/main/packages/babel-helpers/LICENSE */
+  var e,
+    t,
+    r = "function" == typeof Symbol ? Symbol : {},
+    n = r.iterator || "@@iterator",
+    o = r.toStringTag || "@@toStringTag";
+  function i(r, n, o, i) {
+    var c = n && n.prototype instanceof Generator ? n : Generator,
+      u = Object.create(c.prototype);
+    return _regeneratorDefine(u, "_invoke", function (r, n, o) {
+      var i,
+        c,
+        u,
+        f = 0,
+        p = o || [],
+        y = !1,
+        G = {
+          p: 0,
+          n: 0,
+          v: e,
+          a: d,
+          f: d.bind(e, 4),
+          d: function (t, r) {
+            return i = t, c = 0, u = e, G.n = r, a;
+          }
+        };
+      function d(r, n) {
+        for (c = r, u = n, t = 0; !y && f && !o && t < p.length; t++) {
+          var o,
+            i = p[t],
+            d = G.p,
+            l = i[2];
+          r > 3 ? (o = l === n) && (u = i[(c = i[4]) ? 5 : (c = 3, 3)], i[4] = i[5] = e) : i[0] <= d && ((o = r < 2 && d < i[1]) ? (c = 0, G.v = n, G.n = i[1]) : d < l && (o = r < 3 || i[0] > n || n > l) && (i[4] = r, i[5] = n, G.n = l, c = 0));
+        }
+        if (o || r > 1) return a;
+        throw y = !0, n;
+      }
+      return function (o, p, l) {
+        if (f > 1) throw TypeError("Generator is already running");
+        for (y && 1 === p && d(p, l), c = p, u = l; (t = c < 2 ? e : u) || !y;) {
+          i || (c ? c < 3 ? (c > 1 && (G.n = -1), d(c, u)) : G.n = u : G.v = u);
+          try {
+            if (f = 2, i) {
+              if (c || (o = "next"), t = i[o]) {
+                if (!(t = t.call(i, u))) throw TypeError("iterator result is not an object");
+                if (!t.done) return t;
+                u = t.value, c < 2 && (c = 0);
+              } else 1 === c && (t = i.return) && t.call(i), c < 2 && (u = TypeError("The iterator does not provide a '" + o + "' method"), c = 1);
+              i = e;
+            } else if ((t = (y = G.n < 0) ? u : r.call(n, G)) !== a) break;
+          } catch (t) {
+            i = e, c = 1, u = t;
+          } finally {
+            f = 1;
+          }
+        }
+        return {
+          value: t,
+          done: y
+        };
+      };
+    }(r, o, i), !0), u;
+  }
+  var a = {};
+  function Generator() {}
+  function GeneratorFunction() {}
+  function GeneratorFunctionPrototype() {}
+  t = Object.getPrototypeOf;
+  var c = [][n] ? t(t([][n]())) : (_regeneratorDefine(t = {}, n, function () {
+      return this;
+    }), t),
+    u = GeneratorFunctionPrototype.prototype = Generator.prototype = Object.create(c);
+  function f(e) {
+    return Object.setPrototypeOf ? Object.setPrototypeOf(e, GeneratorFunctionPrototype) : (e.__proto__ = GeneratorFunctionPrototype, _regeneratorDefine(e, o, "GeneratorFunction")), e.prototype = Object.create(u), e;
+  }
+  return GeneratorFunction.prototype = GeneratorFunctionPrototype, _regeneratorDefine(u, "constructor", GeneratorFunctionPrototype), _regeneratorDefine(GeneratorFunctionPrototype, "constructor", GeneratorFunction), GeneratorFunction.displayName = "GeneratorFunction", _regeneratorDefine(GeneratorFunctionPrototype, o, "GeneratorFunction"), _regeneratorDefine(u), _regeneratorDefine(u, o, "Generator"), _regeneratorDefine(u, n, function () {
+    return this;
+  }), _regeneratorDefine(u, "toString", function () {
+    return "[object Generator]";
+  }), (_regenerator = function () {
+    return {
+      w: i,
+      m: f
     };
-
-    mergeConfig(userConfig) {
-        const merged = { ...this.defaultConfig, ...userConfig };
-
-        // 环境特定配置
-        if (typeof window !== 'undefined') {
-            merged.reportUrl = merged.reportUrl || '/monitoring/report';
-        }
-
-        // 验证必要配置
-        this.validateConfig(merged);
-
-        return merged;
-    }
-
-    validateConfig(config) {
-        if (!config.appId) {
-            throw new Error('appId is required');
-        }
-
-        if (config.sampleRate < 0 || config.sampleRate > 1) {
-            throw new Error('sampleRate must be between 0 and 1');
-        }
-    }
+  })();
 }
-
-// 数据上报层 - 上报管理器
-class DataReporter {
-    // private queue: MonitoringEvent[] = [];
-
-    constructor(config) {
-        this.config = config;
-        this.queue = [];
-        this.timer = null;
-        this.isReporting = false;
+function _regeneratorDefine(e, r, n, t) {
+  var i = Object.defineProperty;
+  try {
+    i({}, "", {});
+  } catch (e) {
+    i = 0;
+  }
+  _regeneratorDefine = function (e, r, n, t) {
+    function o(r, n) {
+      _regeneratorDefine(e, r, function (e) {
+        return this._invoke(r, n, e);
+      });
     }
-
-    init() { }
-
-    async report(event) {
-        // 根据策略处理上报
-        switch (this.config.reportStrategy) {
-            case 'immediate':
-                await this.reportImmediate([event]);
-                break;
-            case 'batch':
-                await this.reportBatch(event);
-                break;
-            case 'throttle':
-                await this.reportThrottle(event);
-                break;
-        }
-    }
-
-    async reportBatch(event) {
-        this.queue.push(event);
-
-        // 达到批量大小立即上报
-        if (this.queue.length >= this.config.batchSize) {
-            await this.flush();
-            return;
-        }
-
-        // 设置定时上报
-        if (!this.timer) {
-            this.timer = setTimeout(() => {
-                this.flush();
-            }, this.config.reportInterval);
-        }
-    }
-
-    async reportImmediate(events) {
-        await this.sendRequest(events);
-    }
-
-    async reportThrottle(event) {
-        this.queue.push(event);
-
-        if (!this.timer) {
-            this.timer = setTimeout(() => {
-                this.flush();
-            }, this.config.reportInterval);
-        }
-    }
-
-    async flush() {
-        if (this.isReporting || this.queue.length === 0) return;
-
-        this.isReporting = true;
-        clearTimeout(this.timer);
-        this.timer = null;
-
-        const eventsToReport = [...this.queue];
-        this.queue = [];
-
-        try {
-            await this.sendRequest(eventsToReport);
-        } catch (error) {
-            // 上报失败，重新加入队列
-            this.queue.unshift(...eventsToReport);
-
-            // 队列超过最大限制，丢弃旧数据
-            if (this.queue.length > this.config.maxQueueSize) {
-                this.queue = this.queue.slice(0, this.config.maxQueueSize);
-            }
-
-            console.error('Report failed:', error);
-        } finally {
-            this.isReporting = false;
-        }
-    }
-
-    async sendRequest(events) {
-        if (events.length === 0) return;
-        const payload = {
-            appId: this.config.appId,
-            appVersion: this.config.appVersion,
-            timestamp: Date.now(),
-            events
-        };
-        console.log("payload:", payload);
-
-        // 使用多种方式上报，提高成功率
-        // await Promise.race([
-        //     this.sendBeacon(payload),
-        //     this.sendFetch(payload),
-        //     this.sendXHR(payload)
-        // ]);
-    }
-
-    async sendBeacon(payload) {
-        if (!navigator.sendBeacon) return false;
-
-        const blob = new Blob([JSON.stringify(payload)], {
-            type: 'application/json'
-        });
-
-        return navigator.sendBeacon(this.config.reportUrl, blob);
-    }
-
-    async sendFetch(payload) {
-        try {
-            const response = await fetch(this.config.reportUrl, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(payload),
-                keepalive: true
-            });
-
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}`);
-            }
-        } catch (error) {
-            throw error;
-        }
-    }
-
-    sendXHR(payload) {
-        return new Promise((resolve, reject) => {
-            const xhr = new XMLHttpRequest();
-            xhr.open('POST', this.config.reportUrl, true);
-            xhr.setRequestHeader('Content-Type', 'application/json');
-
-            xhr.onreadystatechange = () => {
-                if (xhr.readyState === 4) {
-                    if (xhr.status === 200) {
-                        resolve();
-                    } else {
-                        reject(new Error(`HTTP ${xhr.status}`));
-                    }
-                }
-            };
-
-            xhr.send(JSON.stringify(payload));
-        });
-    }
-
-    destroy() {
-        clearTimeout(this.timer);
-        this.flush(); // 销毁前上报剩余数据
-    }
+    r ? i ? i(e, r, {
+      value: n,
+      enumerable: !t,
+      configurable: !t,
+      writable: !t
+    }) : e[r] = n : (o("next", 0), o("throw", 1), o("return", 2));
+  }, _regeneratorDefine(e, r, n, t);
 }
-
-class MonitoringCore extends EventBus {
-
-    constructor(config = {}) {
-        super();
-        const configManager = new ConfigManager();
-        this.config = configManager.mergeConfig(config);
-        this.plugins = new Map();
-        this.state = {
-            initialized: false,
-            enabled: true,
-            queue: []
-        };
-        // this.processor = new DataProcessor(this.config); // 数据处理器
-        this.reporter = new DataReporter(this.config); // 上报器
-        this.init();
-    }
-
-    // 初始化SDK
-    init() {
-        if (this.state.initialized) return;
-        try {
-            // 注册内置插件
-            // this.registerCorePlugins();
-
-            // 初始化处理器和上报器
-            // this.processor.init();
-            this.reporter.init();
-
-            // 设置全局错误捕获
-            // this.setupGlobalErrorHandling();
-
-            this.state.initialized = true;
-            this.emit('sdk:init');
-        } catch (error) {
-            console.error('SDK initialization failed:', error);
-        }
-    }
-
-    // 注册插件
-    use(plugin) {
-        const pluginName = plugin.name;
-
-        if (this.plugins.has(pluginName)) {
-            console.warn(`Plugin ${pluginName} already registered`);
-            return this;
-        }
-
-        try {
-            plugin.install(this);
-            this.plugins.set(pluginName, plugin);
-            this.emit('plugin:registered', { plugin: pluginName });
-        } catch (error) {
-            console.error(`Failed to register plugin ${pluginName}:`, error);
-        }
-
-        return this;
-    }
-
-    // 数据采集入口
-    capture(eventType, data) {
-        if (!this.state.enabled) return;
-
-        const event = {
-            eventType,
-            timestamp: Date.now(),
-            data,
-            // sessionId: this.getSessionId(),
-            // pageViewId: this.getPageViewId(),
-            // userId: this.getUserId()
-        };
-
-        // 处理并上报数据
-        this.processEvent(event);
-    }
-
-    // 处理事件
-    async processEvent(event) {
-        try {
-            // 预处理
-            // const processedEvent = await this.processor.process(event);
-            const processedEvent = event;
-
-            // 触发插件钩子
-            // const finalEvent = await this.triggerPluginHooks('beforeReport', processedEvent);
-            const finalEvent = event;
-
-            if (finalEvent !== null) {
-                // 添加到队列
-                this.state.queue.push(finalEvent);
-
-                // 触发上报
-                await this.reporter.report(finalEvent);
-
-                this.emit('event:reported', finalEvent);
-            }
-        } catch (error) {
-            console.error('Event processing failed:', error);
-            this.emit('event:error', { event, error });
-        }
-    }
-
-    // 销毁SDK
-    destroy() {
-        this.plugins.forEach(plugin => {
-            try {
-                plugin.uninstall?.();
-            } catch (error) {
-                console.error(`Plugin ${plugin.name} uninstall failed:`, error);
-            }
-        });
-
-        this.reporter.destroy();
-        // this.processor.destroy();
-        this.state.initialized = false;
-
-        this.emit('sdk:destroyed');
-    }
+function _setPrototypeOf(t, e) {
+  return _setPrototypeOf = Object.setPrototypeOf ? Object.setPrototypeOf.bind() : function (t, e) {
+    return t.__proto__ = e, t;
+  }, _setPrototypeOf(t, e);
+}
+function _slicedToArray(r, e) {
+  return _arrayWithHoles(r) || _iterableToArrayLimit(r, e) || _unsupportedIterableToArray(r, e) || _nonIterableRest();
+}
+function _toConsumableArray(r) {
+  return _arrayWithoutHoles(r) || _iterableToArray(r) || _unsupportedIterableToArray(r) || _nonIterableSpread();
+}
+function _toPrimitive(t, r) {
+  if ("object" != typeof t || !t) return t;
+  var e = t[Symbol.toPrimitive];
+  if (void 0 !== e) {
+    var i = e.call(t, r || "default");
+    if ("object" != typeof i) return i;
+    throw new TypeError("@@toPrimitive must return a primitive value.");
+  }
+  return ("string" === r ? String : Number)(t);
+}
+function _toPropertyKey(t) {
+  var i = _toPrimitive(t, "string");
+  return "symbol" == typeof i ? i : i + "";
+}
+function _unsupportedIterableToArray(r, a) {
+  if (r) {
+    if ("string" == typeof r) return _arrayLikeToArray(r, a);
+    var t = {}.toString.call(r).slice(8, -1);
+    return "Object" === t && r.constructor && (t = r.constructor.name), "Map" === t || "Set" === t ? Array.from(r) : "Arguments" === t || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(t) ? _arrayLikeToArray(r, a) : void 0;
+  }
 }
 
 // event
-const RRWEB_RECORD_START_EVENT = "rrweb_record_start_event";
+var SESSIONID_REFRESH_EVENT = "sessionid_refresh_event";
 
-const RRWEB_RECORD_STOP_EVENT = "rrweb_record_stop_event";
+var EventBus = /*#__PURE__*/function () {
+  function EventBus() {
+    _classCallCheck(this, EventBus);
+  } // 使用 Map 存储事件与回调列表
+  // key: eventName, value: Set<handler>
+  // this._events = new Map();
 
-var NodeType;
-(function (NodeType) {
-    NodeType[NodeType["Document"] = 0] = "Document";
-    NodeType[NodeType["DocumentType"] = 1] = "DocumentType";
-    NodeType[NodeType["Element"] = 2] = "Element";
-    NodeType[NodeType["Text"] = 3] = "Text";
-    NodeType[NodeType["CDATA"] = 4] = "CDATA";
-    NodeType[NodeType["Comment"] = 5] = "Comment";
-})(NodeType || (NodeType = {}));
+  // 订阅事件
+  return _createClass(EventBus, [{
+    key: "on",
+    value: function on(event, handler) {
+      if (!EventBus._events.has(event)) {
+        EventBus._events.set(event, new Set());
+      }
+      EventBus._events.get(event).add(handler);
+    }
 
-function isElement(n) {
-    return n.nodeType === n.ELEMENT_NODE;
-}
-function isShadowRoot(n) {
-    var host = n === null || n === void 0 ? void 0 : n.host;
-    return Boolean((host === null || host === void 0 ? void 0 : host.shadowRoot) === n);
-}
-function isNativeShadowDom(shadowRoot) {
-    return Object.prototype.toString.call(shadowRoot) === '[object ShadowRoot]';
-}
-function fixBrowserCompatibilityIssuesInCSS(cssText) {
-    if (cssText.includes(' background-clip: text;') &&
-        !cssText.includes(' -webkit-background-clip: text;')) {
-        cssText = cssText.replace(' background-clip: text;', ' -webkit-background-clip: text; background-clip: text;');
+    // 取消订阅
+  }, {
+    key: "off",
+    value: function off(event, handler) {
+      if (!EventBus._events.has(event)) return;
+      var handlers = EventBus._events.get(event);
+      handlers["delete"](handler);
+
+      // 若此事件无监听者则自动清理
+      if (handlers.size === 0) {
+        EventBus._events["delete"](event);
+      }
     }
-    return cssText;
-}
-function getCssRulesString(s) {
-    try {
-        var rules = s.rules || s.cssRules;
-        return rules
-            ? fixBrowserCompatibilityIssuesInCSS(Array.from(rules).map(getCssRuleString).join(''))
-            : null;
-    }
-    catch (error) {
-        return null;
-    }
-}
-function getCssRuleString(rule) {
-    var cssStringified = rule.cssText;
-    if (isCSSImportRule(rule)) {
-        try {
-            cssStringified = getCssRulesString(rule.styleSheet) || cssStringified;
+
+    // 发布事件
+  }, {
+    key: "emit",
+    value: function emit(event, data) {
+      if (!EventBus._events.has(event)) return;
+      var handlers = EventBus._events.get(event);
+      var _iterator = _createForOfIteratorHelper(handlers),
+        _step;
+      try {
+        for (_iterator.s(); !(_step = _iterator.n()).done;) {
+          var handler = _step.value;
+          handler(data);
         }
-        catch (_a) {
-        }
+      } catch (err) {
+        _iterator.e(err);
+      } finally {
+        _iterator.f();
+      }
     }
-    return cssStringified;
-}
-function isCSSImportRule(rule) {
-    return 'styleSheet' in rule;
-}
-var Mirror = (function () {
-    function Mirror() {
-        this.idNodeMap = new Map();
-        this.nodeMetaMap = new WeakMap();
+
+    // 一次性订阅
+  }, {
+    key: "once",
+    value: function once(event, handler) {
+      var _this = this;
+      var _wrapper = function wrapper(data) {
+        handler(data);
+        _this.unsubscribe(event, _wrapper);
+      };
+      this.subscribe(event, _wrapper);
     }
-    Mirror.prototype.getId = function (n) {
-        var _a;
-        if (!n)
-            return -1;
-        var id = (_a = this.getMeta(n)) === null || _a === void 0 ? void 0 : _a.id;
-        return id !== null && id !== void 0 ? id : -1;
+  }]);
+}();
+_defineProperty(EventBus, "_events", new Map());
+
+var PROJECT_KEY_RE = /^[a-zA-Z0-9]{4,12}$/;
+function validateDsn(dsn) {
+  var parsed;
+  try {
+    parsed = parseDsn(dsn);
+  } catch (_unused) {
+    throw new Error("DSN parse failed");
+  }
+
+  // if (parsed.protocol !== "https") {
+  //     throw new Error("DSN must use https");
+  // }
+
+  if (!parsed.publicKey || parsed.publicKey.length < 16) {
+    throw new Error("Invalid publicKey");
+  }
+  if (!PROJECT_KEY_RE.test(parsed.projectKey)) {
+    throw new Error("Invalid projectKey");
+  }
+  var allowedParams = ["env", "app", "version"];
+  Object.keys(parsed.params).forEach(function (key) {
+    if (!allowedParams.includes(key)) {
+      throw new Error("Invalid DSN param: ".concat(key));
+    }
+  });
+}
+function parseDsn(dsn) {
+  try {
+    var url = new URL(dsn);
+    if (!url.username) {
+      throw new Error("DSN missing publicKey");
+    }
+    var projectKey = url.pathname.replace("/", "");
+    if (!projectKey) {
+      throw new Error("DSN missing projectKey");
+    }
+    var params = {};
+    url.searchParams.forEach(function (v, k) {
+      params[k] = v;
+    });
+    return {
+      protocol: url.protocol.replace(":", ""),
+      host: url.host,
+      publicKey: url.username,
+      projectKey: projectKey,
+      params: params
     };
-    Mirror.prototype.getNode = function (id) {
-        return this.idNodeMap.get(id) || null;
-    };
-    Mirror.prototype.getIds = function () {
-        return Array.from(this.idNodeMap.keys());
-    };
-    Mirror.prototype.getMeta = function (n) {
-        return this.nodeMetaMap.get(n) || null;
-    };
-    Mirror.prototype.removeNodeFromMap = function (n) {
+  } catch (e) {
+    throw new Error("Invalid DSN: ".concat(dsn));
+  }
+}
+
+// import md5 from 'blueimp-md5';
+
+function genPageViewId() {
+  var url = location.protocol + '//' + location.hostname + location.pathname;
+  var query = new URLSearchParams(location.search);
+  var sortedQueryString = _toConsumableArray(query.entries()).sort(function (a, b) {
+    return a[0].localeCompare(b[0]);
+  }).map(function (_ref) {
+    var _ref2 = _slicedToArray(_ref, 2),
+      k = _ref2[0],
+      v = _ref2[1];
+    return "".concat(k, "=").concat(v);
+  }).join('&');
+  var canonicalURL = url + (sortedQueryString ? '?' + sortedQueryString : '') + (location.hash || '');
+  return canonicalURL;
+  // return md5(canonicalURL).slice(0, 12); // 截短以降低存储成本
+}
+
+function generateSessionId() {
+  return 's_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
+}
+
+// import { genRandomUUID } from "@common/utils/randomUUID";
+var ConfigManager = /*#__PURE__*/function () {
+  function ConfigManager() {
+    _classCallCheck(this, ConfigManager);
+    _defineProperty(this, "defaultConfig", {
+      appId: '',
+      appVersion: '1.0.0',
+      debug: false,
+      enabled: true,
+      dsnInfo: {
+        protocol: "",
+        // 协议
+        host: "",
+        // 域
+        publicKey: "",
+        // SDK 使用的公钥（可公开）
+        projectKey: "",
+        // 对外暴露的 projectId（短 ID）
+        params: {}
+      },
+      reportUrl: "",
+      reportStrategy: 'immediate',
+      // immediate batch throttle
+      batchSize: 5,
+      reportInterval: 10000,
+      // 延迟上报时间 reportStrategy 为 batch throttle 时有效
+      maxQueueSize: 100,
+      sampleRate: 1,
+      errorSampleRate: 1,
+      performanceSampleRate: 0.1,
+      user: {
+        // userId: genRandomUUID(),
+        userId: 0,
+        username: "游客"
+      },
+      sessionId: "",
+      // 会话 id
+      plugins: [],
+      hooks: {}
+    });
+  }
+  return _createClass(ConfigManager, [{
+    key: "mergeConfig",
+    value: function mergeConfig(userConfig) {
+      var merged = _objectSpread2(_objectSpread2({}, this.defaultConfig), userConfig);
+
+      // // 环境特定配置
+      // if (typeof window !== 'undefined') {
+      //     merged.reportUrl = merged.reportUrl || '/monitoring/report';
+      // }
+
+      // 初始化 sessionId
+      merged.sessionId = generateSessionId();
+
+      // 验证必要配置
+      this.validateConfig(merged);
+      return merged;
+    }
+  }, {
+    key: "validateConfig",
+    value: function validateConfig(config) {
+      // if (!config.appId) {
+      //     throw new Error('appId is required');
+      // }
+
+      if (config.sampleRate < 0 || config.sampleRate > 1) {
+        throw new Error('sampleRate must be between 0 and 1');
+      }
+    }
+  }]);
+}();
+
+// 数据上报层 - 上报管理器
+var DataReporter = /*#__PURE__*/function () {
+  function DataReporter(config) {
+    _classCallCheck(this, DataReporter);
+    this.config = config;
+    this.queue = [];
+    this.timer = null;
+    this.isReporting = false;
+  }
+  return _createClass(DataReporter, [{
+    key: "sendHeaders",
+    get: function get() {
+      return {
+        "Content-Type": 'application/json',
+        'Ruoyi-monitor-SDK-Key': this.config.dsnInfo.publicKey
+      };
+    }
+  }, {
+    key: "init",
+    value: function init() {}
+  }, {
+    key: "report",
+    value: function () {
+      var _report = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee(event) {
+        var _t;
+        return _regenerator().w(function (_context) {
+          while (1) switch (_context.n) {
+            case 0:
+              _t = this.config.reportStrategy;
+              _context.n = _t === 'immediate' ? 1 : _t === 'batch' ? 3 : _t === 'throttle' ? 5 : 7;
+              break;
+            case 1:
+              _context.n = 2;
+              return this.reportImmediate([event]);
+            case 2:
+              return _context.a(3, 7);
+            case 3:
+              _context.n = 4;
+              return this.reportBatch(event);
+            case 4:
+              return _context.a(3, 7);
+            case 5:
+              _context.n = 6;
+              return this.reportThrottle(event);
+            case 6:
+              return _context.a(3, 7);
+            case 7:
+              return _context.a(2);
+          }
+        }, _callee, this);
+      }));
+      function report(_x) {
+        return _report.apply(this, arguments);
+      }
+      return report;
+    }()
+  }, {
+    key: "reportBatch",
+    value: function () {
+      var _reportBatch = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee2(event) {
         var _this = this;
-        var id = this.getId(n);
-        this.idNodeMap["delete"](id);
-        if (n.childNodes) {
-            n.childNodes.forEach(function (childNode) {
-                return _this.removeNodeFromMap(childNode);
-            });
-        }
-    };
-    Mirror.prototype.has = function (id) {
-        return this.idNodeMap.has(id);
-    };
-    Mirror.prototype.hasNode = function (node) {
-        return this.nodeMetaMap.has(node);
-    };
-    Mirror.prototype.add = function (n, meta) {
-        var id = meta.id;
-        this.idNodeMap.set(id, n);
-        this.nodeMetaMap.set(n, meta);
-    };
-    Mirror.prototype.replace = function (id, n) {
-        var oldNode = this.getNode(id);
-        if (oldNode) {
-            var meta = this.nodeMetaMap.get(oldNode);
-            if (meta)
-                this.nodeMetaMap.set(n, meta);
-        }
-        this.idNodeMap.set(id, n);
-    };
-    Mirror.prototype.reset = function () {
-        this.idNodeMap = new Map();
-        this.nodeMetaMap = new WeakMap();
-    };
-    return Mirror;
-}());
-function createMirror() {
-    return new Mirror();
-}
-function maskInputValue(_a) {
-    var maskInputOptions = _a.maskInputOptions, tagName = _a.tagName, type = _a.type, value = _a.value, maskInputFn = _a.maskInputFn;
-    var text = value || '';
-    if (maskInputOptions[tagName.toLowerCase()] ||
-        maskInputOptions[type]) {
-        if (maskInputFn) {
-            text = maskInputFn(text);
-        }
-        else {
-            text = '*'.repeat(text.length);
-        }
-    }
-    return text;
-}
-var ORIGINAL_ATTRIBUTE_NAME = '__rrweb_original__';
-function is2DCanvasBlank(canvas) {
-    var ctx = canvas.getContext('2d');
-    if (!ctx)
-        return true;
-    var chunkSize = 50;
-    for (var x = 0; x < canvas.width; x += chunkSize) {
-        for (var y = 0; y < canvas.height; y += chunkSize) {
-            var getImageData = ctx.getImageData;
-            var originalGetImageData = ORIGINAL_ATTRIBUTE_NAME in getImageData
-                ? getImageData[ORIGINAL_ATTRIBUTE_NAME]
-                : getImageData;
-            var pixelBuffer = new Uint32Array(originalGetImageData.call(ctx, x, y, Math.min(chunkSize, canvas.width - x), Math.min(chunkSize, canvas.height - y)).data.buffer);
-            if (pixelBuffer.some(function (pixel) { return pixel !== 0; }))
-                return false;
-        }
-    }
-    return true;
-}
+        return _regenerator().w(function (_context2) {
+          while (1) switch (_context2.n) {
+            case 0:
+              this.queue.push(event);
 
-var _id = 1;
-var tagNameRegex = new RegExp('[^a-z0-9-_:]');
-var IGNORED_NODE = -2;
-function genId() {
-    return _id++;
-}
-function getValidTagName(element) {
-    if (element instanceof HTMLFormElement) {
-        return 'form';
-    }
-    var processedTagName = element.tagName.toLowerCase().trim();
-    if (tagNameRegex.test(processedTagName)) {
-        return 'div';
-    }
-    return processedTagName;
-}
-function stringifyStyleSheet(sheet) {
-    return sheet.cssRules
-        ? Array.from(sheet.cssRules)
-            .map(function (rule) { return rule.cssText || ''; })
-            .join('')
-        : '';
-}
-function extractOrigin(url) {
-    var origin = '';
-    if (url.indexOf('//') > -1) {
-        origin = url.split('/').slice(0, 3).join('/');
-    }
-    else {
-        origin = url.split('/')[0];
-    }
-    origin = origin.split('?')[0];
-    return origin;
-}
-var canvasService;
-var canvasCtx;
-var URL_IN_CSS_REF = /url\((?:(')([^']*)'|(")(.*?)"|([^)]*))\)/gm;
-var RELATIVE_PATH = /^(?!www\.|(?:http|ftp)s?:\/\/|[A-Za-z]:\\|\/\/|#).*/;
-var DATA_URI = /^(data:)([^,]*),(.*)/i;
-function absoluteToStylesheet(cssText, href) {
-    return (cssText || '').replace(URL_IN_CSS_REF, function (origin, quote1, path1, quote2, path2, path3) {
-        var filePath = path1 || path2 || path3;
-        var maybeQuote = quote1 || quote2 || '';
-        if (!filePath) {
-            return origin;
-        }
-        if (!RELATIVE_PATH.test(filePath)) {
-            return "url(".concat(maybeQuote).concat(filePath).concat(maybeQuote, ")");
-        }
-        if (DATA_URI.test(filePath)) {
-            return "url(".concat(maybeQuote).concat(filePath).concat(maybeQuote, ")");
-        }
-        if (filePath[0] === '/') {
-            return "url(".concat(maybeQuote).concat(extractOrigin(href) + filePath).concat(maybeQuote, ")");
-        }
-        var stack = href.split('/');
-        var parts = filePath.split('/');
-        stack.pop();
-        for (var _i = 0, parts_1 = parts; _i < parts_1.length; _i++) {
-            var part = parts_1[_i];
-            if (part === '.') {
-                continue;
+              // 达到批量大小立即上报
+              if (!(this.queue.length >= this.config.batchSize)) {
+                _context2.n = 2;
+                break;
+              }
+              _context2.n = 1;
+              return this.flush();
+            case 1:
+              return _context2.a(2);
+            case 2:
+              // 设置定时上报
+              if (!this.timer) {
+                this.timer = setTimeout(function () {
+                  _this.flush();
+                }, this.config.reportInterval);
+              }
+            case 3:
+              return _context2.a(2);
+          }
+        }, _callee2, this);
+      }));
+      function reportBatch(_x2) {
+        return _reportBatch.apply(this, arguments);
+      }
+      return reportBatch;
+    }()
+  }, {
+    key: "reportImmediate",
+    value: function () {
+      var _reportImmediate = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee3(events) {
+        return _regenerator().w(function (_context3) {
+          while (1) switch (_context3.n) {
+            case 0:
+              _context3.n = 1;
+              return this.sendRequest(events);
+            case 1:
+              return _context3.a(2);
+          }
+        }, _callee3, this);
+      }));
+      function reportImmediate(_x3) {
+        return _reportImmediate.apply(this, arguments);
+      }
+      return reportImmediate;
+    }()
+  }, {
+    key: "reportThrottle",
+    value: function () {
+      var _reportThrottle = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee4(event) {
+        var _this2 = this;
+        return _regenerator().w(function (_context4) {
+          while (1) switch (_context4.n) {
+            case 0:
+              this.queue.push(event);
+              if (!this.timer) {
+                this.timer = setTimeout(function () {
+                  _this2.flush();
+                }, this.config.reportInterval);
+              }
+            case 1:
+              return _context4.a(2);
+          }
+        }, _callee4, this);
+      }));
+      function reportThrottle(_x4) {
+        return _reportThrottle.apply(this, arguments);
+      }
+      return reportThrottle;
+    }()
+  }, {
+    key: "flush",
+    value: function () {
+      var _flush = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee5() {
+        var eventsToReport, _this$queue, _t2;
+        return _regenerator().w(function (_context5) {
+          while (1) switch (_context5.p = _context5.n) {
+            case 0:
+              if (!(this.isReporting || this.queue.length === 0)) {
+                _context5.n = 1;
+                break;
+              }
+              return _context5.a(2);
+            case 1:
+              this.isReporting = true;
+              clearTimeout(this.timer);
+              this.timer = null;
+              eventsToReport = _toConsumableArray(this.queue);
+              this.queue = [];
+              _context5.p = 2;
+              _context5.n = 3;
+              return this.sendRequest(eventsToReport);
+            case 3:
+              _context5.n = 5;
+              break;
+            case 4:
+              _context5.p = 4;
+              _t2 = _context5.v;
+              // 上报失败，重新加入队列
+              (_this$queue = this.queue).unshift.apply(_this$queue, _toConsumableArray(eventsToReport));
+
+              // 队列超过最大限制，丢弃旧数据
+              if (this.queue.length > this.config.maxQueueSize) {
+                this.queue = this.queue.slice(0, this.config.maxQueueSize);
+              }
+              console.error('Report failed:', _t2);
+            case 5:
+              _context5.p = 5;
+              this.isReporting = false;
+              return _context5.f(5);
+            case 6:
+              return _context5.a(2);
+          }
+        }, _callee5, this, [[2, 4, 5, 6]]);
+      }));
+      function flush() {
+        return _flush.apply(this, arguments);
+      }
+      return flush;
+    }()
+  }, {
+    key: "sendRequest",
+    value: function () {
+      var _sendRequest = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee6(events) {
+        var payload;
+        return _regenerator().w(function (_context6) {
+          while (1) switch (_context6.n) {
+            case 0:
+              if (!(events.length === 0)) {
+                _context6.n = 1;
+                break;
+              }
+              return _context6.a(2);
+            case 1:
+              payload = {
+                projectKey: this.config.dsnInfo.projectKey,
+                appVersion: this.config.appVersion,
+                events: events
+              };
+              console.log("payload eventType:".concat(events[0].eventType), payload);
+              // 使用多种方式上报，提高成功率
+              _context6.n = 2;
+              return Promise.race([
+                // this.sendBeacon(payload),
+                // this.sendFetch(payload),
+                // this.sendXHR(payload)
+              ]);
+            case 2:
+              return _context6.a(2);
+          }
+        }, _callee6, this);
+      }));
+      function sendRequest(_x5) {
+        return _sendRequest.apply(this, arguments);
+      }
+      return sendRequest;
+    }()
+  }, {
+    key: "sendBeacon",
+    value: function () {
+      var _sendBeacon = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee7(payload) {
+        var blob;
+        return _regenerator().w(function (_context7) {
+          while (1) switch (_context7.n) {
+            case 0:
+              if (navigator.sendBeacon) {
+                _context7.n = 1;
+                break;
+              }
+              return _context7.a(2, false);
+            case 1:
+              blob = new Blob([JSON.stringify(payload)], this.sendHeaders);
+              return _context7.a(2, navigator.sendBeacon(this.config.reportUrl, blob));
+          }
+        }, _callee7, this);
+      }));
+      function sendBeacon(_x6) {
+        return _sendBeacon.apply(this, arguments);
+      }
+      return sendBeacon;
+    }()
+  }, {
+    key: "sendFetch",
+    value: function () {
+      var _sendFetch = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee8(payload) {
+        var response, _t3;
+        return _regenerator().w(function (_context8) {
+          while (1) switch (_context8.p = _context8.n) {
+            case 0:
+              _context8.p = 0;
+              _context8.n = 1;
+              return fetch(this.config.reportUrl, {
+                method: 'POST',
+                headers: this.sendHeaders,
+                body: JSON.stringify(payload),
+                keepalive: true // 关键参数！防止页面关闭时请求被杀
+              });
+            case 1:
+              response = _context8.v;
+              if (response.ok) {
+                _context8.n = 2;
+                break;
+              }
+              throw new Error("HTTP ".concat(response.status));
+            case 2:
+              _context8.n = 4;
+              break;
+            case 3:
+              _context8.p = 3;
+              _t3 = _context8.v;
+              throw _t3;
+            case 4:
+              return _context8.a(2);
+          }
+        }, _callee8, this, [[0, 3]]);
+      }));
+      function sendFetch(_x7) {
+        return _sendFetch.apply(this, arguments);
+      }
+      return sendFetch;
+    }()
+  }, {
+    key: "sendXHR",
+    value: function sendXHR(payload) {
+      var _this3 = this;
+      return new Promise(function (resolve, reject) {
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', _this3.config.reportUrl, true);
+        xhr.setRequestHeader('Content-Type', 'application/json');
+        xhr.setRequestHeader('Ruoyi-monitor-SDK-Key', _this3.config.dsnInfo.publicKey);
+        xhr.onreadystatechange = function () {
+          if (xhr.readyState === 4) {
+            if (xhr.status === 200) {
+              resolve();
+            } else {
+              reject(new Error("HTTP ".concat(xhr.status)));
             }
-            else if (part === '..') {
-                stack.pop();
-            }
-            else {
-                stack.push(part);
-            }
-        }
-        return "url(".concat(maybeQuote).concat(stack.join('/')).concat(maybeQuote, ")");
-    });
-}
-var SRCSET_NOT_SPACES = /^[^ \t\n\r\u000c]+/;
-var SRCSET_COMMAS_OR_SPACES = /^[, \t\n\r\u000c]+/;
-function getAbsoluteSrcsetString(doc, attributeValue) {
-    if (attributeValue.trim() === '') {
-        return attributeValue;
+          }
+        };
+        xhr.send(JSON.stringify(payload));
+      });
     }
-    var pos = 0;
-    function collectCharacters(regEx) {
-        var chars;
-        var match = regEx.exec(attributeValue.substring(pos));
-        if (match) {
-            chars = match[0];
-            pos += chars.length;
-            return chars;
-        }
-        return '';
+  }, {
+    key: "destroy",
+    value: function destroy() {
+      clearTimeout(this.timer);
+      this.flush(); // 销毁前上报剩余数据
     }
-    var output = [];
-    while (true) {
-        collectCharacters(SRCSET_COMMAS_OR_SPACES);
-        if (pos >= attributeValue.length) {
-            break;
-        }
-        var url = collectCharacters(SRCSET_NOT_SPACES);
-        if (url.slice(-1) === ',') {
-            url = absoluteToDoc(doc, url.substring(0, url.length - 1));
-            output.push(url);
-        }
-        else {
-            var descriptorsStr = '';
-            url = absoluteToDoc(doc, url);
-            var inParens = false;
-            while (true) {
-                var c = attributeValue.charAt(pos);
-                if (c === '') {
-                    output.push((url + descriptorsStr).trim());
-                    break;
-                }
-                else if (!inParens) {
-                    if (c === ',') {
-                        pos += 1;
-                        output.push((url + descriptorsStr).trim());
-                        break;
-                    }
-                    else if (c === '(') {
-                        inParens = true;
-                    }
-                }
-                else {
-                    if (c === ')') {
-                        inParens = false;
-                    }
-                }
-                descriptorsStr += c;
-                pos += 1;
-            }
-        }
-    }
-    return output.join(', ');
-}
-function absoluteToDoc(doc, attributeValue) {
-    if (!attributeValue || attributeValue.trim() === '') {
-        return attributeValue;
-    }
-    var a = doc.createElement('a');
-    a.href = attributeValue;
-    return a.href;
-}
-function isSVGElement(el) {
-    return Boolean(el.tagName === 'svg' || el.ownerSVGElement);
-}
-function getHref() {
-    var a = document.createElement('a');
-    a.href = '';
-    return a.href;
-}
-function transformAttribute(doc, tagName, name, value) {
-    if (name === 'src' ||
-        (name === 'href' && value && !(tagName === 'use' && value[0] === '#'))) {
-        return absoluteToDoc(doc, value);
-    }
-    else if (name === 'xlink:href' && value && value[0] !== '#') {
-        return absoluteToDoc(doc, value);
-    }
-    else if (name === 'background' &&
-        value &&
-        (tagName === 'table' || tagName === 'td' || tagName === 'th')) {
-        return absoluteToDoc(doc, value);
-    }
-    else if (name === 'srcset' && value) {
-        return getAbsoluteSrcsetString(doc, value);
-    }
-    else if (name === 'style' && value) {
-        return absoluteToStylesheet(value, getHref());
-    }
-    else if (tagName === 'object' && name === 'data' && value) {
-        return absoluteToDoc(doc, value);
-    }
-    else {
-        return value;
-    }
-}
-function _isBlockedElement(element, blockClass, blockSelector) {
-    if (typeof blockClass === 'string') {
-        if (element.classList.contains(blockClass)) {
-            return true;
-        }
-    }
-    else {
-        for (var eIndex = element.classList.length; eIndex--;) {
-            var className = element.classList[eIndex];
-            if (blockClass.test(className)) {
-                return true;
-            }
-        }
-    }
-    if (blockSelector) {
-        return element.matches(blockSelector);
-    }
-    return false;
-}
-function classMatchesRegex(node, regex, checkAncestors) {
-    if (!node)
-        return false;
-    if (node.nodeType !== node.ELEMENT_NODE) {
-        if (!checkAncestors)
-            return false;
-        return classMatchesRegex(node.parentNode, regex, checkAncestors);
-    }
-    for (var eIndex = node.classList.length; eIndex--;) {
-        var className = node.classList[eIndex];
-        if (regex.test(className)) {
-            return true;
-        }
-    }
-    if (!checkAncestors)
-        return false;
-    return classMatchesRegex(node.parentNode, regex, checkAncestors);
-}
-function needMaskingText(node, maskTextClass, maskTextSelector) {
-    var el = node.nodeType === node.ELEMENT_NODE
-        ? node
-        : node.parentElement;
-    if (el === null)
-        return false;
-    if (typeof maskTextClass === 'string') {
-        if (el.classList.contains(maskTextClass))
-            return true;
-        if (el.closest(".".concat(maskTextClass)))
-            return true;
-    }
-    else {
-        if (classMatchesRegex(el, maskTextClass, true))
-            return true;
-    }
-    if (maskTextSelector) {
-        if (el.matches(maskTextSelector))
-            return true;
-        if (el.closest(maskTextSelector))
-            return true;
-    }
-    return false;
-}
-function onceIframeLoaded(iframeEl, listener, iframeLoadTimeout) {
-    var win = iframeEl.contentWindow;
-    if (!win) {
-        return;
-    }
-    var fired = false;
-    var readyState;
-    try {
-        readyState = win.document.readyState;
-    }
-    catch (error) {
-        return;
-    }
-    if (readyState !== 'complete') {
-        var timer_1 = setTimeout(function () {
-            if (!fired) {
-                listener();
-                fired = true;
-            }
-        }, iframeLoadTimeout);
-        iframeEl.addEventListener('load', function () {
-            clearTimeout(timer_1);
-            fired = true;
-            listener();
+  }]);
+}();
+
+var MonitoringCore = /*#__PURE__*/function (_EventBus) {
+  function MonitoringCore() {
+    var _this;
+    var config = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
+    _classCallCheck(this, MonitoringCore);
+    _this = _callSuper(this, MonitoringCore);
+    _defineProperty(_this, "plugins", new Map());
+    _defineProperty(_this, "config", {});
+    _defineProperty(_this, "reporter", null);
+    _defineProperty(_this, "processor", null);
+    _this.config = config;
+    _this.state = {
+      initialized: false,
+      enabled: true,
+      queue: []
+    };
+    _this.on(SESSIONID_REFRESH_EVENT, _this.refreshSessionId.bind(_this));
+    return _this;
+  }
+
+  // 初始化SDK
+  _inherits(MonitoringCore, _EventBus);
+  return _createClass(MonitoringCore, [{
+    key: "init",
+    value: function init() {
+      var _this2 = this;
+      var options = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
+      if (this.state.initialized) return;
+
+      // 初始化配置
+      var configManager = new ConfigManager();
+      this.config = configManager.mergeConfig(_objectSpread2(_objectSpread2({}, this.config), options));
+      try {
+        // 校验并解析 dsn
+        validateDsn(this.config.dsn);
+        var dsnInfo = parseDsn(this.config.dsn);
+        this.config.dsnInfo = dsnInfo;
+
+        // 设置上报地址
+        this.config.reportUrl = dsnInfo.protocol + "://" + dsnInfo.host + "/ruoyi-monitor/report";
+
+        // 注册内置插件
+        // this.registerCorePlugins();
+
+        // 初始化处理器和上报器
+        // this.processor = new DataProcessor(this.config); // 数据处理器
+        this.reporter = new DataReporter(this.config); // 上报器
+
+        // this.processor.init();
+        this.reporter.init();
+
+        // 设置全局错误捕获
+        // this.setupGlobalErrorHandling();
+
+        // 初始化插件
+        this.config.plugins.forEach(function (plugin) {
+          return _this2.use(plugin);
         });
-        return;
+        this.state.initialized = true;
+        this.emit('sdk:init');
+      } catch (error) {
+        console.error('SDK initialization failed:', error);
+      }
     }
-    var blankUrl = 'about:blank';
-    if (win.location.href !== blankUrl ||
-        iframeEl.src === blankUrl ||
-        iframeEl.src === '') {
-        setTimeout(listener, 0);
-        return iframeEl.addEventListener('load', listener);
+
+    // 注册插件
+  }, {
+    key: "use",
+    value: function use(plugin) {
+      var pluginName = plugin.name;
+      if (this.plugins.has(pluginName)) {
+        console.warn("Plugin ".concat(pluginName, " already registered"));
+        return this;
+      }
+      try {
+        plugin.install(this);
+        this.plugins.set(pluginName, plugin);
+        this.emit('plugin:registered', {
+          plugin: pluginName
+        });
+      } catch (error) {
+        console.error("Failed to register plugin ".concat(pluginName, ":"), error);
+      }
+      return this;
     }
-    iframeEl.addEventListener('load', listener);
-}
-function onceStylesheetLoaded(link, listener, styleSheetLoadTimeout) {
-    var fired = false;
-    var styleSheetLoaded;
-    try {
-        styleSheetLoaded = link.sheet;
+
+    // 数据采集入口
+  }, {
+    key: "capture",
+    value: function capture(eventType, data) {
+      if (!this.state.enabled) return;
+      var event = {
+        eventType: eventType,
+        timestamp: Date.now(),
+        data: data,
+        sessionId: this.config.sessionId,
+        pageViewId: genPageViewId(),
+        userInfo: this.config.user
+      };
+
+      // 处理并上报数据
+      this.processEvent(event);
     }
-    catch (error) {
-        return;
+
+    // 处理事件
+  }, {
+    key: "processEvent",
+    value: function () {
+      var _processEvent = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee(event) {
+        var finalEvent, _t;
+        return _regenerator().w(function (_context) {
+          while (1) switch (_context.p = _context.n) {
+            case 0:
+              _context.p = 0;
+              // const finalEvent = await this.triggerPluginHooks('beforeReport', processedEvent);
+              finalEvent = event;
+              if (!(finalEvent !== null)) {
+                _context.n = 2;
+                break;
+              }
+              // 添加到队列
+              this.state.queue.push(finalEvent);
+
+              // 触发上报
+              _context.n = 1;
+              return this.reporter.report(finalEvent);
+            case 1:
+              this.emit('event:reported', finalEvent);
+            case 2:
+              _context.n = 4;
+              break;
+            case 3:
+              _context.p = 3;
+              _t = _context.v;
+              console.error('Event processing failed:', _t);
+              this.emit('event:error', {
+                event: event,
+                error: _t
+              });
+            case 4:
+              return _context.a(2);
+          }
+        }, _callee, this, [[0, 3]]);
+      }));
+      function processEvent(_x) {
+        return _processEvent.apply(this, arguments);
+      }
+      return processEvent;
+    }() // 设置用户
+  }, {
+    key: "setUser",
+    value: function setUser(userInfo) {
+      this.config.user = userInfo;
     }
-    if (styleSheetLoaded)
-        return;
-    var timer = setTimeout(function () {
-        if (!fired) {
-            listener();
-            fired = true;
-        }
-    }, styleSheetLoadTimeout);
-    link.addEventListener('load', function () {
-        clearTimeout(timer);
-        fired = true;
-        listener();
-    });
-}
-function serializeNode(n, options) {
-    var doc = options.doc, mirror = options.mirror, blockClass = options.blockClass, blockSelector = options.blockSelector, maskTextClass = options.maskTextClass, maskTextSelector = options.maskTextSelector, inlineStylesheet = options.inlineStylesheet, _a = options.maskInputOptions, maskInputOptions = _a === void 0 ? {} : _a, maskTextFn = options.maskTextFn, maskInputFn = options.maskInputFn, _b = options.dataURLOptions, dataURLOptions = _b === void 0 ? {} : _b, inlineImages = options.inlineImages, recordCanvas = options.recordCanvas, keepIframeSrcFn = options.keepIframeSrcFn, _c = options.newlyAddedElement, newlyAddedElement = _c === void 0 ? false : _c;
-    var rootId = getRootId(doc, mirror);
-    switch (n.nodeType) {
-        case n.DOCUMENT_NODE:
-            if (n.compatMode !== 'CSS1Compat') {
-                return {
-                    type: NodeType.Document,
-                    childNodes: [],
-                    compatMode: n.compatMode
-                };
-            }
-            else {
-                return {
-                    type: NodeType.Document,
-                    childNodes: []
-                };
-            }
-        case n.DOCUMENT_TYPE_NODE:
-            return {
-                type: NodeType.DocumentType,
-                name: n.name,
-                publicId: n.publicId,
-                systemId: n.systemId,
-                rootId: rootId
-            };
-        case n.ELEMENT_NODE:
-            return serializeElementNode(n, {
-                doc: doc,
-                blockClass: blockClass,
-                blockSelector: blockSelector,
-                inlineStylesheet: inlineStylesheet,
-                maskInputOptions: maskInputOptions,
-                maskInputFn: maskInputFn,
-                dataURLOptions: dataURLOptions,
-                inlineImages: inlineImages,
-                recordCanvas: recordCanvas,
-                keepIframeSrcFn: keepIframeSrcFn,
-                newlyAddedElement: newlyAddedElement,
-                rootId: rootId
-            });
-        case n.TEXT_NODE:
-            return serializeTextNode(n, {
-                maskTextClass: maskTextClass,
-                maskTextSelector: maskTextSelector,
-                maskTextFn: maskTextFn,
-                rootId: rootId
-            });
-        case n.CDATA_SECTION_NODE:
-            return {
-                type: NodeType.CDATA,
-                textContent: '',
-                rootId: rootId
-            };
-        case n.COMMENT_NODE:
-            return {
-                type: NodeType.Comment,
-                textContent: n.textContent || '',
-                rootId: rootId
-            };
-        default:
-            return false;
+
+    // 刷新 sessionId
+  }, {
+    key: "refreshSessionId",
+    value: function refreshSessionId(sessionId) {
+      this.config.sessionId = sessionId;
     }
-}
-function getRootId(doc, mirror) {
-    if (!mirror.hasNode(doc))
-        return undefined;
-    var docId = mirror.getId(doc);
-    return docId === 1 ? undefined : docId;
-}
-function serializeTextNode(n, options) {
-    var _a;
-    var maskTextClass = options.maskTextClass, maskTextSelector = options.maskTextSelector, maskTextFn = options.maskTextFn, rootId = options.rootId;
-    var parentTagName = n.parentNode && n.parentNode.tagName;
-    var textContent = n.textContent;
-    var isStyle = parentTagName === 'STYLE' ? true : undefined;
-    var isScript = parentTagName === 'SCRIPT' ? true : undefined;
-    if (isStyle && textContent) {
+
+    // 销毁SDK
+  }, {
+    key: "destroy",
+    value: function destroy() {
+      this.plugins.forEach(function (plugin) {
         try {
-            if (n.nextSibling || n.previousSibling) {
-            }
-            else if ((_a = n.parentNode.sheet) === null || _a === void 0 ? void 0 : _a.cssRules) {
-                textContent = stringifyStyleSheet(n.parentNode.sheet);
-            }
+          var _plugin$uninstall;
+          (_plugin$uninstall = plugin.uninstall) === null || _plugin$uninstall === void 0 || _plugin$uninstall.call(plugin);
+        } catch (error) {
+          console.error("Plugin ".concat(plugin.name, " uninstall failed:"), error);
         }
-        catch (err) {
-            console.warn("Cannot get CSS styles from text's parentNode. Error: ".concat(err), n);
-        }
-        textContent = absoluteToStylesheet(textContent, getHref());
+      });
+      this.reporter.destroy();
+      // this.processor.destroy();
+      this.state.initialized = false;
+      this.emit('sdk:destroyed');
     }
-    if (isScript) {
-        textContent = 'SCRIPT_PLACEHOLDER';
-    }
-    if (!isStyle &&
-        !isScript &&
-        textContent &&
-        needMaskingText(n, maskTextClass, maskTextSelector)) {
-        textContent = maskTextFn
-            ? maskTextFn(textContent)
-            : textContent.replace(/[\S]/g, '*');
-    }
-    return {
-        type: NodeType.Text,
-        textContent: textContent || '',
-        isStyle: isStyle,
-        rootId: rootId
-    };
-}
-function serializeElementNode(n, options) {
-    var doc = options.doc, blockClass = options.blockClass, blockSelector = options.blockSelector, inlineStylesheet = options.inlineStylesheet, _a = options.maskInputOptions, maskInputOptions = _a === void 0 ? {} : _a, maskInputFn = options.maskInputFn, _b = options.dataURLOptions, dataURLOptions = _b === void 0 ? {} : _b, inlineImages = options.inlineImages, recordCanvas = options.recordCanvas, keepIframeSrcFn = options.keepIframeSrcFn, _c = options.newlyAddedElement, newlyAddedElement = _c === void 0 ? false : _c, rootId = options.rootId;
-    var needBlock = _isBlockedElement(n, blockClass, blockSelector);
-    var tagName = getValidTagName(n);
-    var attributes = {};
-    var len = n.attributes.length;
-    for (var i = 0; i < len; i++) {
-        var attr = n.attributes[i];
-        attributes[attr.name] = transformAttribute(doc, tagName, attr.name, attr.value);
-    }
-    if (tagName === 'link' && inlineStylesheet) {
-        var stylesheet = Array.from(doc.styleSheets).find(function (s) {
-            return s.href === n.href;
-        });
-        var cssText = null;
-        if (stylesheet) {
-            cssText = getCssRulesString(stylesheet);
-        }
-        if (cssText) {
-            delete attributes.rel;
-            delete attributes.href;
-            attributes._cssText = absoluteToStylesheet(cssText, stylesheet.href);
-        }
-    }
-    if (tagName === 'style' &&
-        n.sheet &&
-        !(n.innerText || n.textContent || '').trim().length) {
-        var cssText = getCssRulesString(n.sheet);
-        if (cssText) {
-            attributes._cssText = absoluteToStylesheet(cssText, getHref());
-        }
-    }
-    if (tagName === 'input' || tagName === 'textarea' || tagName === 'select') {
-        var value = n.value;
-        var checked = n.checked;
-        if (attributes.type !== 'radio' &&
-            attributes.type !== 'checkbox' &&
-            attributes.type !== 'submit' &&
-            attributes.type !== 'button' &&
-            value) {
-            attributes.value = maskInputValue({
-                type: attributes.type,
-                tagName: tagName,
-                value: value,
-                maskInputOptions: maskInputOptions,
-                maskInputFn: maskInputFn
-            });
-        }
-        else if (checked) {
-            attributes.checked = checked;
-        }
-    }
-    if (tagName === 'option') {
-        if (n.selected && !maskInputOptions['select']) {
-            attributes.selected = true;
-        }
-        else {
-            delete attributes.selected;
-        }
-    }
-    if (tagName === 'canvas' && recordCanvas) {
-        if (n.__context === '2d') {
-            if (!is2DCanvasBlank(n)) {
-                attributes.rr_dataURL = n.toDataURL(dataURLOptions.type, dataURLOptions.quality);
-            }
-        }
-        else if (!('__context' in n)) {
-            var canvasDataURL = n.toDataURL(dataURLOptions.type, dataURLOptions.quality);
-            var blankCanvas = document.createElement('canvas');
-            blankCanvas.width = n.width;
-            blankCanvas.height = n.height;
-            var blankCanvasDataURL = blankCanvas.toDataURL(dataURLOptions.type, dataURLOptions.quality);
-            if (canvasDataURL !== blankCanvasDataURL) {
-                attributes.rr_dataURL = canvasDataURL;
-            }
-        }
-    }
-    if (tagName === 'img' && inlineImages) {
-        if (!canvasService) {
-            canvasService = doc.createElement('canvas');
-            canvasCtx = canvasService.getContext('2d');
-        }
-        var image_1 = n;
-        var oldValue_1 = image_1.crossOrigin;
-        image_1.crossOrigin = 'anonymous';
-        var recordInlineImage = function () {
-            try {
-                canvasService.width = image_1.naturalWidth;
-                canvasService.height = image_1.naturalHeight;
-                canvasCtx.drawImage(image_1, 0, 0);
-                attributes.rr_dataURL = canvasService.toDataURL(dataURLOptions.type, dataURLOptions.quality);
-            }
-            catch (err) {
-                console.warn("Cannot inline img src=".concat(image_1.currentSrc, "! Error: ").concat(err));
-            }
-            oldValue_1
-                ? (attributes.crossOrigin = oldValue_1)
-                : image_1.removeAttribute('crossorigin');
-        };
-        if (image_1.complete && image_1.naturalWidth !== 0)
-            recordInlineImage();
-        else
-            image_1.onload = recordInlineImage;
-    }
-    if (tagName === 'audio' || tagName === 'video') {
-        attributes.rr_mediaState = n.paused
-            ? 'paused'
-            : 'played';
-        attributes.rr_mediaCurrentTime = n.currentTime;
-    }
-    if (!newlyAddedElement) {
-        if (n.scrollLeft) {
-            attributes.rr_scrollLeft = n.scrollLeft;
-        }
-        if (n.scrollTop) {
-            attributes.rr_scrollTop = n.scrollTop;
-        }
-    }
-    if (needBlock) {
-        var _d = n.getBoundingClientRect(), width = _d.width, height = _d.height;
-        attributes = {
-            "class": attributes["class"],
-            rr_width: "".concat(width, "px"),
-            rr_height: "".concat(height, "px")
-        };
-    }
-    if (tagName === 'iframe' && !keepIframeSrcFn(attributes.src)) {
-        if (!n.contentDocument) {
-            attributes.rr_src = attributes.src;
-        }
-        delete attributes.src;
-    }
-    return {
-        type: NodeType.Element,
-        tagName: tagName,
-        attributes: attributes,
-        childNodes: [],
-        isSVG: isSVGElement(n) || undefined,
-        needBlock: needBlock,
-        rootId: rootId
-    };
-}
-function lowerIfExists(maybeAttr) {
-    if (maybeAttr === undefined) {
-        return '';
-    }
-    else {
-        return maybeAttr.toLowerCase();
-    }
-}
-function slimDOMExcluded(sn, slimDOMOptions) {
-    if (slimDOMOptions.comment && sn.type === NodeType.Comment) {
-        return true;
-    }
-    else if (sn.type === NodeType.Element) {
-        if (slimDOMOptions.script &&
-            (sn.tagName === 'script' ||
-                (sn.tagName === 'link' &&
-                    sn.attributes.rel === 'preload' &&
-                    sn.attributes.as === 'script') ||
-                (sn.tagName === 'link' &&
-                    sn.attributes.rel === 'prefetch' &&
-                    typeof sn.attributes.href === 'string' &&
-                    sn.attributes.href.endsWith('.js')))) {
-            return true;
-        }
-        else if (slimDOMOptions.headFavicon &&
-            ((sn.tagName === 'link' && sn.attributes.rel === 'shortcut icon') ||
-                (sn.tagName === 'meta' &&
-                    (lowerIfExists(sn.attributes.name).match(/^msapplication-tile(image|color)$/) ||
-                        lowerIfExists(sn.attributes.name) === 'application-name' ||
-                        lowerIfExists(sn.attributes.rel) === 'icon' ||
-                        lowerIfExists(sn.attributes.rel) === 'apple-touch-icon' ||
-                        lowerIfExists(sn.attributes.rel) === 'shortcut icon')))) {
-            return true;
-        }
-        else if (sn.tagName === 'meta') {
-            if (slimDOMOptions.headMetaDescKeywords &&
-                lowerIfExists(sn.attributes.name).match(/^description|keywords$/)) {
-                return true;
-            }
-            else if (slimDOMOptions.headMetaSocial &&
-                (lowerIfExists(sn.attributes.property).match(/^(og|twitter|fb):/) ||
-                    lowerIfExists(sn.attributes.name).match(/^(og|twitter):/) ||
-                    lowerIfExists(sn.attributes.name) === 'pinterest')) {
-                return true;
-            }
-            else if (slimDOMOptions.headMetaRobots &&
-                (lowerIfExists(sn.attributes.name) === 'robots' ||
-                    lowerIfExists(sn.attributes.name) === 'googlebot' ||
-                    lowerIfExists(sn.attributes.name) === 'bingbot')) {
-                return true;
-            }
-            else if (slimDOMOptions.headMetaHttpEquiv &&
-                sn.attributes['http-equiv'] !== undefined) {
-                return true;
-            }
-            else if (slimDOMOptions.headMetaAuthorship &&
-                (lowerIfExists(sn.attributes.name) === 'author' ||
-                    lowerIfExists(sn.attributes.name) === 'generator' ||
-                    lowerIfExists(sn.attributes.name) === 'framework' ||
-                    lowerIfExists(sn.attributes.name) === 'publisher' ||
-                    lowerIfExists(sn.attributes.name) === 'progid' ||
-                    lowerIfExists(sn.attributes.property).match(/^article:/) ||
-                    lowerIfExists(sn.attributes.property).match(/^product:/))) {
-                return true;
-            }
-            else if (slimDOMOptions.headMetaVerification &&
-                (lowerIfExists(sn.attributes.name) === 'google-site-verification' ||
-                    lowerIfExists(sn.attributes.name) === 'yandex-verification' ||
-                    lowerIfExists(sn.attributes.name) === 'csrf-token' ||
-                    lowerIfExists(sn.attributes.name) === 'p:domain_verify' ||
-                    lowerIfExists(sn.attributes.name) === 'verify-v1' ||
-                    lowerIfExists(sn.attributes.name) === 'verification' ||
-                    lowerIfExists(sn.attributes.name) === 'shopify-checkout-api-token')) {
-                return true;
-            }
-        }
-    }
-    return false;
-}
-function serializeNodeWithId(n, options) {
-    var doc = options.doc, mirror = options.mirror, blockClass = options.blockClass, blockSelector = options.blockSelector, maskTextClass = options.maskTextClass, maskTextSelector = options.maskTextSelector, _a = options.skipChild, skipChild = _a === void 0 ? false : _a, _b = options.inlineStylesheet, inlineStylesheet = _b === void 0 ? true : _b, _c = options.maskInputOptions, maskInputOptions = _c === void 0 ? {} : _c, maskTextFn = options.maskTextFn, maskInputFn = options.maskInputFn, slimDOMOptions = options.slimDOMOptions, _d = options.dataURLOptions, dataURLOptions = _d === void 0 ? {} : _d, _e = options.inlineImages, inlineImages = _e === void 0 ? false : _e, _f = options.recordCanvas, recordCanvas = _f === void 0 ? false : _f, onSerialize = options.onSerialize, onIframeLoad = options.onIframeLoad, _g = options.iframeLoadTimeout, iframeLoadTimeout = _g === void 0 ? 5000 : _g, onStylesheetLoad = options.onStylesheetLoad, _h = options.stylesheetLoadTimeout, stylesheetLoadTimeout = _h === void 0 ? 5000 : _h, _j = options.keepIframeSrcFn, keepIframeSrcFn = _j === void 0 ? function () { return false; } : _j, _k = options.newlyAddedElement, newlyAddedElement = _k === void 0 ? false : _k;
-    var _l = options.preserveWhiteSpace, preserveWhiteSpace = _l === void 0 ? true : _l;
-    var _serializedNode = serializeNode(n, {
-        doc: doc,
-        mirror: mirror,
-        blockClass: blockClass,
-        blockSelector: blockSelector,
-        maskTextClass: maskTextClass,
-        maskTextSelector: maskTextSelector,
-        inlineStylesheet: inlineStylesheet,
-        maskInputOptions: maskInputOptions,
-        maskTextFn: maskTextFn,
-        maskInputFn: maskInputFn,
-        dataURLOptions: dataURLOptions,
-        inlineImages: inlineImages,
-        recordCanvas: recordCanvas,
-        keepIframeSrcFn: keepIframeSrcFn,
-        newlyAddedElement: newlyAddedElement
-    });
-    if (!_serializedNode) {
-        console.warn(n, 'not serialized');
-        return null;
-    }
-    var id;
-    if (mirror.hasNode(n)) {
-        id = mirror.getId(n);
-    }
-    else if (slimDOMExcluded(_serializedNode, slimDOMOptions) ||
-        (!preserveWhiteSpace &&
-            _serializedNode.type === NodeType.Text &&
-            !_serializedNode.isStyle &&
-            !_serializedNode.textContent.replace(/^\s+|\s+$/gm, '').length)) {
-        id = IGNORED_NODE;
-    }
-    else {
-        id = genId();
-    }
-    var serializedNode = Object.assign(_serializedNode, { id: id });
-    mirror.add(n, serializedNode);
-    if (id === IGNORED_NODE) {
-        return null;
-    }
-    if (onSerialize) {
-        onSerialize(n);
-    }
-    var recordChild = !skipChild;
-    if (serializedNode.type === NodeType.Element) {
-        recordChild = recordChild && !serializedNode.needBlock;
-        delete serializedNode.needBlock;
-        var shadowRoot = n.shadowRoot;
-        if (shadowRoot && isNativeShadowDom(shadowRoot))
-            serializedNode.isShadowHost = true;
-    }
-    if ((serializedNode.type === NodeType.Document ||
-        serializedNode.type === NodeType.Element) &&
-        recordChild) {
-        if (slimDOMOptions.headWhitespace &&
-            serializedNode.type === NodeType.Element &&
-            serializedNode.tagName === 'head') {
-            preserveWhiteSpace = false;
-        }
-        var bypassOptions = {
-            doc: doc,
-            mirror: mirror,
-            blockClass: blockClass,
-            blockSelector: blockSelector,
-            maskTextClass: maskTextClass,
-            maskTextSelector: maskTextSelector,
-            skipChild: skipChild,
-            inlineStylesheet: inlineStylesheet,
-            maskInputOptions: maskInputOptions,
-            maskTextFn: maskTextFn,
-            maskInputFn: maskInputFn,
-            slimDOMOptions: slimDOMOptions,
-            dataURLOptions: dataURLOptions,
-            inlineImages: inlineImages,
-            recordCanvas: recordCanvas,
-            preserveWhiteSpace: preserveWhiteSpace,
-            onSerialize: onSerialize,
-            onIframeLoad: onIframeLoad,
-            iframeLoadTimeout: iframeLoadTimeout,
-            onStylesheetLoad: onStylesheetLoad,
-            stylesheetLoadTimeout: stylesheetLoadTimeout,
-            keepIframeSrcFn: keepIframeSrcFn
-        };
-        for (var _i = 0, _m = Array.from(n.childNodes); _i < _m.length; _i++) {
-            var childN = _m[_i];
-            var serializedChildNode = serializeNodeWithId(childN, bypassOptions);
-            if (serializedChildNode) {
-                serializedNode.childNodes.push(serializedChildNode);
-            }
-        }
-        if (isElement(n) && n.shadowRoot) {
-            for (var _o = 0, _p = Array.from(n.shadowRoot.childNodes); _o < _p.length; _o++) {
-                var childN = _p[_o];
-                var serializedChildNode = serializeNodeWithId(childN, bypassOptions);
-                if (serializedChildNode) {
-                    isNativeShadowDom(n.shadowRoot) &&
-                        (serializedChildNode.isShadow = true);
-                    serializedNode.childNodes.push(serializedChildNode);
-                }
-            }
-        }
-    }
-    if (n.parentNode &&
-        isShadowRoot(n.parentNode) &&
-        isNativeShadowDom(n.parentNode)) {
-        serializedNode.isShadow = true;
-    }
-    if (serializedNode.type === NodeType.Element &&
-        serializedNode.tagName === 'iframe') {
-        onceIframeLoaded(n, function () {
-            var iframeDoc = n.contentDocument;
-            if (iframeDoc && onIframeLoad) {
-                var serializedIframeNode = serializeNodeWithId(iframeDoc, {
-                    doc: iframeDoc,
-                    mirror: mirror,
-                    blockClass: blockClass,
-                    blockSelector: blockSelector,
-                    maskTextClass: maskTextClass,
-                    maskTextSelector: maskTextSelector,
-                    skipChild: false,
-                    inlineStylesheet: inlineStylesheet,
-                    maskInputOptions: maskInputOptions,
-                    maskTextFn: maskTextFn,
-                    maskInputFn: maskInputFn,
-                    slimDOMOptions: slimDOMOptions,
-                    dataURLOptions: dataURLOptions,
-                    inlineImages: inlineImages,
-                    recordCanvas: recordCanvas,
-                    preserveWhiteSpace: preserveWhiteSpace,
-                    onSerialize: onSerialize,
-                    onIframeLoad: onIframeLoad,
-                    iframeLoadTimeout: iframeLoadTimeout,
-                    onStylesheetLoad: onStylesheetLoad,
-                    stylesheetLoadTimeout: stylesheetLoadTimeout,
-                    keepIframeSrcFn: keepIframeSrcFn
-                });
-                if (serializedIframeNode) {
-                    onIframeLoad(n, serializedIframeNode);
-                }
-            }
-        }, iframeLoadTimeout);
-    }
-    if (serializedNode.type === NodeType.Element &&
-        serializedNode.tagName === 'link' &&
-        serializedNode.attributes.rel === 'stylesheet') {
-        onceStylesheetLoaded(n, function () {
-            if (onStylesheetLoad) {
-                var serializedLinkNode = serializeNodeWithId(n, {
-                    doc: doc,
-                    mirror: mirror,
-                    blockClass: blockClass,
-                    blockSelector: blockSelector,
-                    maskTextClass: maskTextClass,
-                    maskTextSelector: maskTextSelector,
-                    skipChild: false,
-                    inlineStylesheet: inlineStylesheet,
-                    maskInputOptions: maskInputOptions,
-                    maskTextFn: maskTextFn,
-                    maskInputFn: maskInputFn,
-                    slimDOMOptions: slimDOMOptions,
-                    dataURLOptions: dataURLOptions,
-                    inlineImages: inlineImages,
-                    recordCanvas: recordCanvas,
-                    preserveWhiteSpace: preserveWhiteSpace,
-                    onSerialize: onSerialize,
-                    onIframeLoad: onIframeLoad,
-                    iframeLoadTimeout: iframeLoadTimeout,
-                    onStylesheetLoad: onStylesheetLoad,
-                    stylesheetLoadTimeout: stylesheetLoadTimeout,
-                    keepIframeSrcFn: keepIframeSrcFn
-                });
-                if (serializedLinkNode) {
-                    onStylesheetLoad(n, serializedLinkNode);
-                }
-            }
-        }, stylesheetLoadTimeout);
-    }
-    return serializedNode;
-}
-function snapshot(n, options) {
-    var _a = options || {}, _b = _a.mirror, mirror = _b === void 0 ? new Mirror() : _b, _c = _a.blockClass, blockClass = _c === void 0 ? 'rr-block' : _c, _d = _a.blockSelector, blockSelector = _d === void 0 ? null : _d, _e = _a.maskTextClass, maskTextClass = _e === void 0 ? 'rr-mask' : _e, _f = _a.maskTextSelector, maskTextSelector = _f === void 0 ? null : _f, _g = _a.inlineStylesheet, inlineStylesheet = _g === void 0 ? true : _g, _h = _a.inlineImages, inlineImages = _h === void 0 ? false : _h, _j = _a.recordCanvas, recordCanvas = _j === void 0 ? false : _j, _k = _a.maskAllInputs, maskAllInputs = _k === void 0 ? false : _k, maskTextFn = _a.maskTextFn, maskInputFn = _a.maskInputFn, _l = _a.slimDOM, slimDOM = _l === void 0 ? false : _l, dataURLOptions = _a.dataURLOptions, preserveWhiteSpace = _a.preserveWhiteSpace, onSerialize = _a.onSerialize, onIframeLoad = _a.onIframeLoad, iframeLoadTimeout = _a.iframeLoadTimeout, onStylesheetLoad = _a.onStylesheetLoad, stylesheetLoadTimeout = _a.stylesheetLoadTimeout, _m = _a.keepIframeSrcFn, keepIframeSrcFn = _m === void 0 ? function () { return false; } : _m;
-    var maskInputOptions = maskAllInputs === true
-        ? {
-            color: true,
-            date: true,
-            'datetime-local': true,
-            email: true,
-            month: true,
-            number: true,
-            range: true,
-            search: true,
-            tel: true,
-            text: true,
-            time: true,
-            url: true,
-            week: true,
-            textarea: true,
-            select: true,
-            password: true
-        }
-        : maskAllInputs === false
-            ? {
-                password: true
-            }
-            : maskAllInputs;
-    var slimDOMOptions = slimDOM === true || slimDOM === 'all'
-        ?
-            {
-                script: true,
-                comment: true,
-                headFavicon: true,
-                headWhitespace: true,
-                headMetaDescKeywords: slimDOM === 'all',
-                headMetaSocial: true,
-                headMetaRobots: true,
-                headMetaHttpEquiv: true,
-                headMetaAuthorship: true,
-                headMetaVerification: true
-            }
-        : slimDOM === false
-            ? {}
-            : slimDOM;
-    return serializeNodeWithId(n, {
-        doc: n,
-        mirror: mirror,
-        blockClass: blockClass,
-        blockSelector: blockSelector,
-        maskTextClass: maskTextClass,
-        maskTextSelector: maskTextSelector,
-        skipChild: false,
-        inlineStylesheet: inlineStylesheet,
-        maskInputOptions: maskInputOptions,
-        maskTextFn: maskTextFn,
-        maskInputFn: maskInputFn,
-        slimDOMOptions: slimDOMOptions,
-        dataURLOptions: dataURLOptions,
-        inlineImages: inlineImages,
-        recordCanvas: recordCanvas,
-        preserveWhiteSpace: preserveWhiteSpace,
-        onSerialize: onSerialize,
-        onIframeLoad: onIframeLoad,
-        iframeLoadTimeout: iframeLoadTimeout,
-        onStylesheetLoad: onStylesheetLoad,
-        stylesheetLoadTimeout: stylesheetLoadTimeout,
-        keepIframeSrcFn: keepIframeSrcFn,
-        newlyAddedElement: false
-    });
-}
+  }]);
+}(EventBus);
 
-function on(type, fn, target = document) {
-    const options = { capture: true, passive: true };
-    target.addEventListener(type, fn, options);
-    return () => target.removeEventListener(type, fn, options);
-}
-const DEPARTED_MIRROR_ACCESS_WARNING = 'Please stop import mirror directly. Instead of that,' +
-    '\r\n' +
-    'now you can use replayer.getMirror() to access the mirror instance of a replayer,' +
-    '\r\n' +
-    'or you can use record.mirror to access the mirror instance during recording.';
-let _mirror = {
-    map: {},
-    getId() {
-        console.error(DEPARTED_MIRROR_ACCESS_WARNING);
-        return -1;
-    },
-    getNode() {
-        console.error(DEPARTED_MIRROR_ACCESS_WARNING);
-        return null;
-    },
-    removeNodeFromMap() {
-        console.error(DEPARTED_MIRROR_ACCESS_WARNING);
-    },
-    has() {
-        console.error(DEPARTED_MIRROR_ACCESS_WARNING);
-        return false;
-    },
-    reset() {
-        console.error(DEPARTED_MIRROR_ACCESS_WARNING);
-    },
-};
-if (typeof window !== 'undefined' && window.Proxy && window.Reflect) {
-    _mirror = new Proxy(_mirror, {
-        get(target, prop, receiver) {
-            if (prop === 'map') {
-                console.error(DEPARTED_MIRROR_ACCESS_WARNING);
-            }
-            return Reflect.get(target, prop, receiver);
-        },
-    });
-}
-function throttle(func, wait, options = {}) {
-    let timeout = null;
-    let previous = 0;
-    return function (...args) {
-        const now = Date.now();
-        if (!previous && options.leading === false) {
-            previous = now;
-        }
-        const remaining = wait - (now - previous);
-        const context = this;
-        if (remaining <= 0 || remaining > wait) {
-            if (timeout) {
-                clearTimeout(timeout);
-                timeout = null;
-            }
-            previous = now;
-            func.apply(context, args);
-        }
-        else if (!timeout && options.trailing !== false) {
-            timeout = setTimeout(() => {
-                previous = options.leading === false ? 0 : Date.now();
-                timeout = null;
-                func.apply(context, args);
-            }, remaining);
-        }
-    };
-}
-function hookSetter(target, key, d, isRevoked, win = window) {
-    const original = win.Object.getOwnPropertyDescriptor(target, key);
-    win.Object.defineProperty(target, key, isRevoked
-        ? d
-        : {
-            set(value) {
-                setTimeout(() => {
-                    d.set.call(this, value);
-                }, 0);
-                if (original && original.set) {
-                    original.set.call(this, value);
-                }
-            },
-        });
-    return () => hookSetter(target, key, original || {}, true);
-}
-function patch(source, name, replacement) {
-    try {
-        if (!(name in source)) {
-            return () => {
-            };
-        }
-        const original = source[name];
-        const wrapped = replacement(original);
-        if (typeof wrapped === 'function') {
-            wrapped.prototype = wrapped.prototype || {};
-            Object.defineProperties(wrapped, {
-                __rrweb_original__: {
-                    enumerable: false,
-                    value: original,
-                },
-            });
-        }
-        source[name] = wrapped;
-        return () => {
-            source[name] = original;
-        };
-    }
-    catch (_a) {
-        return () => {
-        };
-    }
-}
-function getWindowHeight() {
-    return (window.innerHeight ||
-        (document.documentElement && document.documentElement.clientHeight) ||
-        (document.body && document.body.clientHeight));
-}
-function getWindowWidth() {
-    return (window.innerWidth ||
-        (document.documentElement && document.documentElement.clientWidth) ||
-        (document.body && document.body.clientWidth));
-}
-function isBlocked(node, blockClass, blockSelector, checkAncestors) {
-    if (!node) {
-        return false;
-    }
-    const el = node.nodeType === node.ELEMENT_NODE
-        ? node
-        : node.parentElement;
-    if (!el)
-        return false;
-    if (typeof blockClass === 'string') {
-        if (el.classList.contains(blockClass))
-            return true;
-        if (checkAncestors && el.closest('.' + blockClass) !== null)
-            return true;
-    }
-    else {
-        if (classMatchesRegex(el, blockClass, checkAncestors))
-            return true;
-    }
-    if (blockSelector) {
-        if (node.matches(blockSelector))
-            return true;
-        if (checkAncestors && el.closest(blockSelector) !== null)
-            return true;
-    }
-    return false;
-}
-function isSerialized(n, mirror) {
-    return mirror.getId(n) !== -1;
-}
-function isIgnored(n, mirror) {
-    return mirror.getId(n) === IGNORED_NODE;
-}
-function isAncestorRemoved(target, mirror) {
-    if (isShadowRoot(target)) {
-        return false;
-    }
-    const id = mirror.getId(target);
-    if (!mirror.has(id)) {
-        return true;
-    }
-    if (target.parentNode &&
-        target.parentNode.nodeType === target.DOCUMENT_NODE) {
-        return false;
-    }
-    if (!target.parentNode) {
-        return true;
-    }
-    return isAncestorRemoved(target.parentNode, mirror);
-}
-function isTouchEvent(event) {
-    return Boolean(event.changedTouches);
-}
-function polyfill(win = window) {
-    if ('NodeList' in win && !win.NodeList.prototype.forEach) {
-        win.NodeList.prototype.forEach = Array.prototype
-            .forEach;
-    }
-    if ('DOMTokenList' in win && !win.DOMTokenList.prototype.forEach) {
-        win.DOMTokenList.prototype.forEach = Array.prototype
-            .forEach;
-    }
-    if (!Node.prototype.contains) {
-        Node.prototype.contains = (...args) => {
-            let node = args[0];
-            if (!(0 in args)) {
-                throw new TypeError('1 argument is required');
-            }
-            do {
-                if (this === node) {
-                    return true;
-                }
-            } while ((node = node && node.parentNode));
-            return false;
-        };
-    }
-}
-function isSerializedIframe(n, mirror) {
-    return Boolean(n.nodeName === 'IFRAME' && mirror.getMeta(n));
-}
-function isSerializedStylesheet(n, mirror) {
-    return Boolean(n.nodeName === 'LINK' &&
-        n.nodeType === n.ELEMENT_NODE &&
-        n.getAttribute &&
-        n.getAttribute('rel') === 'stylesheet' &&
-        mirror.getMeta(n));
-}
-function hasShadowRoot(n) {
-    return Boolean(n === null || n === void 0 ? void 0 : n.shadowRoot);
-}
-class StyleSheetMirror {
-    constructor() {
-        this.id = 1;
-        this.styleIDMap = new WeakMap();
-        this.idStyleMap = new Map();
-    }
-    getId(stylesheet) {
-        var _a;
-        return (_a = this.styleIDMap.get(stylesheet)) !== null && _a !== void 0 ? _a : -1;
-    }
-    has(stylesheet) {
-        return this.styleIDMap.has(stylesheet);
-    }
-    add(stylesheet, id) {
-        if (this.has(stylesheet))
-            return this.getId(stylesheet);
-        let newId;
-        if (id === undefined) {
-            newId = this.id++;
-        }
-        else
-            newId = id;
-        this.styleIDMap.set(stylesheet, newId);
-        this.idStyleMap.set(newId, stylesheet);
-        return newId;
-    }
-    getStyle(id) {
-        return this.idStyleMap.get(id) || null;
-    }
-    reset() {
-        this.styleIDMap = new WeakMap();
-        this.idStyleMap = new Map();
-        this.id = 1;
-    }
-    generateId() {
-        return this.id++;
-    }
-}
-
-var EventType = /* @__PURE__ */ ((EventType2) => {
-  EventType2[EventType2["DomContentLoaded"] = 0] = "DomContentLoaded";
-  EventType2[EventType2["Load"] = 1] = "Load";
-  EventType2[EventType2["FullSnapshot"] = 2] = "FullSnapshot";
-  EventType2[EventType2["IncrementalSnapshot"] = 3] = "IncrementalSnapshot";
-  EventType2[EventType2["Meta"] = 4] = "Meta";
-  EventType2[EventType2["Custom"] = 5] = "Custom";
-  EventType2[EventType2["Plugin"] = 6] = "Plugin";
-  return EventType2;
-})(EventType || {});
-var IncrementalSource = /* @__PURE__ */ ((IncrementalSource2) => {
-  IncrementalSource2[IncrementalSource2["Mutation"] = 0] = "Mutation";
-  IncrementalSource2[IncrementalSource2["MouseMove"] = 1] = "MouseMove";
-  IncrementalSource2[IncrementalSource2["MouseInteraction"] = 2] = "MouseInteraction";
-  IncrementalSource2[IncrementalSource2["Scroll"] = 3] = "Scroll";
-  IncrementalSource2[IncrementalSource2["ViewportResize"] = 4] = "ViewportResize";
-  IncrementalSource2[IncrementalSource2["Input"] = 5] = "Input";
-  IncrementalSource2[IncrementalSource2["TouchMove"] = 6] = "TouchMove";
-  IncrementalSource2[IncrementalSource2["MediaInteraction"] = 7] = "MediaInteraction";
-  IncrementalSource2[IncrementalSource2["StyleSheetRule"] = 8] = "StyleSheetRule";
-  IncrementalSource2[IncrementalSource2["CanvasMutation"] = 9] = "CanvasMutation";
-  IncrementalSource2[IncrementalSource2["Font"] = 10] = "Font";
-  IncrementalSource2[IncrementalSource2["Log"] = 11] = "Log";
-  IncrementalSource2[IncrementalSource2["Drag"] = 12] = "Drag";
-  IncrementalSource2[IncrementalSource2["StyleDeclaration"] = 13] = "StyleDeclaration";
-  IncrementalSource2[IncrementalSource2["Selection"] = 14] = "Selection";
-  IncrementalSource2[IncrementalSource2["AdoptedStyleSheet"] = 15] = "AdoptedStyleSheet";
-  return IncrementalSource2;
-})(IncrementalSource || {});
-var MouseInteractions = /* @__PURE__ */ ((MouseInteractions2) => {
-  MouseInteractions2[MouseInteractions2["MouseUp"] = 0] = "MouseUp";
-  MouseInteractions2[MouseInteractions2["MouseDown"] = 1] = "MouseDown";
-  MouseInteractions2[MouseInteractions2["Click"] = 2] = "Click";
-  MouseInteractions2[MouseInteractions2["ContextMenu"] = 3] = "ContextMenu";
-  MouseInteractions2[MouseInteractions2["DblClick"] = 4] = "DblClick";
-  MouseInteractions2[MouseInteractions2["Focus"] = 5] = "Focus";
-  MouseInteractions2[MouseInteractions2["Blur"] = 6] = "Blur";
-  MouseInteractions2[MouseInteractions2["TouchStart"] = 7] = "TouchStart";
-  MouseInteractions2[MouseInteractions2["TouchMove_Departed"] = 8] = "TouchMove_Departed";
-  MouseInteractions2[MouseInteractions2["TouchEnd"] = 9] = "TouchEnd";
-  MouseInteractions2[MouseInteractions2["TouchCancel"] = 10] = "TouchCancel";
-  return MouseInteractions2;
-})(MouseInteractions || {});
-var CanvasContext = /* @__PURE__ */ ((CanvasContext2) => {
-  CanvasContext2[CanvasContext2["2D"] = 0] = "2D";
-  CanvasContext2[CanvasContext2["WebGL"] = 1] = "WebGL";
-  CanvasContext2[CanvasContext2["WebGL2"] = 2] = "WebGL2";
-  return CanvasContext2;
-})(CanvasContext || {});
-
-function isNodeInLinkedList(n) {
-    return '__ln' in n;
-}
-class DoubleLinkedList {
-    constructor() {
-        this.length = 0;
-        this.head = null;
-    }
-    get(position) {
-        if (position >= this.length) {
-            throw new Error('Position outside of list range');
-        }
-        let current = this.head;
-        for (let index = 0; index < position; index++) {
-            current = (current === null || current === void 0 ? void 0 : current.next) || null;
-        }
-        return current;
-    }
-    addNode(n) {
-        const node = {
-            value: n,
-            previous: null,
-            next: null,
-        };
-        n.__ln = node;
-        if (n.previousSibling && isNodeInLinkedList(n.previousSibling)) {
-            const current = n.previousSibling.__ln.next;
-            node.next = current;
-            node.previous = n.previousSibling.__ln;
-            n.previousSibling.__ln.next = node;
-            if (current) {
-                current.previous = node;
-            }
-        }
-        else if (n.nextSibling &&
-            isNodeInLinkedList(n.nextSibling) &&
-            n.nextSibling.__ln.previous) {
-            const current = n.nextSibling.__ln.previous;
-            node.previous = current;
-            node.next = n.nextSibling.__ln;
-            n.nextSibling.__ln.previous = node;
-            if (current) {
-                current.next = node;
-            }
-        }
-        else {
-            if (this.head) {
-                this.head.previous = node;
-            }
-            node.next = this.head;
-            this.head = node;
-        }
-        this.length++;
-    }
-    removeNode(n) {
-        const current = n.__ln;
-        if (!this.head) {
-            return;
-        }
-        if (!current.previous) {
-            this.head = current.next;
-            if (this.head) {
-                this.head.previous = null;
-            }
-        }
-        else {
-            current.previous.next = current.next;
-            if (current.next) {
-                current.next.previous = current.previous;
-            }
-        }
-        if (n.__ln) {
-            delete n.__ln;
-        }
-        this.length--;
-    }
-}
-const moveKey = (id, parentId) => `${id}@${parentId}`;
-class MutationBuffer {
-    constructor() {
-        this.frozen = false;
-        this.locked = false;
-        this.texts = [];
-        this.attributes = [];
-        this.removes = [];
-        this.mapRemoves = [];
-        this.movedMap = {};
-        this.addedSet = new Set();
-        this.movedSet = new Set();
-        this.droppedSet = new Set();
-        this.processMutations = (mutations) => {
-            mutations.forEach(this.processMutation);
-            this.emit();
-        };
-        this.emit = () => {
-            if (this.frozen || this.locked) {
-                return;
-            }
-            const adds = [];
-            const addList = new DoubleLinkedList();
-            const getNextId = (n) => {
-                let ns = n;
-                let nextId = IGNORED_NODE;
-                while (nextId === IGNORED_NODE) {
-                    ns = ns && ns.nextSibling;
-                    nextId = ns && this.mirror.getId(ns);
-                }
-                return nextId;
-            };
-            const pushAdd = (n) => {
-                var _a, _b, _c, _d;
-                let shadowHost = null;
-                if (((_b = (_a = n.getRootNode) === null || _a === void 0 ? void 0 : _a.call(n)) === null || _b === void 0 ? void 0 : _b.nodeType) === Node.DOCUMENT_FRAGMENT_NODE &&
-                    n.getRootNode().host)
-                    shadowHost = n.getRootNode().host;
-                let rootShadowHost = shadowHost;
-                while (((_d = (_c = rootShadowHost === null || rootShadowHost === void 0 ? void 0 : rootShadowHost.getRootNode) === null || _c === void 0 ? void 0 : _c.call(rootShadowHost)) === null || _d === void 0 ? void 0 : _d.nodeType) ===
-                    Node.DOCUMENT_FRAGMENT_NODE &&
-                    rootShadowHost.getRootNode().host)
-                    rootShadowHost = rootShadowHost.getRootNode().host;
-                const notInDoc = !this.doc.contains(n) &&
-                    (!rootShadowHost || !this.doc.contains(rootShadowHost));
-                if (!n.parentNode || notInDoc) {
-                    return;
-                }
-                const parentId = isShadowRoot(n.parentNode)
-                    ? this.mirror.getId(shadowHost)
-                    : this.mirror.getId(n.parentNode);
-                const nextId = getNextId(n);
-                if (parentId === -1 || nextId === -1) {
-                    return addList.addNode(n);
-                }
-                const sn = serializeNodeWithId(n, {
-                    doc: this.doc,
-                    mirror: this.mirror,
-                    blockClass: this.blockClass,
-                    blockSelector: this.blockSelector,
-                    maskTextClass: this.maskTextClass,
-                    maskTextSelector: this.maskTextSelector,
-                    skipChild: true,
-                    newlyAddedElement: true,
-                    inlineStylesheet: this.inlineStylesheet,
-                    maskInputOptions: this.maskInputOptions,
-                    maskTextFn: this.maskTextFn,
-                    maskInputFn: this.maskInputFn,
-                    slimDOMOptions: this.slimDOMOptions,
-                    dataURLOptions: this.dataURLOptions,
-                    recordCanvas: this.recordCanvas,
-                    inlineImages: this.inlineImages,
-                    onSerialize: (currentN) => {
-                        if (isSerializedIframe(currentN, this.mirror)) {
-                            this.iframeManager.addIframe(currentN);
-                        }
-                        if (isSerializedStylesheet(currentN, this.mirror)) {
-                            this.stylesheetManager.trackLinkElement(currentN);
-                        }
-                        if (hasShadowRoot(n)) {
-                            this.shadowDomManager.addShadowRoot(n.shadowRoot, this.doc);
-                        }
-                    },
-                    onIframeLoad: (iframe, childSn) => {
-                        this.iframeManager.attachIframe(iframe, childSn);
-                        this.shadowDomManager.observeAttachShadow(iframe);
-                    },
-                    onStylesheetLoad: (link, childSn) => {
-                        this.stylesheetManager.attachLinkElement(link, childSn);
-                    },
-                });
-                if (sn) {
-                    adds.push({
-                        parentId,
-                        nextId,
-                        node: sn,
-                    });
-                }
-            };
-            while (this.mapRemoves.length) {
-                this.mirror.removeNodeFromMap(this.mapRemoves.shift());
-            }
-            for (const n of Array.from(this.movedSet.values())) {
-                if (isParentRemoved(this.removes, n, this.mirror) &&
-                    !this.movedSet.has(n.parentNode)) {
-                    continue;
-                }
-                pushAdd(n);
-            }
-            for (const n of Array.from(this.addedSet.values())) {
-                if (!isAncestorInSet(this.droppedSet, n) &&
-                    !isParentRemoved(this.removes, n, this.mirror)) {
-                    pushAdd(n);
-                }
-                else if (isAncestorInSet(this.movedSet, n)) {
-                    pushAdd(n);
-                }
-                else {
-                    this.droppedSet.add(n);
-                }
-            }
-            let candidate = null;
-            while (addList.length) {
-                let node = null;
-                if (candidate) {
-                    const parentId = this.mirror.getId(candidate.value.parentNode);
-                    const nextId = getNextId(candidate.value);
-                    if (parentId !== -1 && nextId !== -1) {
-                        node = candidate;
-                    }
-                }
-                if (!node) {
-                    for (let index = addList.length - 1; index >= 0; index--) {
-                        const _node = addList.get(index);
-                        if (_node) {
-                            const parentId = this.mirror.getId(_node.value.parentNode);
-                            const nextId = getNextId(_node.value);
-                            if (nextId === -1)
-                                continue;
-                            else if (parentId !== -1) {
-                                node = _node;
-                                break;
-                            }
-                            else {
-                                const unhandledNode = _node.value;
-                                if (unhandledNode.parentNode &&
-                                    unhandledNode.parentNode.nodeType ===
-                                        Node.DOCUMENT_FRAGMENT_NODE) {
-                                    const shadowHost = unhandledNode.parentNode
-                                        .host;
-                                    const parentId = this.mirror.getId(shadowHost);
-                                    if (parentId !== -1) {
-                                        node = _node;
-                                        break;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                if (!node) {
-                    while (addList.head) {
-                        addList.removeNode(addList.head.value);
-                    }
-                    break;
-                }
-                candidate = node.previous;
-                addList.removeNode(node.value);
-                pushAdd(node.value);
-            }
-            const payload = {
-                texts: this.texts
-                    .map((text) => ({
-                    id: this.mirror.getId(text.node),
-                    value: text.value,
-                }))
-                    .filter((text) => this.mirror.has(text.id)),
-                attributes: this.attributes
-                    .map((attribute) => ({
-                    id: this.mirror.getId(attribute.node),
-                    attributes: attribute.attributes,
-                }))
-                    .filter((attribute) => this.mirror.has(attribute.id)),
-                removes: this.removes,
-                adds,
-            };
-            if (!payload.texts.length &&
-                !payload.attributes.length &&
-                !payload.removes.length &&
-                !payload.adds.length) {
-                return;
-            }
-            this.texts = [];
-            this.attributes = [];
-            this.removes = [];
-            this.addedSet = new Set();
-            this.movedSet = new Set();
-            this.droppedSet = new Set();
-            this.movedMap = {};
-            this.mutationCb(payload);
-        };
-        this.processMutation = (m) => {
-            if (isIgnored(m.target, this.mirror)) {
-                return;
-            }
-            switch (m.type) {
-                case 'characterData': {
-                    const value = m.target.textContent;
-                    if (!isBlocked(m.target, this.blockClass, this.blockSelector, false) &&
-                        value !== m.oldValue) {
-                        this.texts.push({
-                            value: needMaskingText(m.target, this.maskTextClass, this.maskTextSelector) && value
-                                ? this.maskTextFn
-                                    ? this.maskTextFn(value)
-                                    : value.replace(/[\S]/g, '*')
-                                : value,
-                            node: m.target,
-                        });
-                    }
-                    break;
-                }
-                case 'attributes': {
-                    const target = m.target;
-                    let value = m.target.getAttribute(m.attributeName);
-                    if (m.attributeName === 'value') {
-                        value = maskInputValue({
-                            maskInputOptions: this.maskInputOptions,
-                            tagName: m.target.tagName,
-                            type: m.target.getAttribute('type'),
-                            value,
-                            maskInputFn: this.maskInputFn,
-                        });
-                    }
-                    if (isBlocked(m.target, this.blockClass, this.blockSelector, false) ||
-                        value === m.oldValue) {
-                        return;
-                    }
-                    let item = this.attributes.find((a) => a.node === m.target);
-                    if (target.tagName === 'IFRAME' &&
-                        m.attributeName === 'src' &&
-                        !this.keepIframeSrcFn(value)) {
-                        if (!target.contentDocument) {
-                            m.attributeName = 'rr_src';
-                        }
-                        else {
-                            return;
-                        }
-                    }
-                    if (!item) {
-                        item = {
-                            node: m.target,
-                            attributes: {},
-                        };
-                        this.attributes.push(item);
-                    }
-                    if (m.attributeName === 'style') {
-                        const old = this.doc.createElement('span');
-                        if (m.oldValue) {
-                            old.setAttribute('style', m.oldValue);
-                        }
-                        if (item.attributes.style === undefined ||
-                            item.attributes.style === null) {
-                            item.attributes.style = {};
-                        }
-                        const styleObj = item.attributes.style;
-                        for (const pname of Array.from(target.style)) {
-                            const newValue = target.style.getPropertyValue(pname);
-                            const newPriority = target.style.getPropertyPriority(pname);
-                            if (newValue !== old.style.getPropertyValue(pname) ||
-                                newPriority !== old.style.getPropertyPriority(pname)) {
-                                if (newPriority === '') {
-                                    styleObj[pname] = newValue;
-                                }
-                                else {
-                                    styleObj[pname] = [newValue, newPriority];
-                                }
-                            }
-                        }
-                        for (const pname of Array.from(old.style)) {
-                            if (target.style.getPropertyValue(pname) === '') {
-                                styleObj[pname] = false;
-                            }
-                        }
-                    }
-                    else {
-                        item.attributes[m.attributeName] = transformAttribute(this.doc, target.tagName, m.attributeName, value);
-                    }
-                    break;
-                }
-                case 'childList': {
-                    if (isBlocked(m.target, this.blockClass, this.blockSelector, true))
-                        return;
-                    m.addedNodes.forEach((n) => this.genAdds(n, m.target));
-                    m.removedNodes.forEach((n) => {
-                        const nodeId = this.mirror.getId(n);
-                        const parentId = isShadowRoot(m.target)
-                            ? this.mirror.getId(m.target.host)
-                            : this.mirror.getId(m.target);
-                        if (isBlocked(m.target, this.blockClass, this.blockSelector, false) ||
-                            isIgnored(n, this.mirror) ||
-                            !isSerialized(n, this.mirror)) {
-                            return;
-                        }
-                        if (this.addedSet.has(n)) {
-                            deepDelete(this.addedSet, n);
-                            this.droppedSet.add(n);
-                        }
-                        else if (this.addedSet.has(m.target) && nodeId === -1) ;
-                        else if (isAncestorRemoved(m.target, this.mirror)) ;
-                        else if (this.movedSet.has(n) &&
-                            this.movedMap[moveKey(nodeId, parentId)]) {
-                            deepDelete(this.movedSet, n);
-                        }
-                        else {
-                            this.removes.push({
-                                parentId,
-                                id: nodeId,
-                                isShadow: isShadowRoot(m.target) && isNativeShadowDom(m.target)
-                                    ? true
-                                    : undefined,
-                            });
-                        }
-                        this.mapRemoves.push(n);
-                    });
-                    break;
-                }
-            }
-        };
-        this.genAdds = (n, target) => {
-            if (this.mirror.hasNode(n)) {
-                if (isIgnored(n, this.mirror)) {
-                    return;
-                }
-                this.movedSet.add(n);
-                let targetId = null;
-                if (target && this.mirror.hasNode(target)) {
-                    targetId = this.mirror.getId(target);
-                }
-                if (targetId && targetId !== -1) {
-                    this.movedMap[moveKey(this.mirror.getId(n), targetId)] = true;
-                }
-            }
-            else {
-                this.addedSet.add(n);
-                this.droppedSet.delete(n);
-            }
-            if (!isBlocked(n, this.blockClass, this.blockSelector, false))
-                n.childNodes.forEach((childN) => this.genAdds(childN));
-        };
-    }
-    init(options) {
-        [
-            'mutationCb',
-            'blockClass',
-            'blockSelector',
-            'maskTextClass',
-            'maskTextSelector',
-            'inlineStylesheet',
-            'maskInputOptions',
-            'maskTextFn',
-            'maskInputFn',
-            'keepIframeSrcFn',
-            'recordCanvas',
-            'inlineImages',
-            'slimDOMOptions',
-            'dataURLOptions',
-            'doc',
-            'mirror',
-            'iframeManager',
-            'stylesheetManager',
-            'shadowDomManager',
-            'canvasManager',
-        ].forEach((key) => {
-            this[key] = options[key];
-        });
-    }
-    freeze() {
-        this.frozen = true;
-        this.canvasManager.freeze();
-    }
-    unfreeze() {
-        this.frozen = false;
-        this.canvasManager.unfreeze();
-        this.emit();
-    }
-    isFrozen() {
-        return this.frozen;
-    }
-    lock() {
-        this.locked = true;
-        this.canvasManager.lock();
-    }
-    unlock() {
-        this.locked = false;
-        this.canvasManager.unlock();
-        this.emit();
-    }
-    reset() {
-        this.shadowDomManager.reset();
-        this.canvasManager.reset();
-    }
-}
-function deepDelete(addsSet, n) {
-    addsSet.delete(n);
-    n.childNodes.forEach((childN) => deepDelete(addsSet, childN));
-}
-function isParentRemoved(removes, n, mirror) {
-    if (removes.length === 0)
-        return false;
-    return _isParentRemoved(removes, n, mirror);
-}
-function _isParentRemoved(removes, n, mirror) {
-    const { parentNode } = n;
-    if (!parentNode) {
-        return false;
-    }
-    const parentId = mirror.getId(parentNode);
-    if (removes.some((r) => r.id === parentId)) {
-        return true;
-    }
-    return _isParentRemoved(removes, parentNode, mirror);
-}
-function isAncestorInSet(set, n) {
-    if (set.size === 0)
-        return false;
-    return _isAncestorInSet(set, n);
-}
-function _isAncestorInSet(set, n) {
-    const { parentNode } = n;
-    if (!parentNode) {
-        return false;
-    }
-    if (set.has(parentNode)) {
-        return true;
-    }
-    return _isAncestorInSet(set, parentNode);
-}
-
-const mutationBuffers = [];
-const isCSSGroupingRuleSupported = typeof CSSGroupingRule !== 'undefined';
-const isCSSMediaRuleSupported = typeof CSSMediaRule !== 'undefined';
-const isCSSSupportsRuleSupported = typeof CSSSupportsRule !== 'undefined';
-const isCSSConditionRuleSupported = typeof CSSConditionRule !== 'undefined';
-function getEventTarget(event) {
-    try {
-        if ('composedPath' in event) {
-            const path = event.composedPath();
-            if (path.length) {
-                return path[0];
-            }
-        }
-        else if ('path' in event && event.path.length) {
-            return event.path[0];
-        }
-        return event.target;
-    }
-    catch (_a) {
-        return event.target;
-    }
-}
-function initMutationObserver(options, rootEl) {
-    var _a, _b;
-    const mutationBuffer = new MutationBuffer();
-    mutationBuffers.push(mutationBuffer);
-    mutationBuffer.init(options);
-    let mutationObserverCtor = window.MutationObserver ||
-        window.__rrMutationObserver;
-    const angularZoneSymbol = (_b = (_a = window === null || window === void 0 ? void 0 : window.Zone) === null || _a === void 0 ? void 0 : _a.__symbol__) === null || _b === void 0 ? void 0 : _b.call(_a, 'MutationObserver');
-    if (angularZoneSymbol &&
-        window[angularZoneSymbol]) {
-        mutationObserverCtor = window[angularZoneSymbol];
-    }
-    const observer = new mutationObserverCtor(mutationBuffer.processMutations.bind(mutationBuffer));
-    observer.observe(rootEl, {
-        attributes: true,
-        attributeOldValue: true,
-        characterData: true,
-        characterDataOldValue: true,
-        childList: true,
-        subtree: true,
-    });
-    return observer;
-}
-function initMoveObserver({ mousemoveCb, sampling, doc, mirror, }) {
-    if (sampling.mousemove === false) {
-        return () => {
-        };
-    }
-    const threshold = typeof sampling.mousemove === 'number' ? sampling.mousemove : 50;
-    const callbackThreshold = typeof sampling.mousemoveCallback === 'number'
-        ? sampling.mousemoveCallback
-        : 500;
-    let positions = [];
-    let timeBaseline;
-    const wrappedCb = throttle((source) => {
-        const totalOffset = Date.now() - timeBaseline;
-        mousemoveCb(positions.map((p) => {
-            p.timeOffset -= totalOffset;
-            return p;
-        }), source);
-        positions = [];
-        timeBaseline = null;
-    }, callbackThreshold);
-    const updatePosition = throttle((evt) => {
-        const target = getEventTarget(evt);
-        const { clientX, clientY } = isTouchEvent(evt)
-            ? evt.changedTouches[0]
-            : evt;
-        if (!timeBaseline) {
-            timeBaseline = Date.now();
-        }
-        positions.push({
-            x: clientX,
-            y: clientY,
-            id: mirror.getId(target),
-            timeOffset: Date.now() - timeBaseline,
-        });
-        wrappedCb(typeof DragEvent !== 'undefined' && evt instanceof DragEvent
-            ? IncrementalSource.Drag
-            : evt instanceof MouseEvent
-                ? IncrementalSource.MouseMove
-                : IncrementalSource.TouchMove);
-    }, threshold, {
-        trailing: false,
-    });
-    const handlers = [
-        on('mousemove', updatePosition, doc),
-        on('touchmove', updatePosition, doc),
-        on('drag', updatePosition, doc),
-    ];
-    return () => {
-        handlers.forEach((h) => h());
-    };
-}
-function initMouseInteractionObserver({ mouseInteractionCb, doc, mirror, blockClass, blockSelector, sampling, }) {
-    if (sampling.mouseInteraction === false) {
-        return () => {
-        };
-    }
-    const disableMap = sampling.mouseInteraction === true ||
-        sampling.mouseInteraction === undefined
-        ? {}
-        : sampling.mouseInteraction;
-    const handlers = [];
-    const getHandler = (eventKey) => {
-        return (event) => {
-            const target = getEventTarget(event);
-            if (isBlocked(target, blockClass, blockSelector, true)) {
-                return;
-            }
-            const e = isTouchEvent(event) ? event.changedTouches[0] : event;
-            if (!e) {
-                return;
-            }
-            const id = mirror.getId(target);
-            const { clientX, clientY } = e;
-            mouseInteractionCb({
-                type: MouseInteractions[eventKey],
-                id,
-                x: clientX,
-                y: clientY,
-            });
-        };
-    };
-    Object.keys(MouseInteractions)
-        .filter((key) => Number.isNaN(Number(key)) &&
-        !key.endsWith('_Departed') &&
-        disableMap[key] !== false)
-        .forEach((eventKey) => {
-        const eventName = eventKey.toLowerCase();
-        const handler = getHandler(eventKey);
-        handlers.push(on(eventName, handler, doc));
-    });
-    return () => {
-        handlers.forEach((h) => h());
-    };
-}
-function initScrollObserver({ scrollCb, doc, mirror, blockClass, blockSelector, sampling, }) {
-    const updatePosition = throttle((evt) => {
-        const target = getEventTarget(evt);
-        if (!target || isBlocked(target, blockClass, blockSelector, true)) {
-            return;
-        }
-        const id = mirror.getId(target);
-        if (target === doc) {
-            const scrollEl = (doc.scrollingElement || doc.documentElement);
-            scrollCb({
-                id,
-                x: scrollEl.scrollLeft,
-                y: scrollEl.scrollTop,
-            });
-        }
-        else {
-            scrollCb({
-                id,
-                x: target.scrollLeft,
-                y: target.scrollTop,
-            });
-        }
-    }, sampling.scroll || 100);
-    return on('scroll', updatePosition, doc);
-}
-function initViewportResizeObserver({ viewportResizeCb, }) {
-    let lastH = -1;
-    let lastW = -1;
-    const updateDimension = throttle(() => {
-        const height = getWindowHeight();
-        const width = getWindowWidth();
-        if (lastH !== height || lastW !== width) {
-            viewportResizeCb({
-                width: Number(width),
-                height: Number(height),
-            });
-            lastH = height;
-            lastW = width;
-        }
-    }, 200);
-    return on('resize', updateDimension, window);
-}
-function wrapEventWithUserTriggeredFlag(v, enable) {
-    const value = Object.assign({}, v);
-    if (!enable)
-        delete value.userTriggered;
-    return value;
-}
-const INPUT_TAGS = ['INPUT', 'TEXTAREA', 'SELECT'];
-const lastInputValueMap = new WeakMap();
-function initInputObserver({ inputCb, doc, mirror, blockClass, blockSelector, ignoreClass, maskInputOptions, maskInputFn, sampling, userTriggeredOnInput, }) {
-    function eventHandler(event) {
-        let target = getEventTarget(event);
-        const userTriggered = event.isTrusted;
-        if (target && target.tagName === 'OPTION')
-            target = target.parentElement;
-        if (!target ||
-            !target.tagName ||
-            INPUT_TAGS.indexOf(target.tagName) < 0 ||
-            isBlocked(target, blockClass, blockSelector, true)) {
-            return;
-        }
-        const type = target.type;
-        if (target.classList.contains(ignoreClass)) {
-            return;
-        }
-        let text = target.value;
-        let isChecked = false;
-        if (type === 'radio' || type === 'checkbox') {
-            isChecked = target.checked;
-        }
-        else if (maskInputOptions[target.tagName.toLowerCase()] ||
-            maskInputOptions[type]) {
-            text = maskInputValue({
-                maskInputOptions,
-                tagName: target.tagName,
-                type,
-                value: text,
-                maskInputFn,
-            });
-        }
-        cbWithDedup(target, wrapEventWithUserTriggeredFlag({ text, isChecked, userTriggered }, userTriggeredOnInput));
-        const name = target.name;
-        if (type === 'radio' && name && isChecked) {
-            doc
-                .querySelectorAll(`input[type="radio"][name="${name}"]`)
-                .forEach((el) => {
-                if (el !== target) {
-                    cbWithDedup(el, wrapEventWithUserTriggeredFlag({
-                        text: el.value,
-                        isChecked: !isChecked,
-                        userTriggered: false,
-                    }, userTriggeredOnInput));
-                }
-            });
-        }
-    }
-    function cbWithDedup(target, v) {
-        const lastInputValue = lastInputValueMap.get(target);
-        if (!lastInputValue ||
-            lastInputValue.text !== v.text ||
-            lastInputValue.isChecked !== v.isChecked) {
-            lastInputValueMap.set(target, v);
-            const id = mirror.getId(target);
-            inputCb(Object.assign(Object.assign({}, v), { id }));
-        }
-    }
-    const events = sampling.input === 'last' ? ['change'] : ['input', 'change'];
-    const handlers = events.map((eventName) => on(eventName, eventHandler, doc));
-    const currentWindow = doc.defaultView;
-    if (!currentWindow) {
-        return () => {
-            handlers.forEach((h) => h());
-        };
-    }
-    const propertyDescriptor = currentWindow.Object.getOwnPropertyDescriptor(currentWindow.HTMLInputElement.prototype, 'value');
-    const hookProperties = [
-        [currentWindow.HTMLInputElement.prototype, 'value'],
-        [currentWindow.HTMLInputElement.prototype, 'checked'],
-        [currentWindow.HTMLSelectElement.prototype, 'value'],
-        [currentWindow.HTMLTextAreaElement.prototype, 'value'],
-        [currentWindow.HTMLSelectElement.prototype, 'selectedIndex'],
-        [currentWindow.HTMLOptionElement.prototype, 'selected'],
-    ];
-    if (propertyDescriptor && propertyDescriptor.set) {
-        handlers.push(...hookProperties.map((p) => hookSetter(p[0], p[1], {
-            set() {
-                eventHandler({ target: this });
-            },
-        }, false, currentWindow)));
-    }
-    return () => {
-        handlers.forEach((h) => h());
-    };
-}
-function getNestedCSSRulePositions(rule) {
-    const positions = [];
-    function recurse(childRule, pos) {
-        if ((isCSSGroupingRuleSupported &&
-            childRule.parentRule instanceof CSSGroupingRule) ||
-            (isCSSMediaRuleSupported &&
-                childRule.parentRule instanceof CSSMediaRule) ||
-            (isCSSSupportsRuleSupported &&
-                childRule.parentRule instanceof CSSSupportsRule) ||
-            (isCSSConditionRuleSupported &&
-                childRule.parentRule instanceof CSSConditionRule)) {
-            const rules = Array.from(childRule.parentRule.cssRules);
-            const index = rules.indexOf(childRule);
-            pos.unshift(index);
-        }
-        else if (childRule.parentStyleSheet) {
-            const rules = Array.from(childRule.parentStyleSheet.cssRules);
-            const index = rules.indexOf(childRule);
-            pos.unshift(index);
-        }
-        return pos;
-    }
-    return recurse(rule, positions);
-}
-function getIdAndStyleId(sheet, mirror, styleMirror) {
-    let id, styleId;
-    if (!sheet)
-        return {};
-    if (sheet.ownerNode)
-        id = mirror.getId(sheet.ownerNode);
-    else
-        styleId = styleMirror.getId(sheet);
-    return {
-        styleId,
-        id,
-    };
-}
-function initStyleSheetObserver({ styleSheetRuleCb, mirror, stylesheetManager }, { win }) {
-    const insertRule = win.CSSStyleSheet.prototype.insertRule;
-    win.CSSStyleSheet.prototype.insertRule = function (rule, index) {
-        const { id, styleId } = getIdAndStyleId(this, mirror, stylesheetManager.styleMirror);
-        if ((id && id !== -1) || (styleId && styleId !== -1)) {
-            styleSheetRuleCb({
-                id,
-                styleId,
-                adds: [{ rule, index }],
-            });
-        }
-        return insertRule.apply(this, [rule, index]);
-    };
-    const deleteRule = win.CSSStyleSheet.prototype.deleteRule;
-    win.CSSStyleSheet.prototype.deleteRule = function (index) {
-        const { id, styleId } = getIdAndStyleId(this, mirror, stylesheetManager.styleMirror);
-        if ((id && id !== -1) || (styleId && styleId !== -1)) {
-            styleSheetRuleCb({
-                id,
-                styleId,
-                removes: [{ index }],
-            });
-        }
-        return deleteRule.apply(this, [index]);
-    };
-    let replace;
-    if (win.CSSStyleSheet.prototype.replace) {
-        replace = win.CSSStyleSheet.prototype.replace;
-        win.CSSStyleSheet.prototype.replace = function (text) {
-            const { id, styleId } = getIdAndStyleId(this, mirror, stylesheetManager.styleMirror);
-            if ((id && id !== -1) || (styleId && styleId !== -1)) {
-                styleSheetRuleCb({
-                    id,
-                    styleId,
-                    replace: text,
-                });
-            }
-            return replace.apply(this, [text]);
-        };
-    }
-    let replaceSync;
-    if (win.CSSStyleSheet.prototype.replaceSync) {
-        replaceSync = win.CSSStyleSheet.prototype.replaceSync;
-        win.CSSStyleSheet.prototype.replaceSync = function (text) {
-            const { id, styleId } = getIdAndStyleId(this, mirror, stylesheetManager.styleMirror);
-            if ((id && id !== -1) || (styleId && styleId !== -1)) {
-                styleSheetRuleCb({
-                    id,
-                    styleId,
-                    replaceSync: text,
-                });
-            }
-            return replaceSync.apply(this, [text]);
-        };
-    }
-    const supportedNestedCSSRuleTypes = {};
-    if (isCSSGroupingRuleSupported) {
-        supportedNestedCSSRuleTypes.CSSGroupingRule = win.CSSGroupingRule;
-    }
-    else {
-        if (isCSSMediaRuleSupported) {
-            supportedNestedCSSRuleTypes.CSSMediaRule = win.CSSMediaRule;
-        }
-        if (isCSSConditionRuleSupported) {
-            supportedNestedCSSRuleTypes.CSSConditionRule = win.CSSConditionRule;
-        }
-        if (isCSSSupportsRuleSupported) {
-            supportedNestedCSSRuleTypes.CSSSupportsRule = win.CSSSupportsRule;
-        }
-    }
-    const unmodifiedFunctions = {};
-    Object.entries(supportedNestedCSSRuleTypes).forEach(([typeKey, type]) => {
-        unmodifiedFunctions[typeKey] = {
-            insertRule: type.prototype.insertRule,
-            deleteRule: type.prototype.deleteRule,
-        };
-        type.prototype.insertRule = function (rule, index) {
-            const { id, styleId } = getIdAndStyleId(this.parentStyleSheet, mirror, stylesheetManager.styleMirror);
-            if ((id && id !== -1) || (styleId && styleId !== -1)) {
-                styleSheetRuleCb({
-                    id,
-                    styleId,
-                    adds: [
-                        {
-                            rule,
-                            index: [
-                                ...getNestedCSSRulePositions(this),
-                                index || 0,
-                            ],
-                        },
-                    ],
-                });
-            }
-            return unmodifiedFunctions[typeKey].insertRule.apply(this, [rule, index]);
-        };
-        type.prototype.deleteRule = function (index) {
-            const { id, styleId } = getIdAndStyleId(this.parentStyleSheet, mirror, stylesheetManager.styleMirror);
-            if ((id && id !== -1) || (styleId && styleId !== -1)) {
-                styleSheetRuleCb({
-                    id,
-                    styleId,
-                    removes: [
-                        { index: [...getNestedCSSRulePositions(this), index] },
-                    ],
-                });
-            }
-            return unmodifiedFunctions[typeKey].deleteRule.apply(this, [index]);
-        };
-    });
-    return () => {
-        win.CSSStyleSheet.prototype.insertRule = insertRule;
-        win.CSSStyleSheet.prototype.deleteRule = deleteRule;
-        replace && (win.CSSStyleSheet.prototype.replace = replace);
-        replaceSync && (win.CSSStyleSheet.prototype.replaceSync = replaceSync);
-        Object.entries(supportedNestedCSSRuleTypes).forEach(([typeKey, type]) => {
-            type.prototype.insertRule = unmodifiedFunctions[typeKey].insertRule;
-            type.prototype.deleteRule = unmodifiedFunctions[typeKey].deleteRule;
-        });
-    };
-}
-function initAdoptedStyleSheetObserver({ mirror, stylesheetManager, }, host) {
-    var _a, _b, _c;
-    let hostId = null;
-    if (host.nodeName === '#document')
-        hostId = mirror.getId(host);
-    else
-        hostId = mirror.getId(host.host);
-    const patchTarget = host.nodeName === '#document'
-        ? (_a = host.defaultView) === null || _a === void 0 ? void 0 : _a.Document
-        : (_c = (_b = host.ownerDocument) === null || _b === void 0 ? void 0 : _b.defaultView) === null || _c === void 0 ? void 0 : _c.ShadowRoot;
-    const originalPropertyDescriptor = Object.getOwnPropertyDescriptor(patchTarget === null || patchTarget === void 0 ? void 0 : patchTarget.prototype, 'adoptedStyleSheets');
-    if (hostId === null ||
-        hostId === -1 ||
-        !patchTarget ||
-        !originalPropertyDescriptor)
-        return () => {
-        };
-    Object.defineProperty(host, 'adoptedStyleSheets', {
-        configurable: originalPropertyDescriptor.configurable,
-        enumerable: originalPropertyDescriptor.enumerable,
-        get() {
-            var _a;
-            return (_a = originalPropertyDescriptor.get) === null || _a === void 0 ? void 0 : _a.call(this);
-        },
-        set(sheets) {
-            var _a;
-            const result = (_a = originalPropertyDescriptor.set) === null || _a === void 0 ? void 0 : _a.call(this, sheets);
-            if (hostId !== null && hostId !== -1) {
-                try {
-                    stylesheetManager.adoptStyleSheets(sheets, hostId);
-                }
-                catch (e) {
-                }
-            }
-            return result;
-        },
-    });
-    return () => {
-        Object.defineProperty(host, 'adoptedStyleSheets', {
-            configurable: originalPropertyDescriptor.configurable,
-            enumerable: originalPropertyDescriptor.enumerable,
-            get: originalPropertyDescriptor.get,
-            set: originalPropertyDescriptor.set,
-        });
-    };
-}
-function initStyleDeclarationObserver({ styleDeclarationCb, mirror, ignoreCSSAttributes, stylesheetManager, }, { win }) {
-    const setProperty = win.CSSStyleDeclaration.prototype.setProperty;
-    win.CSSStyleDeclaration.prototype.setProperty = function (property, value, priority) {
-        var _a;
-        if (ignoreCSSAttributes.has(property)) {
-            return setProperty.apply(this, [property, value, priority]);
-        }
-        const { id, styleId } = getIdAndStyleId((_a = this.parentRule) === null || _a === void 0 ? void 0 : _a.parentStyleSheet, mirror, stylesheetManager.styleMirror);
-        if ((id && id !== -1) || (styleId && styleId !== -1)) {
-            styleDeclarationCb({
-                id,
-                styleId,
-                set: {
-                    property,
-                    value,
-                    priority,
-                },
-                index: getNestedCSSRulePositions(this.parentRule),
-            });
-        }
-        return setProperty.apply(this, [property, value, priority]);
-    };
-    const removeProperty = win.CSSStyleDeclaration.prototype.removeProperty;
-    win.CSSStyleDeclaration.prototype.removeProperty = function (property) {
-        var _a;
-        if (ignoreCSSAttributes.has(property)) {
-            return removeProperty.apply(this, [property]);
-        }
-        const { id, styleId } = getIdAndStyleId((_a = this.parentRule) === null || _a === void 0 ? void 0 : _a.parentStyleSheet, mirror, stylesheetManager.styleMirror);
-        if ((id && id !== -1) || (styleId && styleId !== -1)) {
-            styleDeclarationCb({
-                id,
-                styleId,
-                remove: {
-                    property,
-                },
-                index: getNestedCSSRulePositions(this.parentRule),
-            });
-        }
-        return removeProperty.apply(this, [property]);
-    };
-    return () => {
-        win.CSSStyleDeclaration.prototype.setProperty = setProperty;
-        win.CSSStyleDeclaration.prototype.removeProperty = removeProperty;
-    };
-}
-function initMediaInteractionObserver({ mediaInteractionCb, blockClass, blockSelector, mirror, sampling, }) {
-    const handler = (type) => throttle((event) => {
-        const target = getEventTarget(event);
-        if (!target ||
-            isBlocked(target, blockClass, blockSelector, true)) {
-            return;
-        }
-        const { currentTime, volume, muted, playbackRate, } = target;
-        mediaInteractionCb({
-            type,
-            id: mirror.getId(target),
-            currentTime,
-            volume,
-            muted,
-            playbackRate,
-        });
-    }, sampling.media || 500);
-    const handlers = [
-        on('play', handler(0)),
-        on('pause', handler(1)),
-        on('seeked', handler(2)),
-        on('volumechange', handler(3)),
-        on('ratechange', handler(4)),
-    ];
-    return () => {
-        handlers.forEach((h) => h());
-    };
-}
-function initFontObserver({ fontCb, doc }) {
-    const win = doc.defaultView;
-    if (!win) {
-        return () => {
-        };
-    }
-    const handlers = [];
-    const fontMap = new WeakMap();
-    const originalFontFace = win.FontFace;
-    win.FontFace = function FontFace(family, source, descriptors) {
-        const fontFace = new originalFontFace(family, source, descriptors);
-        fontMap.set(fontFace, {
-            family,
-            buffer: typeof source !== 'string',
-            descriptors,
-            fontSource: typeof source === 'string'
-                ? source
-                : JSON.stringify(Array.from(new Uint8Array(source))),
-        });
-        return fontFace;
-    };
-    const restoreHandler = patch(doc.fonts, 'add', function (original) {
-        return function (fontFace) {
-            setTimeout(() => {
-                const p = fontMap.get(fontFace);
-                if (p) {
-                    fontCb(p);
-                    fontMap.delete(fontFace);
-                }
-            }, 0);
-            return original.apply(this, [fontFace]);
-        };
-    });
-    handlers.push(() => {
-        win.FontFace = originalFontFace;
-    });
-    handlers.push(restoreHandler);
-    return () => {
-        handlers.forEach((h) => h());
-    };
-}
-function initSelectionObserver(param) {
-    const { doc, mirror, blockClass, blockSelector, selectionCb } = param;
-    let collapsed = true;
-    const updateSelection = () => {
-        const selection = doc.getSelection();
-        if (!selection || (collapsed && (selection === null || selection === void 0 ? void 0 : selection.isCollapsed)))
-            return;
-        collapsed = selection.isCollapsed || false;
-        const ranges = [];
-        const count = selection.rangeCount || 0;
-        for (let i = 0; i < count; i++) {
-            const range = selection.getRangeAt(i);
-            const { startContainer, startOffset, endContainer, endOffset } = range;
-            const blocked = isBlocked(startContainer, blockClass, blockSelector, true) ||
-                isBlocked(endContainer, blockClass, blockSelector, true);
-            if (blocked)
-                continue;
-            ranges.push({
-                start: mirror.getId(startContainer),
-                startOffset,
-                end: mirror.getId(endContainer),
-                endOffset,
-            });
-        }
-        selectionCb({ ranges });
-    };
-    updateSelection();
-    return on('selectionchange', updateSelection);
-}
-function mergeHooks(o, hooks) {
-    const { mutationCb, mousemoveCb, mouseInteractionCb, scrollCb, viewportResizeCb, inputCb, mediaInteractionCb, styleSheetRuleCb, styleDeclarationCb, canvasMutationCb, fontCb, selectionCb, } = o;
-    o.mutationCb = (...p) => {
-        if (hooks.mutation) {
-            hooks.mutation(...p);
-        }
-        mutationCb(...p);
-    };
-    o.mousemoveCb = (...p) => {
-        if (hooks.mousemove) {
-            hooks.mousemove(...p);
-        }
-        mousemoveCb(...p);
-    };
-    o.mouseInteractionCb = (...p) => {
-        if (hooks.mouseInteraction) {
-            hooks.mouseInteraction(...p);
-        }
-        mouseInteractionCb(...p);
-    };
-    o.scrollCb = (...p) => {
-        if (hooks.scroll) {
-            hooks.scroll(...p);
-        }
-        scrollCb(...p);
-    };
-    o.viewportResizeCb = (...p) => {
-        if (hooks.viewportResize) {
-            hooks.viewportResize(...p);
-        }
-        viewportResizeCb(...p);
-    };
-    o.inputCb = (...p) => {
-        if (hooks.input) {
-            hooks.input(...p);
-        }
-        inputCb(...p);
-    };
-    o.mediaInteractionCb = (...p) => {
-        if (hooks.mediaInteaction) {
-            hooks.mediaInteaction(...p);
-        }
-        mediaInteractionCb(...p);
-    };
-    o.styleSheetRuleCb = (...p) => {
-        if (hooks.styleSheetRule) {
-            hooks.styleSheetRule(...p);
-        }
-        styleSheetRuleCb(...p);
-    };
-    o.styleDeclarationCb = (...p) => {
-        if (hooks.styleDeclaration) {
-            hooks.styleDeclaration(...p);
-        }
-        styleDeclarationCb(...p);
-    };
-    o.canvasMutationCb = (...p) => {
-        if (hooks.canvasMutation) {
-            hooks.canvasMutation(...p);
-        }
-        canvasMutationCb(...p);
-    };
-    o.fontCb = (...p) => {
-        if (hooks.font) {
-            hooks.font(...p);
-        }
-        fontCb(...p);
-    };
-    o.selectionCb = (...p) => {
-        if (hooks.selection) {
-            hooks.selection(...p);
-        }
-        selectionCb(...p);
-    };
-}
-function initObservers(o, hooks = {}) {
-    const currentWindow = o.doc.defaultView;
-    if (!currentWindow) {
-        return () => {
-        };
-    }
-    mergeHooks(o, hooks);
-    const mutationObserver = initMutationObserver(o, o.doc);
-    const mousemoveHandler = initMoveObserver(o);
-    const mouseInteractionHandler = initMouseInteractionObserver(o);
-    const scrollHandler = initScrollObserver(o);
-    const viewportResizeHandler = initViewportResizeObserver(o);
-    const inputHandler = initInputObserver(o);
-    const mediaInteractionHandler = initMediaInteractionObserver(o);
-    const styleSheetObserver = initStyleSheetObserver(o, { win: currentWindow });
-    const adoptedStyleSheetObserver = initAdoptedStyleSheetObserver(o, o.doc);
-    const styleDeclarationObserver = initStyleDeclarationObserver(o, {
-        win: currentWindow,
-    });
-    const fontObserver = o.collectFonts
-        ? initFontObserver(o)
-        : () => {
-        };
-    const selectionObserver = initSelectionObserver(o);
-    const pluginHandlers = [];
-    for (const plugin of o.plugins) {
-        pluginHandlers.push(plugin.observer(plugin.callback, currentWindow, plugin.options));
-    }
-    return () => {
-        mutationBuffers.forEach((b) => b.reset());
-        mutationObserver.disconnect();
-        mousemoveHandler();
-        mouseInteractionHandler();
-        scrollHandler();
-        viewportResizeHandler();
-        inputHandler();
-        mediaInteractionHandler();
-        styleSheetObserver();
-        adoptedStyleSheetObserver();
-        styleDeclarationObserver();
-        fontObserver();
-        selectionObserver();
-        pluginHandlers.forEach((h) => h());
-    };
-}
-
-class CrossOriginIframeMirror {
-    constructor(generateIdFn) {
-        this.generateIdFn = generateIdFn;
-        this.iframeIdToRemoteIdMap = new WeakMap();
-        this.iframeRemoteIdToIdMap = new WeakMap();
-    }
-    getId(iframe, remoteId, idToRemoteMap, remoteToIdMap) {
-        const idToRemoteIdMap = idToRemoteMap || this.getIdToRemoteIdMap(iframe);
-        const remoteIdToIdMap = remoteToIdMap || this.getRemoteIdToIdMap(iframe);
-        let id = idToRemoteIdMap.get(remoteId);
-        if (!id) {
-            id = this.generateIdFn();
-            idToRemoteIdMap.set(remoteId, id);
-            remoteIdToIdMap.set(id, remoteId);
-        }
-        return id;
-    }
-    getIds(iframe, remoteId) {
-        const idToRemoteIdMap = this.getIdToRemoteIdMap(iframe);
-        const remoteIdToIdMap = this.getRemoteIdToIdMap(iframe);
-        return remoteId.map((id) => this.getId(iframe, id, idToRemoteIdMap, remoteIdToIdMap));
-    }
-    getRemoteId(iframe, id, map) {
-        const remoteIdToIdMap = map || this.getRemoteIdToIdMap(iframe);
-        if (typeof id !== 'number')
-            return id;
-        const remoteId = remoteIdToIdMap.get(id);
-        if (!remoteId)
-            return -1;
-        return remoteId;
-    }
-    getRemoteIds(iframe, ids) {
-        const remoteIdToIdMap = this.getRemoteIdToIdMap(iframe);
-        return ids.map((id) => this.getRemoteId(iframe, id, remoteIdToIdMap));
-    }
-    reset(iframe) {
-        if (!iframe) {
-            this.iframeIdToRemoteIdMap = new WeakMap();
-            this.iframeRemoteIdToIdMap = new WeakMap();
-            return;
-        }
-        this.iframeIdToRemoteIdMap.delete(iframe);
-        this.iframeRemoteIdToIdMap.delete(iframe);
-    }
-    getIdToRemoteIdMap(iframe) {
-        let idToRemoteIdMap = this.iframeIdToRemoteIdMap.get(iframe);
-        if (!idToRemoteIdMap) {
-            idToRemoteIdMap = new Map();
-            this.iframeIdToRemoteIdMap.set(iframe, idToRemoteIdMap);
-        }
-        return idToRemoteIdMap;
-    }
-    getRemoteIdToIdMap(iframe) {
-        let remoteIdToIdMap = this.iframeRemoteIdToIdMap.get(iframe);
-        if (!remoteIdToIdMap) {
-            remoteIdToIdMap = new Map();
-            this.iframeRemoteIdToIdMap.set(iframe, remoteIdToIdMap);
-        }
-        return remoteIdToIdMap;
-    }
-}
-
-class IframeManager {
-    constructor(options) {
-        this.iframes = new WeakMap();
-        this.crossOriginIframeMap = new WeakMap();
-        this.crossOriginIframeMirror = new CrossOriginIframeMirror(genId);
-        this.mutationCb = options.mutationCb;
-        this.wrappedEmit = options.wrappedEmit;
-        this.stylesheetManager = options.stylesheetManager;
-        this.recordCrossOriginIframes = options.recordCrossOriginIframes;
-        this.crossOriginIframeStyleMirror = new CrossOriginIframeMirror(this.stylesheetManager.styleMirror.generateId.bind(this.stylesheetManager.styleMirror));
-        this.mirror = options.mirror;
-        if (this.recordCrossOriginIframes) {
-            window.addEventListener('message', this.handleMessage.bind(this));
-        }
-    }
-    addIframe(iframeEl) {
-        this.iframes.set(iframeEl, true);
-        if (iframeEl.contentWindow)
-            this.crossOriginIframeMap.set(iframeEl.contentWindow, iframeEl);
-    }
-    addLoadListener(cb) {
-        this.loadListener = cb;
-    }
-    attachIframe(iframeEl, childSn) {
-        var _a;
-        this.mutationCb({
-            adds: [
-                {
-                    parentId: this.mirror.getId(iframeEl),
-                    nextId: null,
-                    node: childSn,
-                },
-            ],
-            removes: [],
-            texts: [],
-            attributes: [],
-            isAttachIframe: true,
-        });
-        (_a = this.loadListener) === null || _a === void 0 ? void 0 : _a.call(this, iframeEl);
-        if (iframeEl.contentDocument &&
-            iframeEl.contentDocument.adoptedStyleSheets &&
-            iframeEl.contentDocument.adoptedStyleSheets.length > 0)
-            this.stylesheetManager.adoptStyleSheets(iframeEl.contentDocument.adoptedStyleSheets, this.mirror.getId(iframeEl.contentDocument));
-    }
-    handleMessage(message) {
-        if (message.data.type === 'rrweb') {
-            const iframeSourceWindow = message.source;
-            if (!iframeSourceWindow)
-                return;
-            const iframeEl = this.crossOriginIframeMap.get(message.source);
-            if (!iframeEl)
-                return;
-            const transformedEvent = this.transformCrossOriginEvent(iframeEl, message.data.event);
-            if (transformedEvent)
-                this.wrappedEmit(transformedEvent, message.data.isCheckout);
-        }
-    }
-    transformCrossOriginEvent(iframeEl, e) {
-        var _a;
-        switch (e.type) {
-            case EventType.FullSnapshot: {
-                this.crossOriginIframeMirror.reset(iframeEl);
-                this.crossOriginIframeStyleMirror.reset(iframeEl);
-                this.replaceIdOnNode(e.data.node, iframeEl);
-                return {
-                    timestamp: e.timestamp,
-                    type: EventType.IncrementalSnapshot,
-                    data: {
-                        source: IncrementalSource.Mutation,
-                        adds: [
-                            {
-                                parentId: this.mirror.getId(iframeEl),
-                                nextId: null,
-                                node: e.data.node,
-                            },
-                        ],
-                        removes: [],
-                        texts: [],
-                        attributes: [],
-                        isAttachIframe: true,
-                    },
-                };
-            }
-            case EventType.Meta:
-            case EventType.Load:
-            case EventType.DomContentLoaded: {
-                return false;
-            }
-            case EventType.Plugin: {
-                return e;
-            }
-            case EventType.Custom: {
-                this.replaceIds(e.data.payload, iframeEl, ['id', 'parentId', 'previousId', 'nextId']);
-                return e;
-            }
-            case EventType.IncrementalSnapshot: {
-                switch (e.data.source) {
-                    case IncrementalSource.Mutation: {
-                        e.data.adds.forEach((n) => {
-                            this.replaceIds(n, iframeEl, [
-                                'parentId',
-                                'nextId',
-                                'previousId',
-                            ]);
-                            this.replaceIdOnNode(n.node, iframeEl);
-                        });
-                        e.data.removes.forEach((n) => {
-                            this.replaceIds(n, iframeEl, ['parentId', 'id']);
-                        });
-                        e.data.attributes.forEach((n) => {
-                            this.replaceIds(n, iframeEl, ['id']);
-                        });
-                        e.data.texts.forEach((n) => {
-                            this.replaceIds(n, iframeEl, ['id']);
-                        });
-                        return e;
-                    }
-                    case IncrementalSource.Drag:
-                    case IncrementalSource.TouchMove:
-                    case IncrementalSource.MouseMove: {
-                        e.data.positions.forEach((p) => {
-                            this.replaceIds(p, iframeEl, ['id']);
-                        });
-                        return e;
-                    }
-                    case IncrementalSource.ViewportResize: {
-                        return false;
-                    }
-                    case IncrementalSource.MediaInteraction:
-                    case IncrementalSource.MouseInteraction:
-                    case IncrementalSource.Scroll:
-                    case IncrementalSource.CanvasMutation:
-                    case IncrementalSource.Input: {
-                        this.replaceIds(e.data, iframeEl, ['id']);
-                        return e;
-                    }
-                    case IncrementalSource.StyleSheetRule:
-                    case IncrementalSource.StyleDeclaration: {
-                        this.replaceIds(e.data, iframeEl, ['id']);
-                        this.replaceStyleIds(e.data, iframeEl, ['styleId']);
-                        return e;
-                    }
-                    case IncrementalSource.Font: {
-                        return e;
-                    }
-                    case IncrementalSource.Selection: {
-                        e.data.ranges.forEach((range) => {
-                            this.replaceIds(range, iframeEl, ['start', 'end']);
-                        });
-                        return e;
-                    }
-                    case IncrementalSource.AdoptedStyleSheet: {
-                        this.replaceIds(e.data, iframeEl, ['id']);
-                        this.replaceStyleIds(e.data, iframeEl, ['styleIds']);
-                        (_a = e.data.styles) === null || _a === void 0 ? void 0 : _a.forEach((style) => {
-                            this.replaceStyleIds(style, iframeEl, ['styleId']);
-                        });
-                        return e;
-                    }
-                }
-            }
-        }
-    }
-    replace(iframeMirror, obj, iframeEl, keys) {
-        for (const key of keys) {
-            if (!Array.isArray(obj[key]) && typeof obj[key] !== 'number')
-                continue;
-            if (Array.isArray(obj[key])) {
-                obj[key] = iframeMirror.getIds(iframeEl, obj[key]);
-            }
-            else {
-                obj[key] = iframeMirror.getId(iframeEl, obj[key]);
-            }
-        }
-        return obj;
-    }
-    replaceIds(obj, iframeEl, keys) {
-        return this.replace(this.crossOriginIframeMirror, obj, iframeEl, keys);
-    }
-    replaceStyleIds(obj, iframeEl, keys) {
-        return this.replace(this.crossOriginIframeStyleMirror, obj, iframeEl, keys);
-    }
-    replaceIdOnNode(node, iframeEl) {
-        this.replaceIds(node, iframeEl, ['id']);
-        if ('childNodes' in node) {
-            node.childNodes.forEach((child) => {
-                this.replaceIdOnNode(child, iframeEl);
-            });
-        }
-    }
-}
-
-class ShadowDomManager {
-    constructor(options) {
-        this.shadowDoms = new WeakSet();
-        this.restorePatches = [];
-        this.mutationCb = options.mutationCb;
-        this.scrollCb = options.scrollCb;
-        this.bypassOptions = options.bypassOptions;
-        this.mirror = options.mirror;
-        const manager = this;
-        this.restorePatches.push(patch(Element.prototype, 'attachShadow', function (original) {
-            return function (option) {
-                const shadowRoot = original.call(this, option);
-                if (this.shadowRoot)
-                    manager.addShadowRoot(this.shadowRoot, this.ownerDocument);
-                return shadowRoot;
-            };
-        }));
-    }
-    addShadowRoot(shadowRoot, doc) {
-        if (!isNativeShadowDom(shadowRoot))
-            return;
-        if (this.shadowDoms.has(shadowRoot))
-            return;
-        this.shadowDoms.add(shadowRoot);
-        initMutationObserver(Object.assign(Object.assign({}, this.bypassOptions), { doc, mutationCb: this.mutationCb, mirror: this.mirror, shadowDomManager: this }), shadowRoot);
-        initScrollObserver(Object.assign(Object.assign({}, this.bypassOptions), { scrollCb: this.scrollCb, doc: shadowRoot, mirror: this.mirror }));
-        setTimeout(() => {
-            if (shadowRoot.adoptedStyleSheets &&
-                shadowRoot.adoptedStyleSheets.length > 0)
-                this.bypassOptions.stylesheetManager.adoptStyleSheets(shadowRoot.adoptedStyleSheets, this.mirror.getId(shadowRoot.host));
-            initAdoptedStyleSheetObserver({
-                mirror: this.mirror,
-                stylesheetManager: this.bypassOptions.stylesheetManager,
-            }, shadowRoot);
-        }, 0);
-    }
-    observeAttachShadow(iframeElement) {
-        if (iframeElement.contentWindow) {
-            const manager = this;
-            this.restorePatches.push(patch(iframeElement.contentWindow.HTMLElement.prototype, 'attachShadow', function (original) {
-                return function (option) {
-                    const shadowRoot = original.call(this, option);
-                    if (this.shadowRoot)
-                        manager.addShadowRoot(this.shadowRoot, iframeElement.contentDocument);
-                    return shadowRoot;
-                };
-            }));
-        }
-    }
-    reset() {
-        this.restorePatches.forEach((restorePatch) => restorePatch());
-        this.shadowDoms = new WeakSet();
-    }
-}
-
-/*! *****************************************************************************
-Copyright (c) Microsoft Corporation.
-
-Permission to use, copy, modify, and/or distribute this software for any
-purpose with or without fee is hereby granted.
-
-THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
-REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
-AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
-INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
-LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
-OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
-PERFORMANCE OF THIS SOFTWARE.
-***************************************************************************** */
-
-function __rest(s, e) {
-    var t = {};
-    for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0)
-        t[p] = s[p];
-    if (s != null && typeof Object.getOwnPropertySymbols === "function")
-        for (var i = 0, p = Object.getOwnPropertySymbols(s); i < p.length; i++) {
-            if (e.indexOf(p[i]) < 0 && Object.prototype.propertyIsEnumerable.call(s, p[i]))
-                t[p[i]] = s[p[i]];
-        }
-    return t;
-}
-
-function __awaiter(thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-}
-
-/*
- * base64-arraybuffer 1.0.1 <https://github.com/niklasvh/base64-arraybuffer>
- * Copyright (c) 2021 Niklas von Hertzen <https://hertzen.com>
- * Released under MIT License
+/**
+ * 获取唯一 ID
  */
-var chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
-// Use a lookup table to find the index.
-var lookup = typeof Uint8Array === 'undefined' ? [] : new Uint8Array(256);
-for (var i = 0; i < chars.length; i++) {
-    lookup[chars.charCodeAt(i)] = i;
+function genRandomUUID() {
+  var _crypto;
+  return (_crypto = crypto) !== null && _crypto !== void 0 && _crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
 }
-var encode = function (arraybuffer) {
-    var bytes = new Uint8Array(arraybuffer), i, len = bytes.length, base64 = '';
-    for (i = 0; i < len; i += 3) {
-        base64 += chars[bytes[i] >> 2];
-        base64 += chars[((bytes[i] & 3) << 4) | (bytes[i + 1] >> 4)];
-        base64 += chars[((bytes[i + 1] & 15) << 2) | (bytes[i + 2] >> 6)];
-        base64 += chars[bytes[i + 2] & 63];
-    }
-    if (len % 3 === 2) {
-        base64 = base64.substring(0, base64.length - 1) + '=';
-    }
-    else if (len % 3 === 1) {
-        base64 = base64.substring(0, base64.length - 2) + '==';
-    }
-    return base64;
-};
 
-const canvasVarMap = new Map();
-function variableListFor(ctx, ctor) {
-    let contextMap = canvasVarMap.get(ctx);
-    if (!contextMap) {
-        contextMap = new Map();
-        canvasVarMap.set(ctx, contextMap);
-    }
-    if (!contextMap.has(ctor)) {
-        contextMap.set(ctor, []);
-    }
-    return contextMap.get(ctor);
-}
-const saveWebGLVar = (value, win, ctx) => {
-    if (!value ||
-        !(isInstanceOfWebGLObject(value, win) || typeof value === 'object'))
-        return;
-    const name = value.constructor.name;
-    const list = variableListFor(ctx, name);
-    let index = list.indexOf(value);
-    if (index === -1) {
-        index = list.length;
-        list.push(value);
-    }
-    return index;
-};
-function serializeArg(value, win, ctx) {
-    if (value instanceof Array) {
-        return value.map((arg) => serializeArg(arg, win, ctx));
-    }
-    else if (value === null) {
-        return value;
-    }
-    else if (value instanceof Float32Array ||
-        value instanceof Float64Array ||
-        value instanceof Int32Array ||
-        value instanceof Uint32Array ||
-        value instanceof Uint8Array ||
-        value instanceof Uint16Array ||
-        value instanceof Int16Array ||
-        value instanceof Int8Array ||
-        value instanceof Uint8ClampedArray) {
-        const name = value.constructor.name;
-        return {
-            rr_type: name,
-            args: [Object.values(value)],
-        };
-    }
-    else if (value instanceof ArrayBuffer) {
-        const name = value.constructor.name;
-        const base64 = encode(value);
-        return {
-            rr_type: name,
-            base64,
-        };
-    }
-    else if (value instanceof DataView) {
-        const name = value.constructor.name;
-        return {
-            rr_type: name,
-            args: [
-                serializeArg(value.buffer, win, ctx),
-                value.byteOffset,
-                value.byteLength,
-            ],
-        };
-    }
-    else if (value instanceof HTMLImageElement) {
-        const name = value.constructor.name;
-        const { src } = value;
-        return {
-            rr_type: name,
-            src,
-        };
-    }
-    else if (value instanceof HTMLCanvasElement) {
-        const name = 'HTMLImageElement';
-        const src = value.toDataURL();
-        return {
-            rr_type: name,
-            src,
-        };
-    }
-    else if (value instanceof ImageData) {
-        const name = value.constructor.name;
-        return {
-            rr_type: name,
-            args: [serializeArg(value.data, win, ctx), value.width, value.height],
-        };
-    }
-    else if (isInstanceOfWebGLObject(value, win) || typeof value === 'object') {
-        const name = value.constructor.name;
-        const index = saveWebGLVar(value, win, ctx);
-        return {
-            rr_type: name,
-            index: index,
-        };
-    }
-    return value;
-}
-const serializeArgs = (args, win, ctx) => {
-    return [...args].map((arg) => serializeArg(arg, win, ctx));
-};
-const isInstanceOfWebGLObject = (value, win) => {
-    const webGLConstructorNames = [
-        'WebGLActiveInfo',
-        'WebGLBuffer',
-        'WebGLFramebuffer',
-        'WebGLProgram',
-        'WebGLRenderbuffer',
-        'WebGLShader',
-        'WebGLShaderPrecisionFormat',
-        'WebGLTexture',
-        'WebGLUniformLocation',
-        'WebGLVertexArrayObject',
-        'WebGLVertexArrayObjectOES',
-    ];
-    const supportedWebGLConstructorNames = webGLConstructorNames.filter((name) => typeof win[name] === 'function');
-    return Boolean(supportedWebGLConstructorNames.find((name) => value instanceof win[name]));
-};
+var UserBehaviorPlugin = /*#__PURE__*/function () {
+  function UserBehaviorPlugin() {
+    _classCallCheck(this, UserBehaviorPlugin);
+    _defineProperty(this, "name", 'userBehavior');
+    _defineProperty(this, "sdk", null);
+    _defineProperty(this, "enterTime", Date.now());
+    _defineProperty(this, "from", location.href);
+    _defineProperty(this, "hashEnterTime", 0);
+  }
+  return _createClass(UserBehaviorPlugin, [{
+    key: "install",
+    value: function install(sdk) {
+      this.sdk = sdk;
+      /**
+       * MDN：https://developer.mozilla.org/zh-CN/docs/Web/API/Window/popstate_event
+       * 备注：
+       *  popstate 事件在调用浏览器的前进、后退以及执行 history.forward、history.back、和 history.go 触发。
+       *  即，在同一文档的两个历史记录条目之间导航会触发该事件。
+       *  调用 history.pushState() 或者 history.replaceState() 不会触发 popstate 事件。
+       */
+      this.patchHistoryApi();
+      // 页面停留时长监控
+      {
+        document.addEventListener('visibilitychange', this.trackPageStayTime.bind(this), true);
+      }
 
-function initCanvas2DMutationObserver(cb, win, blockClass, blockSelector) {
-    const handlers = [];
-    const props2D = Object.getOwnPropertyNames(win.CanvasRenderingContext2D.prototype);
-    for (const prop of props2D) {
-        try {
-            if (typeof win.CanvasRenderingContext2D.prototype[prop] !== 'function') {
-                continue;
-            }
-            const restoreHandler = patch(win.CanvasRenderingContext2D.prototype, prop, function (original) {
-                return function (...args) {
-                    if (!isBlocked(this.canvas, blockClass, blockSelector, true)) {
-                        setTimeout(() => {
-                            const recordArgs = serializeArgs([...args], win, this);
-                            cb(this.canvas, {
-                                type: CanvasContext['2D'],
-                                property: prop,
-                                args: recordArgs,
-                            });
-                        }, 0);
-                    }
-                    return original.apply(this, args);
-                };
-            });
-            handlers.push(restoreHandler);
+      // 处理用户点击事件
+      {
+        document.addEventListener('click', this.trackClickBehavior.bind(this), true);
+      }
+
+      // 处理用户输入事件
+      {
+        document.addEventListener('input', this.trackInputBehavior.bind(this), true);
+      }
+
+      // 处理页面卸载事件
+      {
+        window.addEventListener("unload", this.trackPageUnload.bind(this), true);
+      }
+
+      // 处理页面路由变化事件
+      {
+        // 浏览器前进后退触发
+        window.addEventListener('popstate', this.trackRouteChange.bind(this, "popstate"), true);
+      }
+
+      // 处理页面 hash 变化
+      {
+        window.addEventListener('hashchange', this.trackHashChange.bind(this), true);
+      }
+    }
+
+    // 移除事件监听
+  }, {
+    key: "uninstall",
+    value: function uninstall() {
+      document.removeEventListener("visibilitychange", this.trackPageStayTime.bind(this), true);
+      document.removeEventListener('click', this.trackClickBehavior.bind(this, sdk), true);
+      document.removeEventListener('input', this.trackInputBehavior.bind(this, sdk), true);
+    }
+  }, {
+    key: "patchHistoryApi",
+    value: function patchHistoryApi() {
+      var self = this;
+      var originPushState = history.pushState;
+      var originReplaceState = history.replaceState;
+      history.pushState = function () {
+        for (var _len = arguments.length, args = new Array(_len), _key = 0; _key < _len; _key++) {
+          args[_key] = arguments[_key];
         }
-        catch (_a) {
-            const hookHandler = hookSetter(win.CanvasRenderingContext2D.prototype, prop, {
-                set(v) {
-                    cb(this.canvas, {
-                        type: CanvasContext['2D'],
-                        property: prop,
-                        args: [v],
-                        setter: true,
-                    });
-                },
-            });
-            handlers.push(hookHandler);
+        originPushState.apply(history, args);
+        self.trackRouteChange('pushState');
+      };
+      history.replaceState = function () {
+        for (var _len2 = arguments.length, args = new Array(_len2), _key2 = 0; _key2 < _len2; _key2++) {
+          args[_key2] = arguments[_key2];
         }
+        originReplaceState.apply(history, args);
+        self.trackRouteChange('replaceState');
+      };
     }
-    return () => {
-        handlers.forEach((h) => h());
-    };
-}
-
-function initCanvasContextObserver(win, blockClass, blockSelector) {
-    const handlers = [];
-    try {
-        const restoreHandler = patch(win.HTMLCanvasElement.prototype, 'getContext', function (original) {
-            return function (contextType, ...args) {
-                if (!isBlocked(this, blockClass, blockSelector, true)) {
-                    if (!('__context' in this))
-                        this.__context = contextType;
-                }
-                return original.apply(this, [contextType, ...args]);
-            };
+  }, {
+    key: "trackPageStayTime",
+    value: function trackPageStayTime() {
+      if (document.visibilityState === 'hidden') {
+        var stayTime = Date.now() - this.enterTime;
+        this.sdk.capture('userAction', {
+          id: genRandomUUID(),
+          type: 'pageStay',
+          stayTime: stayTime
         });
-        handlers.push(restoreHandler);
-    }
-    catch (_a) {
-        console.error('failed to patch HTMLCanvasElement.prototype.getContext');
-    }
-    return () => {
-        handlers.forEach((h) => h());
-    };
-}
-
-function patchGLPrototype(prototype, type, cb, blockClass, blockSelector, mirror, win) {
-    const handlers = [];
-    const props = Object.getOwnPropertyNames(prototype);
-    for (const prop of props) {
-        if ([
-            'isContextLost',
-            'canvas',
-            'drawingBufferWidth',
-            'drawingBufferHeight',
-        ].includes(prop)) {
-            continue;
-        }
-        try {
-            if (typeof prototype[prop] !== 'function') {
-                continue;
-            }
-            const restoreHandler = patch(prototype, prop, function (original) {
-                return function (...args) {
-                    const result = original.apply(this, args);
-                    saveWebGLVar(result, win, this);
-                    if (!isBlocked(this.canvas, blockClass, blockSelector, true)) {
-                        const recordArgs = serializeArgs([...args], win, this);
-                        const mutation = {
-                            type,
-                            property: prop,
-                            args: recordArgs,
-                        };
-                        cb(this.canvas, mutation);
-                    }
-                    return result;
-                };
-            });
-            handlers.push(restoreHandler);
-        }
-        catch (_a) {
-            const hookHandler = hookSetter(prototype, prop, {
-                set(v) {
-                    cb(this.canvas, {
-                        type,
-                        property: prop,
-                        args: [v],
-                        setter: true,
-                    });
-                },
-            });
-            handlers.push(hookHandler);
-        }
-    }
-    return handlers;
-}
-function initCanvasWebGLMutationObserver(cb, win, blockClass, blockSelector, mirror) {
-    const handlers = [];
-    handlers.push(...patchGLPrototype(win.WebGLRenderingContext.prototype, CanvasContext.WebGL, cb, blockClass, blockSelector, mirror, win));
-    if (typeof win.WebGL2RenderingContext !== 'undefined') {
-        handlers.push(...patchGLPrototype(win.WebGL2RenderingContext.prototype, CanvasContext.WebGL2, cb, blockClass, blockSelector, mirror, win));
-    }
-    return () => {
-        handlers.forEach((h) => h());
-    };
-}
-
-var WorkerClass = null;
-
-try {
-    var WorkerThreads =
-        typeof module !== 'undefined' && typeof module.require === 'function' && module.require('worker_threads') ||
-        typeof __non_webpack_require__ === 'function' && __non_webpack_require__('worker_threads') ||
-        typeof require === 'function' && require('worker_threads');
-    WorkerClass = WorkerThreads.Worker;
-} catch(e) {} // eslint-disable-line
-
-function decodeBase64$1(base64, enableUnicode) {
-    return Buffer.from(base64, 'base64').toString(enableUnicode ? 'utf16' : 'utf8');
-}
-
-function createBase64WorkerFactory$2(base64, sourcemapArg, enableUnicodeArg) {
-    var sourcemap = sourcemapArg === undefined ? null : sourcemapArg;
-    var enableUnicode = enableUnicodeArg === undefined ? false : enableUnicodeArg;
-    var source = decodeBase64$1(base64, enableUnicode);
-    var start = source.indexOf('\n', 10) + 1;
-    var body = source.substring(start) + (sourcemap ? '\/\/# sourceMappingURL=' + sourcemap : '');
-    return function WorkerFactory(options) {
-        return new WorkerClass(body, Object.assign({}, options, { eval: true }));
-    };
-}
-
-function decodeBase64(base64, enableUnicode) {
-    var binaryString = atob(base64);
-    if (enableUnicode) {
-        var binaryView = new Uint8Array(binaryString.length);
-        for (var i = 0, n = binaryString.length; i < n; ++i) {
-            binaryView[i] = binaryString.charCodeAt(i);
-        }
-        return String.fromCharCode.apply(null, new Uint16Array(binaryView.buffer));
-    }
-    return binaryString;
-}
-
-function createURL(base64, sourcemapArg, enableUnicodeArg) {
-    var sourcemap = sourcemapArg === undefined ? null : sourcemapArg;
-    var enableUnicode = enableUnicodeArg === undefined ? false : enableUnicodeArg;
-    var source = decodeBase64(base64, enableUnicode);
-    var start = source.indexOf('\n', 10) + 1;
-    var body = source.substring(start) + (sourcemap ? '\/\/# sourceMappingURL=' + sourcemap : '');
-    var blob = new Blob([body], { type: 'application/javascript' });
-    return URL.createObjectURL(blob);
-}
-
-function createBase64WorkerFactory$1(base64, sourcemapArg, enableUnicodeArg) {
-    var url;
-    return function WorkerFactory(options) {
-        url = url || createURL(base64, sourcemapArg, enableUnicodeArg);
-        return new Worker(url, options);
-    };
-}
-
-var kIsNodeJS = Object.prototype.toString.call(typeof process !== 'undefined' ? process : 0) === '[object process]';
-
-function isNodeJS() {
-    return kIsNodeJS;
-}
-
-function createBase64WorkerFactory(base64, sourcemapArg, enableUnicodeArg) {
-    if (isNodeJS()) {
-        return createBase64WorkerFactory$2(base64, sourcemapArg, enableUnicodeArg);
-    }
-    return createBase64WorkerFactory$1(base64, sourcemapArg, enableUnicodeArg);
-}
-
-var WorkerFactory = createBase64WorkerFactory('Lyogcm9sbHVwLXBsdWdpbi13ZWItd29ya2VyLWxvYWRlciAqLwooZnVuY3Rpb24gKCkgewogICAgJ3VzZSBzdHJpY3QnOwoKICAgIC8qISAqKioqKioqKioqKioqKioqKioqKioqKioqKioqKioqKioqKioqKioqKioqKioqKioqKioqKioqKioqKioqKioqKioqKioqKioqKioqKg0KICAgIENvcHlyaWdodCAoYykgTWljcm9zb2Z0IENvcnBvcmF0aW9uLg0KDQogICAgUGVybWlzc2lvbiB0byB1c2UsIGNvcHksIG1vZGlmeSwgYW5kL29yIGRpc3RyaWJ1dGUgdGhpcyBzb2Z0d2FyZSBmb3IgYW55DQogICAgcHVycG9zZSB3aXRoIG9yIHdpdGhvdXQgZmVlIGlzIGhlcmVieSBncmFudGVkLg0KDQogICAgVEhFIFNPRlRXQVJFIElTIFBST1ZJREVEICJBUyBJUyIgQU5EIFRIRSBBVVRIT1IgRElTQ0xBSU1TIEFMTCBXQVJSQU5USUVTIFdJVEgNCiAgICBSRUdBUkQgVE8gVEhJUyBTT0ZUV0FSRSBJTkNMVURJTkcgQUxMIElNUExJRUQgV0FSUkFOVElFUyBPRiBNRVJDSEFOVEFCSUxJVFkNCiAgICBBTkQgRklUTkVTUy4gSU4gTk8gRVZFTlQgU0hBTEwgVEhFIEFVVEhPUiBCRSBMSUFCTEUgRk9SIEFOWSBTUEVDSUFMLCBESVJFQ1QsDQogICAgSU5ESVJFQ1QsIE9SIENPTlNFUVVFTlRJQUwgREFNQUdFUyBPUiBBTlkgREFNQUdFUyBXSEFUU09FVkVSIFJFU1VMVElORyBGUk9NDQogICAgTE9TUyBPRiBVU0UsIERBVEEgT1IgUFJPRklUUywgV0hFVEhFUiBJTiBBTiBBQ1RJT04gT0YgQ09OVFJBQ1QsIE5FR0xJR0VOQ0UgT1INCiAgICBPVEhFUiBUT1JUSU9VUyBBQ1RJT04sIEFSSVNJTkcgT1VUIE9GIE9SIElOIENPTk5FQ1RJT04gV0lUSCBUSEUgVVNFIE9SDQogICAgUEVSRk9STUFOQ0UgT0YgVEhJUyBTT0ZUV0FSRS4NCiAgICAqKioqKioqKioqKioqKioqKioqKioqKioqKioqKioqKioqKioqKioqKioqKioqKioqKioqKioqKioqKioqKioqKioqKioqKioqKioqKiAqLw0KDQogICAgZnVuY3Rpb24gX19hd2FpdGVyKHRoaXNBcmcsIF9hcmd1bWVudHMsIFAsIGdlbmVyYXRvcikgew0KICAgICAgICBmdW5jdGlvbiBhZG9wdCh2YWx1ZSkgeyByZXR1cm4gdmFsdWUgaW5zdGFuY2VvZiBQID8gdmFsdWUgOiBuZXcgUChmdW5jdGlvbiAocmVzb2x2ZSkgeyByZXNvbHZlKHZhbHVlKTsgfSk7IH0NCiAgICAgICAgcmV0dXJuIG5ldyAoUCB8fCAoUCA9IFByb21pc2UpKShmdW5jdGlvbiAocmVzb2x2ZSwgcmVqZWN0KSB7DQogICAgICAgICAgICBmdW5jdGlvbiBmdWxmaWxsZWQodmFsdWUpIHsgdHJ5IHsgc3RlcChnZW5lcmF0b3IubmV4dCh2YWx1ZSkpOyB9IGNhdGNoIChlKSB7IHJlamVjdChlKTsgfSB9DQogICAgICAgICAgICBmdW5jdGlvbiByZWplY3RlZCh2YWx1ZSkgeyB0cnkgeyBzdGVwKGdlbmVyYXRvclsidGhyb3ciXSh2YWx1ZSkpOyB9IGNhdGNoIChlKSB7IHJlamVjdChlKTsgfSB9DQogICAgICAgICAgICBmdW5jdGlvbiBzdGVwKHJlc3VsdCkgeyByZXN1bHQuZG9uZSA/IHJlc29sdmUocmVzdWx0LnZhbHVlKSA6IGFkb3B0KHJlc3VsdC52YWx1ZSkudGhlbihmdWxmaWxsZWQsIHJlamVjdGVkKTsgfQ0KICAgICAgICAgICAgc3RlcCgoZ2VuZXJhdG9yID0gZ2VuZXJhdG9yLmFwcGx5KHRoaXNBcmcsIF9hcmd1bWVudHMgfHwgW10pKS5uZXh0KCkpOw0KICAgICAgICB9KTsNCiAgICB9CgogICAgLyoKICAgICAqIGJhc2U2NC1hcnJheWJ1ZmZlciAxLjAuMSA8aHR0cHM6Ly9naXRodWIuY29tL25pa2xhc3ZoL2Jhc2U2NC1hcnJheWJ1ZmZlcj4KICAgICAqIENvcHlyaWdodCAoYykgMjAyMSBOaWtsYXMgdm9uIEhlcnR6ZW4gPGh0dHBzOi8vaGVydHplbi5jb20+CiAgICAgKiBSZWxlYXNlZCB1bmRlciBNSVQgTGljZW5zZQogICAgICovCiAgICB2YXIgY2hhcnMgPSAnQUJDREVGR0hJSktMTU5PUFFSU1RVVldYWVphYmNkZWZnaGlqa2xtbm9wcXJzdHV2d3h5ejAxMjM0NTY3ODkrLyc7CiAgICAvLyBVc2UgYSBsb29rdXAgdGFibGUgdG8gZmluZCB0aGUgaW5kZXguCiAgICB2YXIgbG9va3VwID0gdHlwZW9mIFVpbnQ4QXJyYXkgPT09ICd1bmRlZmluZWQnID8gW10gOiBuZXcgVWludDhBcnJheSgyNTYpOwogICAgZm9yICh2YXIgaSA9IDA7IGkgPCBjaGFycy5sZW5ndGg7IGkrKykgewogICAgICAgIGxvb2t1cFtjaGFycy5jaGFyQ29kZUF0KGkpXSA9IGk7CiAgICB9CiAgICB2YXIgZW5jb2RlID0gZnVuY3Rpb24gKGFycmF5YnVmZmVyKSB7CiAgICAgICAgdmFyIGJ5dGVzID0gbmV3IFVpbnQ4QXJyYXkoYXJyYXlidWZmZXIpLCBpLCBsZW4gPSBieXRlcy5sZW5ndGgsIGJhc2U2NCA9ICcnOwogICAgICAgIGZvciAoaSA9IDA7IGkgPCBsZW47IGkgKz0gMykgewogICAgICAgICAgICBiYXNlNjQgKz0gY2hhcnNbYnl0ZXNbaV0gPj4gMl07CiAgICAgICAgICAgIGJhc2U2NCArPSBjaGFyc1soKGJ5dGVzW2ldICYgMykgPDwgNCkgfCAoYnl0ZXNbaSArIDFdID4+IDQpXTsKICAgICAgICAgICAgYmFzZTY0ICs9IGNoYXJzWygoYnl0ZXNbaSArIDFdICYgMTUpIDw8IDIpIHwgKGJ5dGVzW2kgKyAyXSA+PiA2KV07CiAgICAgICAgICAgIGJhc2U2NCArPSBjaGFyc1tieXRlc1tpICsgMl0gJiA2M107CiAgICAgICAgfQogICAgICAgIGlmIChsZW4gJSAzID09PSAyKSB7CiAgICAgICAgICAgIGJhc2U2NCA9IGJhc2U2NC5zdWJzdHJpbmcoMCwgYmFzZTY0Lmxlbmd0aCAtIDEpICsgJz0nOwogICAgICAgIH0KICAgICAgICBlbHNlIGlmIChsZW4gJSAzID09PSAxKSB7CiAgICAgICAgICAgIGJhc2U2NCA9IGJhc2U2NC5zdWJzdHJpbmcoMCwgYmFzZTY0Lmxlbmd0aCAtIDIpICsgJz09JzsKICAgICAgICB9CiAgICAgICAgcmV0dXJuIGJhc2U2NDsKICAgIH07CgogICAgY29uc3QgbGFzdEJsb2JNYXAgPSBuZXcgTWFwKCk7DQogICAgY29uc3QgdHJhbnNwYXJlbnRCbG9iTWFwID0gbmV3IE1hcCgpOw0KICAgIGZ1bmN0aW9uIGdldFRyYW5zcGFyZW50QmxvYkZvcih3aWR0aCwgaGVpZ2h0LCBkYXRhVVJMT3B0aW9ucykgew0KICAgICAgICByZXR1cm4gX19hd2FpdGVyKHRoaXMsIHZvaWQgMCwgdm9pZCAwLCBmdW5jdGlvbiogKCkgew0KICAgICAgICAgICAgY29uc3QgaWQgPSBgJHt3aWR0aH0tJHtoZWlnaHR9YDsNCiAgICAgICAgICAgIGlmICgnT2Zmc2NyZWVuQ2FudmFzJyBpbiBnbG9iYWxUaGlzKSB7DQogICAgICAgICAgICAgICAgaWYgKHRyYW5zcGFyZW50QmxvYk1hcC5oYXMoaWQpKQ0KICAgICAgICAgICAgICAgICAgICByZXR1cm4gdHJhbnNwYXJlbnRCbG9iTWFwLmdldChpZCk7DQogICAgICAgICAgICAgICAgY29uc3Qgb2Zmc2NyZWVuID0gbmV3IE9mZnNjcmVlbkNhbnZhcyh3aWR0aCwgaGVpZ2h0KTsNCiAgICAgICAgICAgICAgICBvZmZzY3JlZW4uZ2V0Q29udGV4dCgnMmQnKTsNCiAgICAgICAgICAgICAgICBjb25zdCBibG9iID0geWllbGQgb2Zmc2NyZWVuLmNvbnZlcnRUb0Jsb2IoZGF0YVVSTE9wdGlvbnMpOw0KICAgICAgICAgICAgICAgIGNvbnN0IGFycmF5QnVmZmVyID0geWllbGQgYmxvYi5hcnJheUJ1ZmZlcigpOw0KICAgICAgICAgICAgICAgIGNvbnN0IGJhc2U2NCA9IGVuY29kZShhcnJheUJ1ZmZlcik7DQogICAgICAgICAgICAgICAgdHJhbnNwYXJlbnRCbG9iTWFwLnNldChpZCwgYmFzZTY0KTsNCiAgICAgICAgICAgICAgICByZXR1cm4gYmFzZTY0Ow0KICAgICAgICAgICAgfQ0KICAgICAgICAgICAgZWxzZSB7DQogICAgICAgICAgICAgICAgcmV0dXJuICcnOw0KICAgICAgICAgICAgfQ0KICAgICAgICB9KTsNCiAgICB9DQogICAgY29uc3Qgd29ya2VyID0gc2VsZjsNCiAgICB3b3JrZXIub25tZXNzYWdlID0gZnVuY3Rpb24gKGUpIHsNCiAgICAgICAgcmV0dXJuIF9fYXdhaXRlcih0aGlzLCB2b2lkIDAsIHZvaWQgMCwgZnVuY3Rpb24qICgpIHsNCiAgICAgICAgICAgIGlmICgnT2Zmc2NyZWVuQ2FudmFzJyBpbiBnbG9iYWxUaGlzKSB7DQogICAgICAgICAgICAgICAgY29uc3QgeyBpZCwgYml0bWFwLCB3aWR0aCwgaGVpZ2h0LCBkYXRhVVJMT3B0aW9ucyB9ID0gZS5kYXRhOw0KICAgICAgICAgICAgICAgIGNvbnN0IHRyYW5zcGFyZW50QmFzZTY0ID0gZ2V0VHJhbnNwYXJlbnRCbG9iRm9yKHdpZHRoLCBoZWlnaHQsIGRhdGFVUkxPcHRpb25zKTsNCiAgICAgICAgICAgICAgICBjb25zdCBvZmZzY3JlZW4gPSBuZXcgT2Zmc2NyZWVuQ2FudmFzKHdpZHRoLCBoZWlnaHQpOw0KICAgICAgICAgICAgICAgIGNvbnN0IGN0eCA9IG9mZnNjcmVlbi5nZXRDb250ZXh0KCcyZCcpOw0KICAgICAgICAgICAgICAgIGN0eC5kcmF3SW1hZ2UoYml0bWFwLCAwLCAwKTsNCiAgICAgICAgICAgICAgICBiaXRtYXAuY2xvc2UoKTsNCiAgICAgICAgICAgICAgICBjb25zdCBibG9iID0geWllbGQgb2Zmc2NyZWVuLmNvbnZlcnRUb0Jsb2IoZGF0YVVSTE9wdGlvbnMpOw0KICAgICAgICAgICAgICAgIGNvbnN0IHR5cGUgPSBibG9iLnR5cGU7DQogICAgICAgICAgICAgICAgY29uc3QgYXJyYXlCdWZmZXIgPSB5aWVsZCBibG9iLmFycmF5QnVmZmVyKCk7DQogICAgICAgICAgICAgICAgY29uc3QgYmFzZTY0ID0gZW5jb2RlKGFycmF5QnVmZmVyKTsNCiAgICAgICAgICAgICAgICBpZiAoIWxhc3RCbG9iTWFwLmhhcyhpZCkgJiYgKHlpZWxkIHRyYW5zcGFyZW50QmFzZTY0KSA9PT0gYmFzZTY0KSB7DQogICAgICAgICAgICAgICAgICAgIGxhc3RCbG9iTWFwLnNldChpZCwgYmFzZTY0KTsNCiAgICAgICAgICAgICAgICAgICAgcmV0dXJuIHdvcmtlci5wb3N0TWVzc2FnZSh7IGlkIH0pOw0KICAgICAgICAgICAgICAgIH0NCiAgICAgICAgICAgICAgICBpZiAobGFzdEJsb2JNYXAuZ2V0KGlkKSA9PT0gYmFzZTY0KQ0KICAgICAgICAgICAgICAgICAgICByZXR1cm4gd29ya2VyLnBvc3RNZXNzYWdlKHsgaWQgfSk7DQogICAgICAgICAgICAgICAgd29ya2VyLnBvc3RNZXNzYWdlKHsNCiAgICAgICAgICAgICAgICAgICAgaWQsDQogICAgICAgICAgICAgICAgICAgIHR5cGUsDQogICAgICAgICAgICAgICAgICAgIGJhc2U2NCwNCiAgICAgICAgICAgICAgICAgICAgd2lkdGgsDQogICAgICAgICAgICAgICAgICAgIGhlaWdodCwNCiAgICAgICAgICAgICAgICB9KTsNCiAgICAgICAgICAgICAgICBsYXN0QmxvYk1hcC5zZXQoaWQsIGJhc2U2NCk7DQogICAgICAgICAgICB9DQogICAgICAgICAgICBlbHNlIHsNCiAgICAgICAgICAgICAgICByZXR1cm4gd29ya2VyLnBvc3RNZXNzYWdlKHsgaWQ6IGUuZGF0YS5pZCB9KTsNCiAgICAgICAgICAgIH0NCiAgICAgICAgfSk7DQogICAgfTsKCn0pKCk7Cgo=', null, false);
-
-class CanvasManager {
-    constructor(options) {
-        this.pendingCanvasMutations = new Map();
-        this.rafStamps = { latestId: 0, invokeId: null };
-        this.frozen = false;
-        this.locked = false;
-        this.processMutation = (target, mutation) => {
-            const newFrame = this.rafStamps.invokeId &&
-                this.rafStamps.latestId !== this.rafStamps.invokeId;
-            if (newFrame || !this.rafStamps.invokeId)
-                this.rafStamps.invokeId = this.rafStamps.latestId;
-            if (!this.pendingCanvasMutations.has(target)) {
-                this.pendingCanvasMutations.set(target, []);
-            }
-            this.pendingCanvasMutations.get(target).push(mutation);
-        };
-        const { sampling = 'all', win, blockClass, blockSelector, recordCanvas, dataURLOptions, } = options;
-        this.mutationCb = options.mutationCb;
-        this.mirror = options.mirror;
-        if (recordCanvas && sampling === 'all')
-            this.initCanvasMutationObserver(win, blockClass, blockSelector);
-        if (recordCanvas && typeof sampling === 'number')
-            this.initCanvasFPSObserver(sampling, win, blockClass, blockSelector, {
-                dataURLOptions,
-            });
-    }
-    reset() {
-        this.pendingCanvasMutations.clear();
-        this.resetObservers && this.resetObservers();
-    }
-    freeze() {
-        this.frozen = true;
-    }
-    unfreeze() {
-        this.frozen = false;
-    }
-    lock() {
-        this.locked = true;
-    }
-    unlock() {
-        this.locked = false;
-    }
-    initCanvasFPSObserver(fps, win, blockClass, blockSelector, options) {
-        const canvasContextReset = initCanvasContextObserver(win, blockClass, blockSelector);
-        const snapshotInProgressMap = new Map();
-        const worker = new WorkerFactory();
-        worker.onmessage = (e) => {
-            const { id } = e.data;
-            snapshotInProgressMap.set(id, false);
-            if (!('base64' in e.data))
-                return;
-            const { base64, type, width, height } = e.data;
-            this.mutationCb({
-                id,
-                type: CanvasContext['2D'],
-                commands: [
-                    {
-                        property: 'clearRect',
-                        args: [0, 0, width, height],
-                    },
-                    {
-                        property: 'drawImage',
-                        args: [
-                            {
-                                rr_type: 'ImageBitmap',
-                                args: [
-                                    {
-                                        rr_type: 'Blob',
-                                        data: [{ rr_type: 'ArrayBuffer', base64 }],
-                                        type,
-                                    },
-                                ],
-                            },
-                            0,
-                            0,
-                        ],
-                    },
-                ],
-            });
-        };
-        const timeBetweenSnapshots = 1000 / fps;
-        let lastSnapshotTime = 0;
-        let rafId;
-        const getCanvas = () => {
-            const matchedCanvas = [];
-            win.document.querySelectorAll('canvas').forEach((canvas) => {
-                if (!isBlocked(canvas, blockClass, blockSelector, true)) {
-                    matchedCanvas.push(canvas);
-                }
-            });
-            return matchedCanvas;
-        };
-        const takeCanvasSnapshots = (timestamp) => {
-            if (lastSnapshotTime &&
-                timestamp - lastSnapshotTime < timeBetweenSnapshots) {
-                rafId = requestAnimationFrame(takeCanvasSnapshots);
-                return;
-            }
-            lastSnapshotTime = timestamp;
-            getCanvas()
-                .forEach((canvas) => __awaiter(this, void 0, void 0, function* () {
-                var _a;
-                const id = this.mirror.getId(canvas);
-                if (snapshotInProgressMap.get(id))
-                    return;
-                snapshotInProgressMap.set(id, true);
-                if (['webgl', 'webgl2'].includes(canvas.__context)) {
-                    const context = canvas.getContext(canvas.__context);
-                    if (((_a = context === null || context === void 0 ? void 0 : context.getContextAttributes()) === null || _a === void 0 ? void 0 : _a.preserveDrawingBuffer) === false) {
-                        context === null || context === void 0 ? void 0 : context.clear(context.COLOR_BUFFER_BIT);
-                    }
-                }
-                const bitmap = yield createImageBitmap(canvas);
-                worker.postMessage({
-                    id,
-                    bitmap,
-                    width: canvas.width,
-                    height: canvas.height,
-                    dataURLOptions: options.dataURLOptions,
-                }, [bitmap]);
-            }));
-            rafId = requestAnimationFrame(takeCanvasSnapshots);
-        };
-        rafId = requestAnimationFrame(takeCanvasSnapshots);
-        this.resetObservers = () => {
-            canvasContextReset();
-            cancelAnimationFrame(rafId);
-        };
-    }
-    initCanvasMutationObserver(win, blockClass, blockSelector) {
-        this.startRAFTimestamping();
-        this.startPendingCanvasMutationFlusher();
-        const canvasContextReset = initCanvasContextObserver(win, blockClass, blockSelector);
-        const canvas2DReset = initCanvas2DMutationObserver(this.processMutation.bind(this), win, blockClass, blockSelector);
-        const canvasWebGL1and2Reset = initCanvasWebGLMutationObserver(this.processMutation.bind(this), win, blockClass, blockSelector, this.mirror);
-        this.resetObservers = () => {
-            canvasContextReset();
-            canvas2DReset();
-            canvasWebGL1and2Reset();
-        };
-    }
-    startPendingCanvasMutationFlusher() {
-        requestAnimationFrame(() => this.flushPendingCanvasMutations());
-    }
-    startRAFTimestamping() {
-        const setLatestRAFTimestamp = (timestamp) => {
-            this.rafStamps.latestId = timestamp;
-            requestAnimationFrame(setLatestRAFTimestamp);
-        };
-        requestAnimationFrame(setLatestRAFTimestamp);
-    }
-    flushPendingCanvasMutations() {
-        this.pendingCanvasMutations.forEach((values, canvas) => {
-            const id = this.mirror.getId(canvas);
-            this.flushPendingCanvasMutationFor(canvas, id);
-        });
-        requestAnimationFrame(() => this.flushPendingCanvasMutations());
-    }
-    flushPendingCanvasMutationFor(canvas, id) {
-        if (this.frozen || this.locked) {
-            return;
-        }
-        const valuesWithType = this.pendingCanvasMutations.get(canvas);
-        if (!valuesWithType || id === -1)
-            return;
-        const values = valuesWithType.map((value) => {
-            const rest = __rest(value, ["type"]);
-            return rest;
-        });
-        const { type } = valuesWithType[0];
-        this.mutationCb({ id, type, commands: values });
-        this.pendingCanvasMutations.delete(canvas);
-    }
-}
-
-class StylesheetManager {
-    constructor(options) {
-        this.trackedLinkElements = new WeakSet();
-        this.styleMirror = new StyleSheetMirror();
-        this.mutationCb = options.mutationCb;
-        this.adoptedStyleSheetCb = options.adoptedStyleSheetCb;
-    }
-    attachLinkElement(linkEl, childSn) {
-        if ('_cssText' in childSn.attributes)
-            this.mutationCb({
-                adds: [],
-                removes: [],
-                texts: [],
-                attributes: [
-                    {
-                        id: childSn.id,
-                        attributes: childSn
-                            .attributes,
-                    },
-                ],
-            });
-        this.trackLinkElement(linkEl);
-    }
-    trackLinkElement(linkEl) {
-        if (this.trackedLinkElements.has(linkEl))
-            return;
-        this.trackedLinkElements.add(linkEl);
-        this.trackStylesheetInLinkElement(linkEl);
-    }
-    adoptStyleSheets(sheets, hostId) {
-        if (sheets.length === 0)
-            return;
-        const adoptedStyleSheetData = {
-            id: hostId,
-            styleIds: [],
-        };
-        const styles = [];
-        for (const sheet of sheets) {
-            let styleId;
-            if (!this.styleMirror.has(sheet)) {
-                styleId = this.styleMirror.add(sheet);
-                const rules = Array.from(sheet.rules || CSSRule);
-                styles.push({
-                    styleId,
-                    rules: rules.map((r, index) => {
-                        return {
-                            rule: getCssRuleString(r),
-                            index,
-                        };
-                    }),
-                });
-            }
-            else
-                styleId = this.styleMirror.getId(sheet);
-            adoptedStyleSheetData.styleIds.push(styleId);
-        }
-        if (styles.length > 0)
-            adoptedStyleSheetData.styles = styles;
-        this.adoptedStyleSheetCb(adoptedStyleSheetData);
-    }
-    reset() {
-        this.styleMirror.reset();
-        this.trackedLinkElements = new WeakSet();
-    }
-    trackStylesheetInLinkElement(linkEl) {
-    }
-}
-
-function wrapEvent(e) {
-    return Object.assign(Object.assign({}, e), { timestamp: Date.now() });
-}
-let wrappedEmit;
-let takeFullSnapshot;
-let canvasManager;
-let recording = false;
-const mirror = createMirror();
-function record(options = {}) {
-    const { emit, checkoutEveryNms, checkoutEveryNth, blockClass = 'rr-block', blockSelector = null, ignoreClass = 'rr-ignore', maskTextClass = 'rr-mask', maskTextSelector = null, inlineStylesheet = true, maskAllInputs, maskInputOptions: _maskInputOptions, slimDOMOptions: _slimDOMOptions, maskInputFn, maskTextFn, hooks, packFn, sampling = {}, dataURLOptions = {}, mousemoveWait, recordCanvas = false, recordCrossOriginIframes = false, userTriggeredOnInput = false, collectFonts = false, inlineImages = false, plugins, keepIframeSrcFn = () => false, ignoreCSSAttributes = new Set([]), } = options;
-    const inEmittingFrame = recordCrossOriginIframes
-        ? window.parent === window
-        : true;
-    let passEmitsToParent = false;
-    if (!inEmittingFrame) {
-        try {
-            window.parent.document;
-            passEmitsToParent = false;
-        }
-        catch (e) {
-            passEmitsToParent = true;
-        }
-    }
-    if (inEmittingFrame && !emit) {
-        throw new Error('emit function is required');
-    }
-    if (mousemoveWait !== undefined && sampling.mousemove === undefined) {
-        sampling.mousemove = mousemoveWait;
-    }
-    mirror.reset();
-    const maskInputOptions = maskAllInputs === true
-        ? {
-            color: true,
-            date: true,
-            'datetime-local': true,
-            email: true,
-            month: true,
-            number: true,
-            range: true,
-            search: true,
-            tel: true,
-            text: true,
-            time: true,
-            url: true,
-            week: true,
-            textarea: true,
-            select: true,
-            password: true,
-        }
-        : _maskInputOptions !== undefined
-            ? _maskInputOptions
-            : { password: true };
-    const slimDOMOptions = _slimDOMOptions === true || _slimDOMOptions === 'all'
-        ? {
-            script: true,
-            comment: true,
-            headFavicon: true,
-            headWhitespace: true,
-            headMetaSocial: true,
-            headMetaRobots: true,
-            headMetaHttpEquiv: true,
-            headMetaVerification: true,
-            headMetaAuthorship: _slimDOMOptions === 'all',
-            headMetaDescKeywords: _slimDOMOptions === 'all',
-        }
-        : _slimDOMOptions
-            ? _slimDOMOptions
-            : {};
-    polyfill();
-    let lastFullSnapshotEvent;
-    let incrementalSnapshotCount = 0;
-    const eventProcessor = (e) => {
-        for (const plugin of plugins || []) {
-            if (plugin.eventProcessor) {
-                e = plugin.eventProcessor(e);
-            }
-        }
-        if (packFn) {
-            e = packFn(e);
-        }
-        return e;
-    };
-    wrappedEmit = (e, isCheckout) => {
-        var _a;
-        if (((_a = mutationBuffers[0]) === null || _a === void 0 ? void 0 : _a.isFrozen()) &&
-            e.type !== EventType.FullSnapshot &&
-            !(e.type === EventType.IncrementalSnapshot &&
-                e.data.source === IncrementalSource.Mutation)) {
-            mutationBuffers.forEach((buf) => buf.unfreeze());
-        }
-        if (inEmittingFrame) {
-            emit === null || emit === void 0 ? void 0 : emit(eventProcessor(e), isCheckout);
-        }
-        else if (passEmitsToParent) {
-            const message = {
-                type: 'rrweb',
-                event: eventProcessor(e),
-                isCheckout,
-            };
-            window.parent.postMessage(message, '*');
-        }
-        if (e.type === EventType.FullSnapshot) {
-            lastFullSnapshotEvent = e;
-            incrementalSnapshotCount = 0;
-        }
-        else if (e.type === EventType.IncrementalSnapshot) {
-            if (e.data.source === IncrementalSource.Mutation &&
-                e.data.isAttachIframe) {
-                return;
-            }
-            incrementalSnapshotCount++;
-            const exceedCount = checkoutEveryNth && incrementalSnapshotCount >= checkoutEveryNth;
-            const exceedTime = checkoutEveryNms &&
-                e.timestamp - lastFullSnapshotEvent.timestamp > checkoutEveryNms;
-            if (exceedCount || exceedTime) {
-                takeFullSnapshot(true);
-            }
-        }
-    };
-    const wrappedMutationEmit = (m) => {
-        wrappedEmit(wrapEvent({
-            type: EventType.IncrementalSnapshot,
-            data: Object.assign({ source: IncrementalSource.Mutation }, m),
-        }));
-    };
-    const wrappedScrollEmit = (p) => wrappedEmit(wrapEvent({
-        type: EventType.IncrementalSnapshot,
-        data: Object.assign({ source: IncrementalSource.Scroll }, p),
-    }));
-    const wrappedCanvasMutationEmit = (p) => wrappedEmit(wrapEvent({
-        type: EventType.IncrementalSnapshot,
-        data: Object.assign({ source: IncrementalSource.CanvasMutation }, p),
-    }));
-    const wrappedAdoptedStyleSheetEmit = (a) => wrappedEmit(wrapEvent({
-        type: EventType.IncrementalSnapshot,
-        data: Object.assign({ source: IncrementalSource.AdoptedStyleSheet }, a),
-    }));
-    const stylesheetManager = new StylesheetManager({
-        mutationCb: wrappedMutationEmit,
-        adoptedStyleSheetCb: wrappedAdoptedStyleSheetEmit,
-    });
-    const iframeManager = new IframeManager({
-        mirror,
-        mutationCb: wrappedMutationEmit,
-        stylesheetManager: stylesheetManager,
-        recordCrossOriginIframes,
-        wrappedEmit,
-    });
-    for (const plugin of plugins || []) {
-        if (plugin.getMirror)
-            plugin.getMirror({
-                nodeMirror: mirror,
-                crossOriginIframeMirror: iframeManager.crossOriginIframeMirror,
-                crossOriginIframeStyleMirror: iframeManager.crossOriginIframeStyleMirror,
-            });
-    }
-    canvasManager = new CanvasManager({
-        recordCanvas,
-        mutationCb: wrappedCanvasMutationEmit,
-        win: window,
-        blockClass,
-        blockSelector,
-        mirror,
-        sampling: sampling.canvas,
-        dataURLOptions,
-    });
-    const shadowDomManager = new ShadowDomManager({
-        mutationCb: wrappedMutationEmit,
-        scrollCb: wrappedScrollEmit,
-        bypassOptions: {
-            blockClass,
-            blockSelector,
-            maskTextClass,
-            maskTextSelector,
-            inlineStylesheet,
-            maskInputOptions,
-            dataURLOptions,
-            maskTextFn,
-            maskInputFn,
-            recordCanvas,
-            inlineImages,
-            sampling,
-            slimDOMOptions,
-            iframeManager,
-            stylesheetManager,
-            canvasManager,
-            keepIframeSrcFn,
-        },
-        mirror,
-    });
-    takeFullSnapshot = (isCheckout = false) => {
-        var _a, _b, _c, _d, _e, _f;
-        wrappedEmit(wrapEvent({
-            type: EventType.Meta,
-            data: {
-                href: window.location.href,
-                width: getWindowWidth(),
-                height: getWindowHeight(),
-            },
-        }), isCheckout);
-        stylesheetManager.reset();
-        mutationBuffers.forEach((buf) => buf.lock());
-        const node = snapshot(document, {
-            mirror,
-            blockClass,
-            blockSelector,
-            maskTextClass,
-            maskTextSelector,
-            inlineStylesheet,
-            maskAllInputs: maskInputOptions,
-            maskTextFn,
-            slimDOM: slimDOMOptions,
-            dataURLOptions,
-            recordCanvas,
-            inlineImages,
-            onSerialize: (n) => {
-                if (isSerializedIframe(n, mirror)) {
-                    iframeManager.addIframe(n);
-                }
-                if (isSerializedStylesheet(n, mirror)) {
-                    stylesheetManager.trackLinkElement(n);
-                }
-                if (hasShadowRoot(n)) {
-                    shadowDomManager.addShadowRoot(n.shadowRoot, document);
-                }
-            },
-            onIframeLoad: (iframe, childSn) => {
-                iframeManager.attachIframe(iframe, childSn);
-                shadowDomManager.observeAttachShadow(iframe);
-            },
-            onStylesheetLoad: (linkEl, childSn) => {
-                stylesheetManager.attachLinkElement(linkEl, childSn);
-            },
-            keepIframeSrcFn,
-        });
-        if (!node) {
-            return console.warn('Failed to snapshot the document');
-        }
-        wrappedEmit(wrapEvent({
-            type: EventType.FullSnapshot,
-            data: {
-                node,
-                initialOffset: {
-                    left: window.pageXOffset !== undefined
-                        ? window.pageXOffset
-                        : (document === null || document === void 0 ? void 0 : document.documentElement.scrollLeft) ||
-                            ((_b = (_a = document === null || document === void 0 ? void 0 : document.body) === null || _a === void 0 ? void 0 : _a.parentElement) === null || _b === void 0 ? void 0 : _b.scrollLeft) ||
-                            ((_c = document === null || document === void 0 ? void 0 : document.body) === null || _c === void 0 ? void 0 : _c.scrollLeft) ||
-                            0,
-                    top: window.pageYOffset !== undefined
-                        ? window.pageYOffset
-                        : (document === null || document === void 0 ? void 0 : document.documentElement.scrollTop) ||
-                            ((_e = (_d = document === null || document === void 0 ? void 0 : document.body) === null || _d === void 0 ? void 0 : _d.parentElement) === null || _e === void 0 ? void 0 : _e.scrollTop) ||
-                            ((_f = document === null || document === void 0 ? void 0 : document.body) === null || _f === void 0 ? void 0 : _f.scrollTop) ||
-                            0,
-                },
-            },
-        }));
-        mutationBuffers.forEach((buf) => buf.unlock());
-        if (document.adoptedStyleSheets && document.adoptedStyleSheets.length > 0)
-            stylesheetManager.adoptStyleSheets(document.adoptedStyleSheets, mirror.getId(document));
-    };
-    try {
-        const handlers = [];
-        handlers.push(on('DOMContentLoaded', () => {
-            wrappedEmit(wrapEvent({
-                type: EventType.DomContentLoaded,
-                data: {},
-            }));
-        }));
-        const observe = (doc) => {
-            var _a;
-            return initObservers({
-                mutationCb: wrappedMutationEmit,
-                mousemoveCb: (positions, source) => wrappedEmit(wrapEvent({
-                    type: EventType.IncrementalSnapshot,
-                    data: {
-                        source,
-                        positions,
-                    },
-                })),
-                mouseInteractionCb: (d) => wrappedEmit(wrapEvent({
-                    type: EventType.IncrementalSnapshot,
-                    data: Object.assign({ source: IncrementalSource.MouseInteraction }, d),
-                })),
-                scrollCb: wrappedScrollEmit,
-                viewportResizeCb: (d) => wrappedEmit(wrapEvent({
-                    type: EventType.IncrementalSnapshot,
-                    data: Object.assign({ source: IncrementalSource.ViewportResize }, d),
-                })),
-                inputCb: (v) => wrappedEmit(wrapEvent({
-                    type: EventType.IncrementalSnapshot,
-                    data: Object.assign({ source: IncrementalSource.Input }, v),
-                })),
-                mediaInteractionCb: (p) => wrappedEmit(wrapEvent({
-                    type: EventType.IncrementalSnapshot,
-                    data: Object.assign({ source: IncrementalSource.MediaInteraction }, p),
-                })),
-                styleSheetRuleCb: (r) => wrappedEmit(wrapEvent({
-                    type: EventType.IncrementalSnapshot,
-                    data: Object.assign({ source: IncrementalSource.StyleSheetRule }, r),
-                })),
-                styleDeclarationCb: (r) => wrappedEmit(wrapEvent({
-                    type: EventType.IncrementalSnapshot,
-                    data: Object.assign({ source: IncrementalSource.StyleDeclaration }, r),
-                })),
-                canvasMutationCb: wrappedCanvasMutationEmit,
-                fontCb: (p) => wrappedEmit(wrapEvent({
-                    type: EventType.IncrementalSnapshot,
-                    data: Object.assign({ source: IncrementalSource.Font }, p),
-                })),
-                selectionCb: (p) => {
-                    wrappedEmit(wrapEvent({
-                        type: EventType.IncrementalSnapshot,
-                        data: Object.assign({ source: IncrementalSource.Selection }, p),
-                    }));
-                },
-                blockClass,
-                ignoreClass,
-                maskTextClass,
-                maskTextSelector,
-                maskInputOptions,
-                inlineStylesheet,
-                sampling,
-                recordCanvas,
-                inlineImages,
-                userTriggeredOnInput,
-                collectFonts,
-                doc,
-                maskInputFn,
-                maskTextFn,
-                keepIframeSrcFn,
-                blockSelector,
-                slimDOMOptions,
-                dataURLOptions,
-                mirror,
-                iframeManager,
-                stylesheetManager,
-                shadowDomManager,
-                canvasManager,
-                ignoreCSSAttributes,
-                plugins: ((_a = plugins === null || plugins === void 0 ? void 0 : plugins.filter((p) => p.observer)) === null || _a === void 0 ? void 0 : _a.map((p) => ({
-                    observer: p.observer,
-                    options: p.options,
-                    callback: (payload) => wrappedEmit(wrapEvent({
-                        type: EventType.Plugin,
-                        data: {
-                            plugin: p.name,
-                            payload,
-                        },
-                    })),
-                }))) || [],
-            }, hooks);
-        };
-        iframeManager.addLoadListener((iframeEl) => {
-            handlers.push(observe(iframeEl.contentDocument));
-        });
-        const init = () => {
-            takeFullSnapshot();
-            handlers.push(observe(document));
-            recording = true;
-        };
-        if (document.readyState === 'interactive' ||
-            document.readyState === 'complete') {
-            init();
-        }
-        else {
-            handlers.push(on('load', () => {
-                wrappedEmit(wrapEvent({
-                    type: EventType.Load,
-                    data: {},
-                }));
-                init();
-            }, window));
-        }
-        return () => {
-            handlers.forEach((h) => h());
-            recording = false;
-        };
-    }
-    catch (error) {
-        console.warn(error);
-    }
-}
-record.addCustomEvent = (tag, payload) => {
-    if (!recording) {
-        throw new Error('please add custom event after start recording');
-    }
-    wrappedEmit(wrapEvent({
-        type: EventType.Custom,
-        data: {
-            tag,
-            payload,
-        },
-    }));
-};
-record.freezePage = () => {
-    mutationBuffers.forEach((buf) => buf.freeze());
-};
-record.takeFullSnapshot = (isCheckout) => {
-    if (!recording) {
-        throw new Error('please take full snapshot after start recording');
-    }
-    takeFullSnapshot(isCheckout);
-};
-record.mirror = mirror;
-
-let eventsMatrix = [[]];
-let stopRecord = null;
-
-function start() {
-    // 重置状态
-    eventsMatrix = [[]];
-
-    // 开始录制
-    stopRecord = record({
-        emit(event, isCheckout) {
-            // isCheckout 是一个标识，告诉你重新制作了快照
-            // isCheckout is a flag to tell you the events has been checkout
-            if (isCheckout) {
-                eventsMatrix.push([]);
-            }
-            const lastEvents = eventsMatrix[eventsMatrix.length - 1];
-            lastEvents.push(event);
-        },
-        checkoutEveryNms: 5 * 1000, // 每5s重新制作快照
-        // checkoutEveryNth: 200, // 每 200 个 event 重新制作快照
-    });
-}
-
-function stop() {
-    if (!stopRecord) return;
-    // 停止录制
-    stopRecord();
-    stopRecord = null;
-    console.log("eventsMatrix:", eventsMatrix);
-
-    // console.log("events:", eventsMatrix[eventsMatrix.length - 2].concat(
-    //     eventsMatrix[eventsMatrix.length - 1]
-    // ));
-}
-
-// 错误监控插件
-
-class ErrorTrackingPlugin extends EventBus {
-    name = 'errorTracking';
-    slowRequestThreshold = 3000; // 慢请求阈值
-
-    constructor() {
-        super();
-        this.on(RRWEB_RECORD_START_EVENT, start);
-        this.on(RRWEB_RECORD_STOP_EVENT, stop);
-        this.emit(RRWEB_RECORD_START_EVENT);
+      } else {
+        this.enterTime = Date.now();
+      }
     }
 
-    install(sdk) {
-        {
-            // 监听全局错误
-            // JS 执行错误（语法错误、运行时错误）
-            // 资源加载错误（图片、脚本、样式等）
-            // 不能捕获 Promise 错误
-            window.addEventListener("error", this.windowErrorTracking.bind(this, sdk), true);
-        }
-        {
-            // 监听未处理的Promise拒绝
-            window.addEventListener(
-                "unhandledrejection",
-                this.unhandledRejectionTracking.bind(this)
-            );
-        }
-        this.xHRErrorTracking(sdk);
-        this.fetchErrorTracking(sdk);
+    // 处理用户点击事件
+  }, {
+    key: "trackClickBehavior",
+    value: function trackClickBehavior(e) {
+      var target = e.target;
+      var description = "\u70B9\u51FB\u4E86 ".concat(target.tagName);
+      if (target.id) description += " #".concat(target.id);
+      if (target.className) description += " .".concat(target.className);
+      if (target.textContent && target.textContent.length < 30) {
+        description += " (".concat(target.textContent.trim(), ")");
+      }
+      this.sdk.capture('userAction', {
+        id: genRandomUUID(),
+        type: 'click',
+        description: description
+      });
     }
 
-    // 
-    uninstall() {
-        window.removeEventListener("error", this.windowErrorTracking.bind(this, sdk), true);
-        window.removeEventListener(
-            "unhandledrejection",
-            this.unhandledRejectionTracking.bind(this)
-        );
-        // window.removeEventListener("load", this.resourceErrorTracking.bind(this));
-        this.off(RRWEB_RECORD_START_EVENT);
-        this.off(RRWEB_RECORD_STOP_EVENT);
+    // 处理用户输入事件
+  }, {
+    key: "trackInputBehavior",
+    value: function trackInputBehavior(e) {
+      var target = e.target;
+      var description = "\u5728 ".concat(target.tagName);
+      if (target.id) description += " #".concat(target.id);
+      if (target.placeholder) description += " [".concat(target.placeholder, "]");
+      description += " \u8F93\u5165: \"".concat(target.value, "\"");
+      this.sdk.capture('userAction', {
+        id: genRandomUUID(),
+        type: 'input',
+        description: description
+      });
     }
 
-    windowErrorTracking(sdk, event) {
-        const { message, filename, lineno, colno, error } = event;
-
-        // 判断错误类型
-        let errorType = "js";
-        // let severity = "high";
-
-        // 判断是否为资源加载错误
-        if (
-            event.target &&
-            (event.target.tagName === "IMG" ||
-                event.target.tagName === "SCRIPT" ||
-                event.target.tagName === "LINK" ||
-                event.target.tagName === "VIDEO" ||
-                event.target.tagName === "AUDIO")
-        ) {
-            errorType = "resource";
-            // severity = "medium";
-        }
-
-        // 判断是否为跨域脚本错误
-        if (message && message.includes("Script error")) {
-            errorType = "cross-origin";
-            // severity = "medium";
-        }
-
-        const errorData = {
-            type: errorType,
-            /**
-             * tagName src href 加载资源时有效
-             */
-            tagName: event.target.tagName || "",
-            src: event.target.src || "",
-            href: event.target.href || "",
-            // severity: severity, // 错误优先级
-            message: message || "Unknown error",
-            filename: filename || "Unknown file",
-            lineno: lineno || 0,
-            colno: colno || 0,
-            stack: error ? error.stack : "",
-            timestamp: new Date().toISOString(),
-            // userInfo: this.config.enableUserTracking ? this.userInfo : null,
-        };
-
-        sdk.capture(this.name, errorData);
-        if (errorData === "js") {
-            this.emit(RRWEB_RECORD_STOP_EVENT);
-        }
-        // 阻止默认错误处理（避免控制台重复显示）
-        event.preventDefault();
+    // 处理用户滚动事件
+  }, {
+    key: "trackPageUnload",
+    value: function trackPageUnload(e) {
+      console.log("处理页面卸载事件:", e);
     }
-
-    // 处理未处理的Promise拒绝
-    unhandledRejectionTracking(sdk, event) {
-        const error = event.reason;
-
-        const errorData = {
-            type: "promise",
-            // severity: "high",
-            message: error ? error.message : "Unhandled Promise rejection",
-            stack: error ? error.stack : "",
-            timestamp: new Date().toISOString(),
-            // userInfo: this.config.enableUserTracking ? this.userInfo : null,
-        };
-
-        sdk.capture(this.name, errorData);
-
-        // 阻止默认错误处理
-        event.preventDefault();
+  }, {
+    key: "trackRouteChange",
+    value: function trackRouteChange(trigerType) {
+      this.sdk.capture(this.name, {
+        type: "history",
+        trigerType: trigerType,
+        from: this.from,
+        to: location.href
+      });
+      this.from = location.href;
     }
-
-    // 处理资源加载错误
-    resourceErrorTracking() {
-        // 检查已加载的资源是否有错误
-        const resources = performance.getEntriesByType("resource");
-        console.log("处理资源加载错误:", resources);
-
-        resources.forEach((resource) => {
-            // 这里可以检查资源的加载状态
-            // 注意：performance API 不直接提供错误状态
-            // 实际应用中需要结合其他方法
-        });
+  }, {
+    key: "trackHashChange",
+    value: function trackHashChange(e) {
+      this.sdk.capture(this.name, {
+        type: "hashchange",
+        from: e.oldURL,
+        to: e.newURL,
+        hashStayTime: e.timeStamp - this.hashEnterTime
+      });
+      this.hashEnterTime = e.timeStamp;
     }
+  }]);
+}();
 
-    // 拦截XMLHttpRequest
-    xHRErrorTracking(sdk) {
-        const self = this;
-        const OriginalXHR = window.XMLHttpRequest;
+// import { Vue2Plugin } from "@plugins/Vue2Plugin";
 
-        window.XMLHttpRequest = function () {
-            const xhr = new OriginalXHR();
-
-            // 保存原始方法
-            const originalOpen = xhr.open;
-            const originalSend = xhr.send;
-
-            let method, url;
-
-            // 拦截open方法
-            xhr.open = function (...args) {
-                method = args[0];
-                url = args[1];
-                return originalOpen.apply(this, args);
-            };
-
-            // 拦截send方法
-            xhr.send = function (...args) {
-                const startTime = performance.now();  // 毫秒，带小数
-                /**
-                 *  axios
-                        .post("http://127.0.0.1:8080/monitor/test1", {
-                        __skipMonitor: true,
-                        })
-                        .then((response) => {
-                        console.log("输出返回的数据:", response.data); // 输出返回的数据
-                        })
-                        .catch((error) => {
-                        console.error("请求出错：", error);
-                        });
-                    
-                    const xhr = new XMLHttpRequest();
-                    xhr.open("POST", "http://127.0.0.1:8080/monitor/test1");
-                    xhr.send(
-                        JSON.stringify({
-                        __skipMonitor: true,
-                        })
-                    );
-                 */
-                const __skipMonitor = JSON.parse(args[0])?.__skipMonitor;
-                // console.log("xhr this:", args[0], __skipMonitor);
-                // 监听加载完成
-                xhr.addEventListener("load", function () {
-                    const duration = performance.now() - startTime;
-
-                    if (!__skipMonitor && (xhr.status >= 400 || self.slowRequestThreshold <= duration)) {
-
-                        const errorData = {
-                            type: "ajax",
-                            // severity: xhr.status >= 500 ? "high" : "medium",
-                            message: `HTTP ${xhr.status} ${xhr.statusText}`,
-                            url: url,
-                            method: method,
-                            status: xhr.status,
-                            response: xhr.responseText,
-                            duration: duration,
-                            timestamp: new Date().toISOString(),
-                            // userInfo: self.config.enableUserTracking
-                            //     ? self.userInfo
-                            //     : null,
-                        };
-
-                        sdk.capture(self.name, errorData);
-                    }
-                });
-
-                // 监听错误
-                xhr.addEventListener("error", function () {
-                    const errorData = {
-                        type: "ajax",
-                        // severity: "critical",
-                        message: "网络请求失败",
-                        url: url,
-                        method: method,
-                        status: 0,
-                        timestamp: new Date().toISOString(),
-                        // userInfo: self.config.enableUserTracking
-                        //     ? self.userInfo
-                        //     : null,
-                    };
-                    if (!__skipMonitor) {
-                        sdk.capture(self.name, errorData);
-                    }
-                });
-
-                // 监听超时
-                xhr.addEventListener("timeout", function () {
-                    const errorData = {
-                        type: "ajax",
-                        // severity: "high",
-                        message: "请求超时",
-                        url: url,
-                        method: method,
-                        status: 0,
-                        timestamp: new Date().toISOString(),
-                        // userInfo: self.config.enableUserTracking
-                        //     ? self.userInfo
-                        //     : null,
-                    };
-
-                    if (!__skipMonitor) {
-                        sdk.capture(self.name, errorData);
-                    }
-                });
-
-                return originalSend.apply(this, args);
-            };
-
-            return xhr;
-        };
-    }
-
-    // 拦截fetch API
-    fetchErrorTracking(sdk) {
-        const self = this;
-        const originalFetch = window.fetch;
-
-        window.fetch = function (...args) {
-
-            const url = args[0];
-            const options = args[1] || {};
-            /**
-             *  @description 跳过数据上报请求
-            fetch("http://127.0.0.1:8080/monitor/test1", {
-                method: "POST",
-                __skipMonitor: true,
-            })
-                .then((response) => response.json())
-                .then((data) => console.log(data));
-             */
-            const __skipMonitor = options.__skipMonitor;
-            const method = options.method || "GET";
-            const startTime = performance.now();
-
-            return originalFetch
-                .apply(this, args)
-                .then((response) => {
-                    const duration = performance.now() - startTime;
-                    if (!__skipMonitor && (!response.ok || self.slowRequestThreshold <= duration)) {
-                        const errorData = {
-                            type: "fetch",
-                            // severity: response.status >= 500 ? "high" : "medium",
-                            message: `HTTP ${response.status} ${response.statusText}`,
-                            url: url,
-                            method: method,
-                            status: response.status,
-                            duration: duration,
-                            timestamp: new Date().toISOString(),
-                            // userInfo: self.config.enableUserTracking
-                            //     ? self.userInfo
-                            // : null,
-                        };
-
-                        sdk.capture(self.name, errorData);
-                    }
-                    return response;
-                })
-                .catch((error) => {
-                    const errorData = {
-                        type: "fetch",
-                        // severity: "critical",
-                        message: error.message,
-                        url: url,
-                        method: method,
-                        status: 0,
-                        timestamp: new Date().toISOString(),
-                        // userInfo: self.config.enableUserTracking
-                        //     ? self.userInfo
-                        //     : null,
-                    };
-                    if (!__skipMonitor) {
-                        sdk.capture(self.name, errorData);
-                    }
-                    throw error;
-                });
-        };
-    }
-}
-
-// import { PerformancePlugin } from "@plugins/PerformancePlugin";
-// import { UserBehaviorPlugin } from "@plugins/UserBehaviorPlugin";
-
-const RuoyiMonitor = new MonitoringCore({
-    appId: "abc",
-})
-    // .use(new PerformancePlugin())
-    // .use(new UserBehaviorPlugin())
-    // .use(new EnvironmentInfoPlugin())
-    .use(new ErrorTrackingPlugin());
+var RuoyiMonitor = new MonitoringCore({
+  // appId: "abc",
+  plugins: [
+  // new Vue2Plugin(),
+  // new PerformancePlugin(),
+  // new ResourcePlugin(),
+  new UserBehaviorPlugin()
+  // new EnvironmentInfoPlugin(),
+  // new ErrorTrackingPlugin(),
+  ]
+});
 
 exports.RuoyiMonitor = RuoyiMonitor;

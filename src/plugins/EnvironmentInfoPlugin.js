@@ -1,24 +1,26 @@
 // 环境监控插件
 import { genRandomUUID } from "@common/utils/randomUUID";
 export class EnvironmentInfoPlugin {
-    name = 'environmentInfo';
+    name = 'environment';
+    sdk = null
 
     install(sdk) {
+        this.sdk = sdk
         // 浏览器环境
-        this.detectBrowserInfo(sdk);
+        this.detectBrowserInfo();
         // 检测操作系统
-        this.detectOSInfo(sdk)
+        this.detectOSInfo()
         // 检测设备类型
-        this.detectDeviceInfo(sdk)
+        this.detectDeviceInfo()
         // 获取地理位置
-        this.getGeolocationInfo(sdk)
+        this.getGeolocationInfo()
     }
 
     // 
     uninstall() {
     }
 
-    detectBrowserInfo(sdk) {
+    detectBrowserInfo() {
         const ua = navigator.userAgent;
         let browserName = "未知";
         let browserVersion = "未知";
@@ -52,7 +54,7 @@ export class EnvironmentInfoPlugin {
             engine = "Trident";
         }
 
-        sdk.capture("environmentInfo", {
+        this.sdk.capture(this.name, {
             type: "browser",
             id: genRandomUUID(),
             name: browserName,
@@ -61,7 +63,7 @@ export class EnvironmentInfoPlugin {
         })
     }
 
-    detectOSInfo(sdk) {
+    detectOSInfo() {
         const ua = navigator.userAgent;
         let os = "未知";
 
@@ -84,14 +86,14 @@ export class EnvironmentInfoPlugin {
         ) {
             os = "iOS";
         }
-        sdk.capture("environmentInfo", {
+        this.sdk.capture(this.name, {
             id: genRandomUUID(),
             type: "os",
             os
         })
     }
 
-    detectDeviceInfo(sdk) {
+    detectDeviceInfo() {
         const ua = navigator.userAgent;
         const width = window.innerWidth;
         let device = "";
@@ -111,14 +113,14 @@ export class EnvironmentInfoPlugin {
         } else {
             device = "桌面";
         }
-        sdk.capture("environmentInfo", {
+        this.sdk.capture(this.name, {
             id: genRandomUUID(),
             type: "device",
             device
         })
     }
 
-    getGeolocationInfo(sdk) {
+    getGeolocationInfo() {
         if (!navigator.geolocation) return;
 
         navigator.geolocation.getCurrentPosition(
@@ -127,7 +129,7 @@ export class EnvironmentInfoPlugin {
 
                 // 在实际应用中，这里会调用地理编码服务将坐标转换为地址
                 const { country, city } = await this.getLocationFromCoords(latitude, longitude);
-                sdk.capture("environmentInfo", {
+                this.sdk.capture(this.name, {
                     type: "geolocation",
                     id: genRandomUUID(),
                     coordinates: {
@@ -137,6 +139,7 @@ export class EnvironmentInfoPlugin {
                     },
                     country,
                     city,
+                    description: "获取地理位置成功"
                 })
             },
             (error) => {
@@ -153,10 +156,10 @@ export class EnvironmentInfoPlugin {
                         break;
                 }
 
-                sdk.capture("environmentInfo", {
+                this.sdk.capture(this.name, {
                     type: "geolocation",
                     id: genRandomUUID(),
-                    errorMessage
+                    description: errorMessage
                 })
             },
             {
