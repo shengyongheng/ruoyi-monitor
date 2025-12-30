@@ -1,11 +1,16 @@
+import { debounce } from "lodash";
 // 用户行为插件
-import { genRandomUUID } from "@common/utils/randomUUID";
 export class UserBehaviorPlugin {
     name = 'userBehavior';
     sdk = null;
     enterTime = Date.now();
     from = location.href;
     hashEnterTime = 0;
+    trackDebounceScrollBehavior = null;
+
+    constructor() {
+        this.trackDebounceScrollBehavior = debounce(this.scrollBehavior.bind(this), 200)
+    }
 
     install(sdk) {
         this.sdk = sdk
@@ -17,6 +22,7 @@ export class UserBehaviorPlugin {
          *  调用 history.pushState() 或者 history.replaceState() 不会触发 popstate 事件。
          */
         this.patchHistoryApi();
+
         // 页面停留时长监控
         {
             document.addEventListener('visibilitychange', this.trackPageStayTime.bind(this), true);
@@ -32,15 +38,19 @@ export class UserBehaviorPlugin {
             document.addEventListener('input', this.trackInputBehavior.bind(this), true);
         }
 
+        // 处理用户滚动事件
+        {
+            document.addEventListener('scroll', this.trackDebounceScrollBehavior, true);
+        }
+
         // 处理页面卸载事件
         {
             window.addEventListener("unload", this.trackPageUnload.bind(this), true)
         }
 
-        // 处理页面路由变化事件
+        // 浏览器前进后退、history.go/back/forward 触发
         {
-            // 浏览器前进后退触发
-            window.addEventListener('popstate', this.trackRouteChange.bind(this, "popstate"), true);
+            window.addEventListener('popstate', this.trackHistoryChange.bind(this, "popstate"), true);
         }
 
         // 处理页面 hash 变化
@@ -52,8 +62,9 @@ export class UserBehaviorPlugin {
     // 移除事件监听
     uninstall() {
         document.removeEventListener("visibilitychange", this.trackPageStayTime.bind(this), true)
-        document.removeEventListener('click', this.trackClickBehavior.bind(this, sdk), true);
-        document.removeEventListener('input', this.trackInputBehavior.bind(this, sdk), true);
+        document.removeEventListener('click', this.trackClickBehavior.bind(this), true);
+        document.removeEventListener('input', this.trackInputBehavior.bind(this), true);
+        document.removeEventListener('scroll', this.trackDebounceScrollBehavior, true);
 
     }
 
@@ -64,12 +75,12 @@ export class UserBehaviorPlugin {
 
         history.pushState = function (...args) {
             originPushState.apply(history, args);
-            self.trackRouteChange('pushState');
+            self.trackHistoryChange('pushState');
         };
 
         history.replaceState = function (...args) {
             originReplaceState.apply(history, args);
-            self.trackRouteChange('replaceState');
+            self.trackHistoryChange('replaceState');
         };
 
     }
@@ -77,8 +88,7 @@ export class UserBehaviorPlugin {
     trackPageStayTime() {
         if (document.visibilityState === 'hidden') {
             const stayTime = Date.now() - this.enterTime;
-            this.sdk.capture('userAction', {
-                id: genRandomUUID(),
+            this.sdk.capture(this.name, {
                 type: 'pageStay',
                 stayTime
             });
@@ -97,8 +107,7 @@ export class UserBehaviorPlugin {
         if (target.textContent && target.textContent.length < 30) {
             description += ` (${target.textContent.trim()})`;
         }
-        this.sdk.capture('userAction', {
-            id: genRandomUUID(),
+        this.sdk.capture(this.name, {
             type: 'click',
             description
         });
@@ -114,20 +123,34 @@ export class UserBehaviorPlugin {
 
         description += ` 输入: "${target.value}"`;
 
-        this.sdk.capture('userAction', {
-            id: genRandomUUID(),
+        this.sdk.capture(this.name, {
             type: 'input',
             description
         });
     }
 
     // 处理用户滚动事件
+    scrollBehavior() {
+        const e = arguments[0];
+        const target = e.target;
+
+        let description = `滚动了 ${target.tagName}`;
+        if (target.id) description += ` #${target.id}`;
+        if (target.className) description += ` .${target.className}`;
+        if (target.textContent && target.textContent.length < 30) {
+            description += ` (${target.textContent.trim()})`;
+        }
+        // this.sdk.capture(this.name, {
+        //     type: "scroll",
+        //     description
+        // })
+    }
 
     trackPageUnload(e) {
         console.log("处理页面卸载事件:", e);
     }
 
-    trackRouteChange(trigerType) {
+    trackHistoryChange(trigerType) {
         this.sdk.capture(this.name, {
             type: "history",
             trigerType: trigerType,

@@ -97,7 +97,7 @@ export class DataReporter {
             appVersion: this.config.appVersion,
             events
         };
-        console.log(`payload eventType:${events[0].eventType}`, payload);
+        console.log(`payload eventType:${events[0].eventType} —— type:${events[0].data.type}`, payload);
         // 使用多种方式上报，提高成功率
         await Promise.race([
             // this.sendBeacon(payload),

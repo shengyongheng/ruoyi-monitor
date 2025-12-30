@@ -43,6 +43,7 @@
   "packageManager": "pnpm@10.14.0",
   "dependencies": {
     "blueimp-md5": "^2.19.0",
+    "lodash": "^4.17.21",
     "rrweb": "2.0.0-alpha.4",
     "web-vitals": "^5.1.0"
   }
