@@ -1,0 +1,1 @@
+{"version":3,"file":"js/common_5ee2e5d2.js","mappings":"8HAAO,MAAMA,EAAW,KACtBC,QAAQC,IAAI,UACZD,QAAQC,IAAIC,IAAI,C","sources":["webpack://webpack_config/./src/common/index.js"],"sourcesContent":["export const sayHello = () => {\r\n  console.log(\"~hello\");\r\n  console.log(foo);\r\n};\r\n"],"names":["sayHello","console","log","foo"],"sourceRoot":""}

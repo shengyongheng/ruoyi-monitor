@@ -35,6 +35,7 @@
     "@rollup/plugin-terser": "^0.4.4",
     "cross-env": "^10.1.0",
     "rollup": "^3.0.0",
+    "source-map": "^0.7.6",
     "vue": "2.6.12"
   },
   "peerDependencies": {

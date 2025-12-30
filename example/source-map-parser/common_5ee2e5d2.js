@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkwebpack_config=self.webpackChunkwebpack_config||[]).push([[76],{189:(o,e,c)=>{c.d(e,{e:()=>l});const l=()=>{console.log("~hello"),console.log(foo)}}}]);

@@ -140,10 +140,10 @@ export class UserBehaviorPlugin {
         if (target.textContent && target.textContent.length < 30) {
             description += ` (${target.textContent.trim()})`;
         }
-        // this.sdk.capture(this.name, {
-        //     type: "scroll",
-        //     description
-        // })
+        this.sdk.capture(this.name, {
+            type: "scroll",
+            description
+        })
     }
 
     trackPageUnload(e) {
@@ -154,8 +154,8 @@ export class UserBehaviorPlugin {
         this.sdk.capture(this.name, {
             type: "history",
             trigerType: trigerType,
-            from: this.from,
-            to: location.href,
+            oldUrl: this.from,
+            newUrl: location.href,
         })
         this.from = location.href
     }
@@ -163,8 +163,8 @@ export class UserBehaviorPlugin {
     trackHashChange(e) {
         this.sdk.capture(this.name, {
             type: "hashchange",
-            from: e.oldURL,
-            to: e.newURL,
+            oldUrl: e.oldURL,
+            newUrl: e.newURL,
             hashStayTime: e.timeStamp - this.hashEnterTime
         })
         this.hashEnterTime = e.timeStamp;

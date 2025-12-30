@@ -773,10 +773,9 @@ var DataReporter = /*#__PURE__*/function () {
               // 使用多种方式上报，提高成功率
               _context6.n = 2;
               return Promise.race([
-                // this.sendBeacon(payload),
-                // this.sendFetch(payload),
-                // this.sendXHR(payload)
-              ]);
+              // this.sendBeacon(payload),
+              // this.sendFetch(payload),
+              this.sendXHR(payload)]);
             case 2:
               return _context6.a(2);
           }
@@ -10680,10 +10679,10 @@ var UserBehaviorPlugin = /*#__PURE__*/function () {
       if (target.textContent && target.textContent.length < 30) {
         description += " (".concat(target.textContent.trim(), ")");
       }
-      // this.sdk.capture(this.name, {
-      //     type: "scroll",
-      //     description
-      // })
+      this.sdk.capture(this.name, {
+        type: "scroll",
+        description: description
+      });
     }
   }, {
     key: "trackPageUnload",
@@ -10696,8 +10695,8 @@ var UserBehaviorPlugin = /*#__PURE__*/function () {
       this.sdk.capture(this.name, {
         type: "history",
         trigerType: trigerType,
-        from: this.from,
-        to: location.href
+        oldUrl: this.from,
+        newUrl: location.href
       });
       this.from = location.href;
     }
@@ -10706,8 +10705,8 @@ var UserBehaviorPlugin = /*#__PURE__*/function () {
     value: function trackHashChange(e) {
       this.sdk.capture(this.name, {
         type: "hashchange",
-        from: e.oldURL,
-        to: e.newURL,
+        oldUrl: e.oldURL,
+        newUrl: e.newURL,
         hashStayTime: e.timeStamp - this.hashEnterTime
       });
       this.hashEnterTime = e.timeStamp;
