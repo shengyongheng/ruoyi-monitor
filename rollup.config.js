@@ -25,6 +25,11 @@ export default [
                 format: 'esm'
             },
             {
+                // file: 'dist/index.esm.js',
+                file: "D:/hengshengyong/Front end Engineering/Webpack/webpack-config/public/index.esm.js",
+                format: 'esm'
+            },
+            {
                 file: 'dist/index.cjs.js', 
                 // file: 'D:/hengshengyong/Java/codes/RuoYi-Vue/ruoyi-ui/public/index.cjs.js',
                 format: 'cjs'

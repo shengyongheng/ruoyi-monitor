@@ -1,9 +1,9 @@
 import { MonitoringCore } from "@core/core";
 // import { EnvironmentInfoPlugin } from "@plugins/EnvironmentInfoPlugin";
-// import { ErrorTrackingPlugin } from "@plugins/ErrorTrackingPlugin";
+import { ErrorTrackingPlugin } from "@plugins/ErrorTrackingPlugin";
 // import { PerformancePlugin } from "@plugins/PerformancePlugin";
 // import { ResourcePlugin } from "@plugins/ResourcePlugin";
-import { UserBehaviorPlugin } from "@plugins/UserBehaviorPlugin";
+// import { UserBehaviorPlugin } from "@plugins/UserBehaviorPlugin";
 // import { Vue2Plugin } from "@plugins/Vue2Plugin";
 
 const RuoyiMonitor = new MonitoringCore({
@@ -12,9 +12,9 @@ const RuoyiMonitor = new MonitoringCore({
         // new Vue2Plugin(),
         // new PerformancePlugin(),
         // new ResourcePlugin(),
-        new UserBehaviorPlugin(),
+        // new UserBehaviorPlugin(),
         // new EnvironmentInfoPlugin(),
-        // new ErrorTrackingPlugin(),
+        new ErrorTrackingPlugin(),
     ]
 })
 

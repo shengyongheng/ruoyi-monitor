@@ -1,7 +1,6 @@
 // 错误监控插件
 import { RRWEB_RECORD_START_EVENT, RRWEB_RECORD_STOP_EVENT } from "@common/constants/rrweb";
 import { EventBus } from "@common/eventBus/EventBus";
-import { genRandomUUID } from "@common/utils/randomUUID";
 import { start, stop } from "@common/utils/rrweb";
 
 export class ErrorTrackingPlugin extends EventBus {
@@ -74,11 +73,10 @@ export class ErrorTrackingPlugin extends EventBus {
         // 判断是否为跨域脚本错误
         if (message && message.includes("Script error")) {
             errorType = "cross-origin";
+            console.warn('跨域脚本内部错误，可能缺少 CORS 或 crossorigin 配置');
             // severity = "medium";
         }
-        const id = genRandomUUID();
         const errorData = {
-            id,
             type: errorType,
             /**
              * tagName src href 加载资源时有效
@@ -92,14 +90,12 @@ export class ErrorTrackingPlugin extends EventBus {
             lineno: lineno || 0,
             colno: colno || 0,
             stack: error ? error.stack : "",
-            timestamp: new Date().toISOString(),
-            // userInfo: this.config.enableUserTracking ? this.userInfo : null,
         };
 
         this.sdk.capture(this.name, errorData)
         if (errorData === "js") {
             this.emit(RRWEB_RECORD_STOP_EVENT, {
-                id, sdk: this.sdk
+                sdk: this.sdk
             })
         }
         // 阻止默认错误处理（避免控制台重复显示）
@@ -107,17 +103,48 @@ export class ErrorTrackingPlugin extends EventBus {
     }
 
     // 处理未处理的Promise拒绝
+    // ✅最佳实践：强制将所有错误对象转换为 Error 对象
     unhandledRejectionTracking(event) {
-        const error = event.reason;
+        const { reason } = event;
+        let message = "";
+        let stack = "";
+        let line = 0;
+        let column = 0;
+        let filename = "";
+
+        if (reason instanceof Error) {
+            message = reason.message;
+        } else {
+            message = reason;
+        }
+
+        if (reason instanceof Error) {
+            if (reason.stack) {
+                var matchResult = reason.stack.match(/at\s+(.+):(\d+):(\d+)/);
+                if (matchResult) {
+                    filename = matchResult[1];
+                    line = matchResult[2];
+                    column = matchResult[3];
+                }
+                // stack = getLines(reason.stack);
+                stack = reason.stack;
+            }
+        }
+        console.log("promise event:", message, stack, filename, line, column);
+
 
         const errorData = {
-            id: genRandomUUID(),
             type: "promise",
             // severity: "high",
-            message: error ? error.message : "Unhandled Promise rejection",
-            stack: error ? error.stack : "",
-            timestamp: new Date().toISOString(),
-            // userInfo: this.config.enableUserTracking ? this.userInfo : null,
+
+            // Promise.reject(new Error("something broke")); 
+            // reject new Error 时，event 对象的 reson 属性为 object{message: "something broke", stack: "..."}
+            // Promise.reject(xxxx); reject 非 Error 对象时，event 对象的 reson 属性为 xxxx
+            message: message,
+            stack: stack,
+            filename: filename,
+            lineno: line,
+            colno: column,
         };
 
         this.sdk.capture(this.name, errorData)
@@ -187,20 +214,15 @@ export class ErrorTrackingPlugin extends EventBus {
                     )) {
 
                         const errorData = {
-                            id: genRandomUUID(),
                             type: "ajax",
                             // severity: xhr.status >= 500 ? "high" : "medium",
                             message: `HTTP ${xhr.status} ${xhr.statusText}`,
                             url: url,
                             method: method,
                             status: xhr.status,
-                            response: xhr.responseText,
+                            // response: xhr.responseText,
                             duration: duration,
-                            timestamp: new Date().toISOString(),
                             description: self.slowRequestThreshold <= duration ? "慢请求" : ""
-                            // userInfo: self.config.enableUserTracking
-                            //     ? self.userInfo
-                            //     : null,
                         };
 
                         this.sdk.capture(self.name, errorData)
@@ -210,17 +232,12 @@ export class ErrorTrackingPlugin extends EventBus {
                 // 监听错误
                 xhr.addEventListener("error", function () {
                     const errorData = {
-                        id: genRandomUUID(),
                         type: "ajax",
                         // severity: "critical",
                         message: "网络请求失败",
                         url: url,
                         method: method,
                         status: xhr.status || 0,
-                        timestamp: new Date().toISOString(),
-                        // userInfo: self.config.enableUserTracking
-                        //     ? self.userInfo
-                        //     : null,
                     };
                     if (!__skipMonitor) {
                         this.sdk.capture(self.name, errorData)
@@ -231,7 +248,6 @@ export class ErrorTrackingPlugin extends EventBus {
                 xhr.addEventListener("timeout", function () {
                     const duration = performance.now() - startTime;
                     const errorData = {
-                        id: genRandomUUID(),
                         type: "ajax",
                         // severity: "high",
                         message: "请求超时",
@@ -239,10 +255,6 @@ export class ErrorTrackingPlugin extends EventBus {
                         method: method,
                         status: xhr.status || 0,
                         duration,
-                        timestamp: new Date().toISOString(),
-                        // userInfo: self.config.enableUserTracking
-                        //     ? self.userInfo
-                        //     : null,
                     };
 
                     if (!__skipMonitor) {
@@ -285,7 +297,6 @@ export class ErrorTrackingPlugin extends EventBus {
                     const duration = performance.now() - startTime;
                     if (!__skipMonitor && (!response.ok || self.slowRequestThreshold <= duration)) {
                         const errorData = {
-                            id: genRandomUUID(),
                             type: "fetch",
                             // severity: response.status >= 500 ? "high" : "medium",
                             message: `HTTP ${response.status} ${response.statusText}`,
@@ -293,10 +304,7 @@ export class ErrorTrackingPlugin extends EventBus {
                             method: method,
                             status: response.status,
                             duration: duration,
-                            timestamp: new Date().toISOString(),
-                            // userInfo: self.config.enableUserTracking
-                            //     ? self.userInfo
-                            // : null,
+                            description: self.slowRequestThreshold <= duration ? "慢请求" : ""
                         };
 
                         this.sdk.capture(self.name, errorData)
@@ -305,17 +313,12 @@ export class ErrorTrackingPlugin extends EventBus {
                 })
                 .catch((error) => {
                     const errorData = {
-                        id: genRandomUUID(),
                         type: "fetch",
                         // severity: "critical",
                         message: error.message,
                         url: url,
                         method: method,
                         status: 0,
-                        timestamp: new Date().toISOString(),
-                        // userInfo: self.config.enableUserTracking
-                        //     ? self.userInfo
-                        //     : null,
                     };
                     if (!__skipMonitor) {
                         this.sdk.capture(self.name, errorData)
