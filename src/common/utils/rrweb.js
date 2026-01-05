@@ -26,13 +26,13 @@ export function start() {
 }
 
 export function stop(data) {
-    const { id = null, sdk = null } = data;
+    const { sdk = null } = data;
     if (!stopRecord) return;
     // 停止录制
     stopRecord();
     stopRecord = null;
     sdk?.capture("rrweb", {
-        id,
+        type: "rrweb",
         events: JSON.stringify(eventsMatrix[eventsMatrix.length - 2] ? eventsMatrix[eventsMatrix.length - 2].concat(
             eventsMatrix[eventsMatrix.length - 1]
         ) : eventsMatrix[eventsMatrix.length - 1])

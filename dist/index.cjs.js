@@ -773,10 +773,9 @@ var DataReporter = /*#__PURE__*/function () {
               // 使用多种方式上报，提高成功率
               _context6.n = 2;
               return Promise.race([
-                // this.sendBeacon(payload),
-                // this.sendFetch(payload),
-                // this.sendXHR(payload)
-              ]);
+              // this.sendBeacon(payload),
+              // this.sendFetch(payload),
+              this.sendXHR(payload)]);
             case 2:
               return _context6.a(2);
           }
@@ -5232,16 +5231,14 @@ function start() {
   });
 }
 function stop(data) {
-  var _data$id = data.id,
-    id = _data$id === void 0 ? null : _data$id,
-    _data$sdk = data.sdk,
+  var _data$sdk = data.sdk,
     sdk = _data$sdk === void 0 ? null : _data$sdk;
   if (!stopRecord) return;
   // 停止录制
   stopRecord();
   stopRecord = null;
   sdk === null || sdk === void 0 || sdk.capture("rrweb", {
-    id: id,
+    type: "rrweb",
     events: JSON.stringify(eventsMatrix[eventsMatrix.length - 2] ? eventsMatrix[eventsMatrix.length - 2].concat(eventsMatrix[eventsMatrix.length - 1]) : eventsMatrix[eventsMatrix.length - 1])
   });
   sdk.emit(SESSIONID_REFRESH_EVENT, generateSessionId());
@@ -5310,12 +5307,22 @@ var ErrorTrackingPlugin = /*#__PURE__*/function (_EventBus) {
 
       // 判断错误类型
       var errorType = "js";
+      var errorData = {};
       // let severity = "high";
 
       // 判断是否为资源加载错误
       if (event.target && (event.target.tagName === "IMG" || event.target.tagName === "SCRIPT" || event.target.tagName === "LINK" || event.target.tagName === "VIDEO" || event.target.tagName === "AUDIO")) {
         errorType = "resource";
         // severity = "medium";
+        errorData = {
+          type: errorType,
+          /**
+           * tagName src href 加载资源时有效
+           */
+          tagName: event.target.tagName || "",
+          src: event.target.src || "",
+          href: event.target.href || ""
+        };
       }
 
       // 判断是否为跨域脚本错误
@@ -5323,24 +5330,29 @@ var ErrorTrackingPlugin = /*#__PURE__*/function (_EventBus) {
         errorType = "cross-origin";
         console.warn('跨域脚本内部错误，可能缺少 CORS 或 crossorigin 配置');
         // severity = "medium";
+        errorData = {
+          type: errorType,
+          // severity: severity, // 错误优先级
+          message: message || "Unknown error",
+          filename: filename || "Unknown file",
+          lineno: lineno || 0,
+          colno: colno || 0,
+          stack: error ? error.stack : ""
+        };
       }
-      var errorData = {
-        type: errorType,
-        /**
-         * tagName src href 加载资源时有效
-         */
-        tagName: event.target.tagName || "",
-        src: event.target.src || "",
-        href: event.target.href || "",
-        // severity: severity, // 错误优先级
-        message: message || "Unknown error",
-        filename: filename || "Unknown file",
-        lineno: lineno || 0,
-        colno: colno || 0,
-        stack: error ? error.stack : ""
-      };
+      if (errorType === "js") {
+        errorData = {
+          type: errorType,
+          // severity: severity, // 错误优先级
+          message: message || "Unknown error",
+          filename: filename || "Unknown file",
+          lineno: lineno || 0,
+          colno: colno || 0,
+          stack: error ? error.stack : ""
+        };
+      }
       this.sdk.capture(this.name, errorData);
-      if (errorData === "js") {
+      if (errorType === "js") {
         this.emit(RRWEB_RECORD_STOP_EVENT, {
           sdk: this.sdk
         });
@@ -5377,7 +5389,8 @@ var ErrorTrackingPlugin = /*#__PURE__*/function (_EventBus) {
           stack = reason.stack;
         }
       }
-      console.log("promise event:", message, stack, filename, line, column);
+      // console.log("promise event:", message, stack, filename, line, column);
+
       var errorData = {
         type: "promise",
         // severity: "high",
@@ -5464,15 +5477,14 @@ var ErrorTrackingPlugin = /*#__PURE__*/function (_EventBus) {
               var errorData = {
                 type: "ajax",
                 // severity: xhr.status >= 500 ? "high" : "medium",
-                message: "HTTP ".concat(xhr.status, " ").concat(xhr.statusText),
+                message: "\u6162\u8BF7\u6C42\uFF1AHTTP ".concat(xhr.status, " ").concat(xhr.statusText),
                 url: url,
                 method: method,
                 status: xhr.status,
                 // response: xhr.responseText,
-                duration: duration,
-                description: self.slowRequestThreshold <= duration ? "慢请求" : ""
+                duration: duration
               };
-              this.sdk.capture(self.name, errorData);
+              self.sdk.capture(self.name, errorData);
             }
           });
 
@@ -5487,7 +5499,7 @@ var ErrorTrackingPlugin = /*#__PURE__*/function (_EventBus) {
               status: xhr.status || 0
             };
             if (!__skipMonitor) {
-              this.sdk.capture(self.name, errorData);
+              self.sdk.capture(self.name, errorData);
             }
           });
 
@@ -5504,7 +5516,7 @@ var ErrorTrackingPlugin = /*#__PURE__*/function (_EventBus) {
               duration: duration
             };
             if (!__skipMonitor) {
-              this.sdk.capture(self.name, errorData);
+              self.sdk.capture(self.name, errorData);
             }
           });
           return originalSend.apply(this, args);
@@ -5520,7 +5532,6 @@ var ErrorTrackingPlugin = /*#__PURE__*/function (_EventBus) {
       var self = this;
       var originalFetch = window.fetch;
       window.fetch = function () {
-        var _this3 = this;
         for (var _len3 = arguments.length, args = new Array(_len3), _key3 = 0; _key3 < _len3; _key3++) {
           args[_key3] = arguments[_key3];
         }
@@ -5544,14 +5555,13 @@ var ErrorTrackingPlugin = /*#__PURE__*/function (_EventBus) {
             var errorData = {
               type: "fetch",
               // severity: response.status >= 500 ? "high" : "medium",
-              message: "HTTP ".concat(response.status, " ").concat(response.statusText),
+              message: "\u6162\u8BF7\u6C42\uFF1AHTTP ".concat(response.status, " ").concat(response.statusText),
               url: url,
               method: method,
               status: response.status,
-              duration: duration,
-              description: self.slowRequestThreshold <= duration ? "慢请求" : ""
+              duration: duration
             };
-            _this3.sdk.capture(self.name, errorData);
+            self.sdk.capture(self.name, errorData);
           }
           return response;
         })["catch"](function (error) {
@@ -5564,7 +5574,7 @@ var ErrorTrackingPlugin = /*#__PURE__*/function (_EventBus) {
             status: 0
           };
           if (!__skipMonitor) {
-            _this3.sdk.capture(self.name, errorData);
+            self.sdk.capture(self.name, errorData);
           }
           throw error;
         });

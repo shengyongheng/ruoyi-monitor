@@ -55,6 +55,7 @@ export class ErrorTrackingPlugin extends EventBus {
 
         // 判断错误类型
         let errorType = "js";
+        let errorData = {}
         // let severity = "high";
 
         // 判断是否为资源加载错误
@@ -68,6 +69,15 @@ export class ErrorTrackingPlugin extends EventBus {
         ) {
             errorType = "resource";
             // severity = "medium";
+            errorData = {
+                type: errorType,
+                /**
+                 * tagName src href 加载资源时有效
+                 */
+                tagName: event.target.tagName || "",
+                src: event.target.src || "",
+                href: event.target.href || "",
+            }
         }
 
         // 判断是否为跨域脚本错误
@@ -75,25 +85,32 @@ export class ErrorTrackingPlugin extends EventBus {
             errorType = "cross-origin";
             console.warn('跨域脚本内部错误，可能缺少 CORS 或 crossorigin 配置');
             // severity = "medium";
+            errorData = {
+                type: errorType,
+                // severity: severity, // 错误优先级
+                message: message || "Unknown error",
+                filename: filename || "Unknown file",
+                lineno: lineno || 0,
+                colno: colno || 0,
+                stack: error ? error.stack : "",
+            };
         }
-        const errorData = {
-            type: errorType,
-            /**
-             * tagName src href 加载资源时有效
-             */
-            tagName: event.target.tagName || "",
-            src: event.target.src || "",
-            href: event.target.href || "",
-            // severity: severity, // 错误优先级
-            message: message || "Unknown error",
-            filename: filename || "Unknown file",
-            lineno: lineno || 0,
-            colno: colno || 0,
-            stack: error ? error.stack : "",
-        };
+
+        if (errorType === "js") {
+            errorData = {
+                type: errorType,
+                // severity: severity, // 错误优先级
+                message: message || "Unknown error",
+                filename: filename || "Unknown file",
+                lineno: lineno || 0,
+                colno: colno || 0,
+                stack: error ? error.stack : "",
+            };
+        }
 
         this.sdk.capture(this.name, errorData)
-        if (errorData === "js") {
+
+        if (errorType === "js") {
             this.emit(RRWEB_RECORD_STOP_EVENT, {
                 sdk: this.sdk
             })
@@ -130,7 +147,7 @@ export class ErrorTrackingPlugin extends EventBus {
                 stack = reason.stack;
             }
         }
-        console.log("promise event:", message, stack, filename, line, column);
+        // console.log("promise event:", message, stack, filename, line, column);
 
 
         const errorData = {
@@ -216,16 +233,15 @@ export class ErrorTrackingPlugin extends EventBus {
                         const errorData = {
                             type: "ajax",
                             // severity: xhr.status >= 500 ? "high" : "medium",
-                            message: `HTTP ${xhr.status} ${xhr.statusText}`,
+                            message: `慢请求：HTTP ${xhr.status} ${xhr.statusText}`,
                             url: url,
                             method: method,
                             status: xhr.status,
                             // response: xhr.responseText,
                             duration: duration,
-                            description: self.slowRequestThreshold <= duration ? "慢请求" : ""
                         };
 
-                        this.sdk.capture(self.name, errorData)
+                        self.sdk.capture(self.name, errorData)
                     }
                 });
 
@@ -240,7 +256,7 @@ export class ErrorTrackingPlugin extends EventBus {
                         status: xhr.status || 0,
                     };
                     if (!__skipMonitor) {
-                        this.sdk.capture(self.name, errorData)
+                        self.sdk.capture(self.name, errorData)
                     }
                 });
 
@@ -258,7 +274,7 @@ export class ErrorTrackingPlugin extends EventBus {
                     };
 
                     if (!__skipMonitor) {
-                        this.sdk.capture(self.name, errorData)
+                        self.sdk.capture(self.name, errorData)
                     }
                 });
 
@@ -299,15 +315,14 @@ export class ErrorTrackingPlugin extends EventBus {
                         const errorData = {
                             type: "fetch",
                             // severity: response.status >= 500 ? "high" : "medium",
-                            message: `HTTP ${response.status} ${response.statusText}`,
+                            message: `慢请求：HTTP ${response.status} ${response.statusText}`,
                             url: url,
                             method: method,
                             status: response.status,
                             duration: duration,
-                            description: self.slowRequestThreshold <= duration ? "慢请求" : ""
                         };
 
-                        this.sdk.capture(self.name, errorData)
+                        self.sdk.capture(self.name, errorData)
                     }
                     return response;
                 })
@@ -321,7 +336,7 @@ export class ErrorTrackingPlugin extends EventBus {
                         status: 0,
                     };
                     if (!__skipMonitor) {
-                        this.sdk.capture(self.name, errorData)
+                        self.sdk.capture(self.name, errorData)
                     }
                     throw error;
                 });
