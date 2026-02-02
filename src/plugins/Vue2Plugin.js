@@ -40,9 +40,7 @@ export class Vue2Plugin extends EventBus {
             self.emit(RRWEB_RECORD_STOP_EVENT, {
                 sdk: self.sdk
             })
-            // ...
             if (typeof _oldOnError === 'function') {
-                // 为什么这么做？
                 _oldOnError.call(this, error, vm, info);
             }
         };

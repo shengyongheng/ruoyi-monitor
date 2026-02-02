@@ -20,7 +20,7 @@ export function start() {
             const lastEvents = eventsMatrix[eventsMatrix.length - 1];
             lastEvents.push(event);
         },
-        checkoutEveryNms: 5 * 1000, // 每5s重新制作快照
+        checkoutEveryNms: 10 * 1000, // 每 1s 重新制作快照
         // checkoutEveryNth: 200, // 每 200 个 event 重新制作快照
     });
 }

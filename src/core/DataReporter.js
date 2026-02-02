@@ -102,7 +102,7 @@ export class DataReporter {
         await Promise.race([
             // this.sendBeacon(payload),
             // this.sendFetch(payload),
-            this.sendXHR(payload)
+            // this.sendXHR(payload)
         ]);
     }
 

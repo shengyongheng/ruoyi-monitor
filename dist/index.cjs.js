@@ -773,9 +773,10 @@ var DataReporter = /*#__PURE__*/function () {
               // 使用多种方式上报，提高成功率
               _context6.n = 2;
               return Promise.race([
-              // this.sendBeacon(payload),
-              // this.sendFetch(payload),
-              this.sendXHR(payload)]);
+                // this.sendBeacon(payload),
+                // this.sendFetch(payload),
+                // this.sendXHR(payload)
+              ]);
             case 2:
               return _context6.a(2);
           }
@@ -4058,8 +4059,8 @@ function __awaiter(thisArg, _arguments, P, generator) {
 var chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
 // Use a lookup table to find the index.
 var lookup = typeof Uint8Array === 'undefined' ? [] : new Uint8Array(256);
-for (var i = 0; i < chars.length; i++) {
-  lookup[chars.charCodeAt(i)] = i;
+for (var i$1 = 0; i$1 < chars.length; i$1++) {
+  lookup[chars.charCodeAt(i$1)] = i$1;
 }
 var encode = function encode(arraybuffer) {
   var bytes = new Uint8Array(arraybuffer),
@@ -5226,7 +5227,7 @@ function start() {
       var lastEvents = eventsMatrix[eventsMatrix.length - 1];
       lastEvents.push(event);
     },
-    checkoutEveryNms: 5 * 1000 // 每5s重新制作快照
+    checkoutEveryNms: 10 * 1000 // 每 1s 重新制作快照
     // checkoutEveryNth: 200, // 每 200 个 event 重新制作快照
   });
 }
@@ -5583,16 +5584,981 @@ var ErrorTrackingPlugin = /*#__PURE__*/function (_EventBus) {
   }]);
 }(EventBus);
 
-// import { PerformancePlugin } from "@plugins/PerformancePlugin";
-// import { ResourcePlugin } from "@plugins/ResourcePlugin";
-// import { UserBehaviorPlugin } from "@plugins/UserBehaviorPlugin";
-// import { Vue2Plugin } from "@plugins/Vue2Plugin";
+/**
+ * 获取唯一 ID
+ */
+function genRandomUUID() {
+  var _crypto;
+  return (_crypto = crypto) !== null && _crypto !== void 0 && _crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
+}
+
+var e = function e() {
+    var t = performance.getEntriesByType("navigation")[0];
+    if (t && t.responseStart > 0 && t.responseStart < performance.now()) return t;
+  },
+  n = function n(t) {
+    if ("loading" === document.readyState) return "loading";
+    {
+      var _n = e();
+      if (_n) {
+        if (t < _n.domInteractive) return "loading";
+        if (0 === _n.domContentLoadedEventStart || t < _n.domContentLoadedEventStart) return "dom-interactive";
+        if (0 === _n.domComplete || t < _n.domComplete) return "dom-content-loaded";
+      }
+    }
+    return "complete";
+  },
+  o = function o(t) {
+    var e = t.nodeName;
+    return 1 === t.nodeType ? e.toLowerCase() : e.toUpperCase().replace(/^#/, "");
+  },
+  i = function i(t) {
+    var e = "";
+    try {
+      for (; 9 !== ((_t3 = t) === null || _t3 === void 0 ? void 0 : _t3.nodeType);) {
+        var _t3;
+        var _n2 = t,
+          _i = _n2.id ? "#" + _n2.id : [o(_n2)].concat(_toConsumableArray(Array.from(_n2.classList).sort())).join(".");
+        if (e.length + _i.length > 99) return e || _i;
+        if (e = e ? _i + ">" + e : _i, _n2.id) break;
+        t = _n2.parentNode;
+      }
+    } catch (_unused) {}
+    return e;
+  },
+  r = new WeakMap();
+function s(t, e) {
+  return r.get(t) || r.set(t, new e()), r.get(t);
+}
+var a = -1;
+var c = function c() {
+    return a;
+  },
+  f = function f(t) {
+    addEventListener("pageshow", function (e) {
+      e.persisted && (a = e.timeStamp, t(e));
+    }, !0);
+  },
+  u = function u(t, e, n, o) {
+    var i, r;
+    return function (s) {
+      e.value >= 0 && (s || o) && (r = e.value - (i !== null && i !== void 0 ? i : 0), (r || void 0 === i) && (i = e.value, e.delta = r, e.rating = function (t, e) {
+        return t > e[1] ? "poor" : t > e[0] ? "needs-improvement" : "good";
+      }(e.value, n), t(e)));
+    };
+  },
+  d = function d(t) {
+    requestAnimationFrame(function () {
+      return requestAnimationFrame(function () {
+        return t();
+      });
+    });
+  },
+  l = function l() {
+    var _t$activationStart;
+    var t = e();
+    return (_t$activationStart = t === null || t === void 0 ? void 0 : t.activationStart) !== null && _t$activationStart !== void 0 ? _t$activationStart : 0;
+  },
+  h = function h(t) {
+    var n = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : -1;
+    var o = e();
+    var i = "navigate";
+    c() >= 0 ? i = "back-forward-cache" : o && (document.prerendering || l() > 0 ? i = "prerender" : document.wasDiscarded ? i = "restore" : o.type && (i = o.type.replace(/_/g, "-")));
+    return {
+      name: t,
+      value: n,
+      rating: "good",
+      delta: 0,
+      entries: [],
+      id: "v5-".concat(Date.now(), "-").concat(Math.floor(8999999999999 * Math.random()) + 1e12),
+      navigationType: i
+    };
+  },
+  m = function m(t, e) {
+    var n = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
+    try {
+      if (PerformanceObserver.supportedEntryTypes.includes(t)) {
+        var _o = new PerformanceObserver(function (t) {
+          Promise.resolve().then(function () {
+            e(t.getEntries());
+          });
+        });
+        return _o.observe(_objectSpread2({
+          type: t,
+          buffered: !0
+        }, n)), _o;
+      }
+    } catch (_unused2) {}
+  },
+  p = function p(t) {
+    var e = !1;
+    return function () {
+      e || (t(), e = !0);
+    };
+  };
+var g = -1;
+var y = new Set(),
+  v = function v() {
+    return "hidden" !== document.visibilityState || document.prerendering ? 1 / 0 : 0;
+  },
+  _b = function b(t) {
+    if ("hidden" === document.visibilityState) {
+      if ("visibilitychange" === t.type) {
+        var _iterator = _createForOfIteratorHelper(y),
+          _step;
+        try {
+          for (_iterator.s(); !(_step = _iterator.n()).done;) {
+            var _t4 = _step.value;
+            _t4();
+          }
+        } catch (err) {
+          _iterator.e(err);
+        } finally {
+          _iterator.f();
+        }
+      }
+      isFinite(g) || (g = "visibilitychange" === t.type ? t.timeStamp : 0, removeEventListener("prerenderingchange", _b, !0));
+    }
+  },
+  M = function M() {
+    if (g < 0) {
+      var _globalThis$performan;
+      var _t5 = l(),
+        _e = document.prerendering ? void 0 : (_globalThis$performan = globalThis.performance.getEntriesByType("visibility-state").filter(function (e) {
+          return "hidden" === e.name && e.startTime > _t5;
+        })[0]) === null || _globalThis$performan === void 0 ? void 0 : _globalThis$performan.startTime;
+      g = _e !== null && _e !== void 0 ? _e : v(), addEventListener("visibilitychange", _b, !0), addEventListener("prerenderingchange", _b, !0), f(function () {
+        setTimeout(function () {
+          g = v();
+        });
+      });
+    }
+    return {
+      get firstHiddenTime() {
+        return g;
+      },
+      onHidden: function onHidden(t) {
+        y.add(t);
+      }
+    };
+  },
+  T = function T(t) {
+    document.prerendering ? addEventListener("prerenderingchange", function () {
+      return t();
+    }, !0) : t();
+  },
+  E = [1800, 3e3],
+  D = function D(t) {
+    var e = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+    T(function () {
+      var n = M();
+      var o,
+        i = h("FCP");
+      var r = m("paint", function (t) {
+        var _iterator2 = _createForOfIteratorHelper(t),
+          _step2;
+        try {
+          for (_iterator2.s(); !(_step2 = _iterator2.n()).done;) {
+            var _e2 = _step2.value;
+            "first-contentful-paint" === _e2.name && (r.disconnect(), _e2.startTime < n.firstHiddenTime && (i.value = Math.max(_e2.startTime - l(), 0), i.entries.push(_e2), o(!0)));
+          }
+        } catch (err) {
+          _iterator2.e(err);
+        } finally {
+          _iterator2.f();
+        }
+      });
+      r && (o = u(t, i, E, e.reportAllChanges), f(function (n) {
+        i = h("FCP"), o = u(t, i, E, e.reportAllChanges), d(function () {
+          i.value = performance.now() - n.timeStamp, o(!0);
+        });
+      }));
+    });
+  },
+  w = function w(t) {
+    var o = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+    D(function (o) {
+      var i = function (t) {
+        var o = {
+          timeToFirstByte: 0,
+          firstByteToFCP: t.value,
+          loadState: n(c())
+        };
+        if (t.entries.length) {
+          var _i2 = e(),
+            _r = t.entries.at(-1);
+          if (_i2) {
+            var _e5 = _i2.activationStart || 0,
+              _s = Math.max(0, _i2.responseStart - _e5);
+            o = {
+              timeToFirstByte: _s,
+              firstByteToFCP: t.value - _s,
+              loadState: n(t.entries[0].startTime),
+              navigationEntry: _i2,
+              fcpEntry: _r
+            };
+          }
+        }
+        return Object.assign(t, {
+          attribution: o
+        });
+      }(o);
+      t(i);
+    }, o);
+  };
+var _ = 0,
+  F = 1 / 0,
+  k = 0;
+var B = function B(t) {
+  var _iterator4 = _createForOfIteratorHelper(t),
+    _step4;
+  try {
+    for (_iterator4.s(); !(_step4 = _iterator4.n()).done;) {
+      var _e6 = _step4.value;
+      _e6.interactionId && (F = Math.min(F, _e6.interactionId), k = Math.max(k, _e6.interactionId), _ = k ? (k - F) / 7 + 1 : 0);
+    }
+  } catch (err) {
+    _iterator4.e(err);
+  } finally {
+    _iterator4.f();
+  }
+};
+var C;
+var O = function O() {
+    var _performance$interact;
+    return C ? _ : (_performance$interact = performance.interactionCount) !== null && _performance$interact !== void 0 ? _performance$interact : 0;
+  },
+  j = function j() {
+    "interactionCount" in performance || C || (C = m("event", B, {
+      type: "event",
+      buffered: !0,
+      durationThreshold: 0
+    }));
+  };
+var I = 0;
+var A = /*#__PURE__*/function () {
+  function A() {
+    _classCallCheck(this, A);
+    _defineProperty(this, "l", []);
+    _defineProperty(this, "h", new Map());
+    _defineProperty(this, "m", void 0);
+    _defineProperty(this, "p", void 0);
+  }
+  return _createClass(A, [{
+    key: "v",
+    value: function v() {
+      I = O(), this.l.length = 0, this.h.clear();
+    }
+  }, {
+    key: "M",
+    value: function M() {
+      var t = Math.min(this.l.length - 1, Math.floor((O() - I) / 50));
+      return this.l[t];
+    }
+  }, {
+    key: "u",
+    value: function u(t) {
+      var _this$m;
+      if ((_this$m = this.m) !== null && _this$m !== void 0 && _this$m.call(this, t), !t.interactionId && "first-input" !== t.entryType) return;
+      var e = this.l.at(-1);
+      var n = this.h.get(t.interactionId);
+      if (n || this.l.length < 10 || t.duration > e.T) {
+        var _this$p;
+        if (n ? t.duration > n.T ? (n.entries = [t], n.T = t.duration) : t.duration === n.T && t.startTime === n.entries[0].startTime && n.entries.push(t) : (n = {
+          id: t.interactionId,
+          entries: [t],
+          T: t.duration
+        }, this.h.set(n.id, n), this.l.push(n)), this.l.sort(function (t, e) {
+          return e.T - t.T;
+        }), this.l.length > 10) {
+          var _t8 = this.l.splice(10);
+          var _iterator5 = _createForOfIteratorHelper(_t8),
+            _step5;
+          try {
+            for (_iterator5.s(); !(_step5 = _iterator5.n()).done;) {
+              var _e7 = _step5.value;
+              this.h["delete"](_e7.id);
+            }
+          } catch (err) {
+            _iterator5.e(err);
+          } finally {
+            _iterator5.f();
+          }
+        }
+        (_this$p = this.p) === null || _this$p === void 0 || _this$p.call(this, n);
+      }
+    }
+  }]);
+}();
+var W = function W(t) {
+    var e = globalThis.requestIdleCallback || setTimeout;
+    "hidden" === document.visibilityState ? t() : (t = p(t), addEventListener("visibilitychange", t, {
+      once: !0,
+      capture: !0
+    }), e(function () {
+      t(), removeEventListener("visibilitychange", t, {
+        capture: !0
+      });
+    }));
+  },
+  q = [200, 500],
+  x = function x(t) {
+    var e = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+    var o = s(e = Object.assign({}, e), A);
+    var r = [],
+      a = [],
+      c = 0;
+    var d = new WeakMap(),
+      l = new WeakMap();
+    var p = !1;
+    var g = function g() {
+        p || (W(y), p = !0);
+      },
+      y = function y() {
+        var t = o.l.map(function (t) {
+            return d.get(t.entries[0]);
+          }),
+          e = a.length - 50;
+        a = a.filter(function (n, o) {
+          return o >= e || t.includes(n);
+        });
+        var n = new Set();
+        var _iterator6 = _createForOfIteratorHelper(a),
+          _step6;
+        try {
+          for (_iterator6.s(); !(_step6 = _iterator6.n()).done;) {
+            var _t9 = _step6.value;
+            var _e8 = v(_t9.startTime, _t9.processingEnd);
+            var _iterator7 = _createForOfIteratorHelper(_e8),
+              _step7;
+            try {
+              for (_iterator7.s(); !(_step7 = _iterator7.n()).done;) {
+                var _t0 = _step7.value;
+                n.add(_t0);
+              }
+            } catch (err) {
+              _iterator7.e(err);
+            } finally {
+              _iterator7.f();
+            }
+          }
+        } catch (err) {
+          _iterator6.e(err);
+        } finally {
+          _iterator6.f();
+        }
+        var i = r.length - 1 - 50;
+        r = r.filter(function (t, e) {
+          return t.startTime > c && e > i || n.has(t);
+        }), p = !1;
+      };
+    o.m = function (t) {
+      var e = t.startTime + t.duration;
+      var n;
+      c = Math.max(c, t.processingEnd);
+      for (var _o4 = a.length - 1; _o4 >= 0; _o4--) {
+        var _i3 = a[_o4];
+        if (Math.abs(e - _i3.renderTime) <= 8) {
+          n = _i3, n.startTime = Math.min(t.startTime, n.startTime), n.processingStart = Math.min(t.processingStart, n.processingStart), n.processingEnd = Math.max(t.processingEnd, n.processingEnd), n.entries.push(t);
+          break;
+        }
+      }
+      n || (n = {
+        startTime: t.startTime,
+        processingStart: t.processingStart,
+        processingEnd: t.processingEnd,
+        renderTime: e,
+        entries: [t]
+      }, a.push(n)), (t.interactionId || "first-input" === t.entryType) && d.set(t, n), g();
+    }, o.p = function (t) {
+      if (!l.get(t)) {
+        var _n4 = t.entries[0].target;
+        if (_n4) {
+          var _e$generateTarget, _e$generateTarget2, _e9;
+          var _o5 = (_e$generateTarget = (_e$generateTarget2 = (_e9 = e).generateTarget) === null || _e$generateTarget2 === void 0 ? void 0 : _e$generateTarget2.call(_e9, _n4)) !== null && _e$generateTarget !== void 0 ? _e$generateTarget : i(_n4);
+          l.set(t, _o5);
+        }
+      }
+    };
+    var v = function v(t, e) {
+        var n = [];
+        var _iterator8 = _createForOfIteratorHelper(r),
+          _step8;
+        try {
+          for (_iterator8.s(); !(_step8 = _iterator8.n()).done;) {
+            var _o6 = _step8.value;
+            if (!(_o6.startTime + _o6.duration < t)) {
+              if (_o6.startTime > e) break;
+              n.push(_o6);
+            }
+          }
+        } catch (err) {
+          _iterator8.e(err);
+        } finally {
+          _iterator8.f();
+        }
+        return n;
+      },
+      b = function b(t) {
+        var e = t.entries[0],
+          i = d.get(e),
+          r = e.processingStart,
+          s = Math.max(e.startTime + e.duration, r),
+          a = Math.min(i.processingEnd, s),
+          c = i.entries.sort(function (t, e) {
+            return t.processingStart - e.processingStart;
+          }),
+          f = v(e.startTime, a),
+          u = o.h.get(e.interactionId),
+          h = {
+            interactionTarget: l.get(u),
+            interactionType: e.name.startsWith("key") ? "keyboard" : "pointer",
+            interactionTime: e.startTime,
+            nextPaintTime: s,
+            processedEventEntries: c,
+            longAnimationFrameEntries: f,
+            inputDelay: r - e.startTime,
+            processingDuration: a - r,
+            presentationDelay: s - a,
+            loadState: n(e.startTime),
+            longestScript: void 0,
+            totalScriptDuration: void 0,
+            totalStyleAndLayoutDuration: void 0,
+            totalPaintDuration: void 0,
+            totalUnattributedDuration: void 0
+          };
+        (function (t, _t$longAnimationFrame) {
+          if (!((_t$longAnimationFrame = t.longAnimationFrameEntries) !== null && _t$longAnimationFrame !== void 0 && _t$longAnimationFrame.length)) return;
+          var e = t.interactionTime,
+            n = t.inputDelay,
+            o = t.processingDuration;
+          var i,
+            r,
+            s = 0,
+            a = 0,
+            c = 0,
+            f = 0;
+          var _iterator9 = _createForOfIteratorHelper(t.longAnimationFrameEntries),
+            _step9;
+          try {
+            for (_iterator9.s(); !(_step9 = _iterator9.n()).done;) {
+              var _c = _step9.value;
+              a = a + _c.startTime + _c.duration - _c.styleAndLayoutStart;
+              var _iterator0 = _createForOfIteratorHelper(_c.scripts),
+                _step0;
+              try {
+                for (_iterator0.s(); !(_step0 = _iterator0.n()).done;) {
+                  var _t1 = _step0.value;
+                  var _c2 = _t1.startTime + _t1.duration;
+                  if (_c2 < e) continue;
+                  var _u = _c2 - Math.max(e, _t1.startTime),
+                    _d = _t1.duration ? _u / _t1.duration * _t1.forcedStyleAndLayoutDuration : 0;
+                  s += _u - _d, a += _d, _u > f && (r = _t1.startTime < e + n ? "input-delay" : _t1.startTime >= e + n + o ? "presentation-delay" : "processing-duration", i = _t1, f = _u);
+                }
+              } catch (err) {
+                _iterator0.e(err);
+              } finally {
+                _iterator0.f();
+              }
+            }
+          } catch (err) {
+            _iterator9.e(err);
+          } finally {
+            _iterator9.f();
+          }
+          var u = t.longAnimationFrameEntries.at(-1),
+            d = u ? u.startTime + u.duration : 0;
+          d >= e + n + o && (c = t.nextPaintTime - d), i && r && (t.longestScript = {
+            entry: i,
+            subpart: r,
+            intersectingDuration: f
+          }), t.totalScriptDuration = s, t.totalStyleAndLayoutDuration = a, t.totalPaintDuration = c, t.totalUnattributedDuration = t.nextPaintTime - e - s - a - c;
+        })(h);
+        return Object.assign(t, {
+          attribution: h
+        });
+      };
+    m("long-animation-frame", function (t) {
+      r = r.concat(t), g();
+    }), function (t) {
+      var e = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+      if (!globalThis.PerformanceEventTiming || !("interactionId" in PerformanceEventTiming.prototype)) return;
+      var n = M();
+      T(function () {
+        var _e$durationThreshold;
+        j();
+        var o,
+          i = h("INP");
+        var r = s(e, A),
+          a = function a(t) {
+            W(function () {
+              var _iterator1 = _createForOfIteratorHelper(t),
+                _step1;
+              try {
+                for (_iterator1.s(); !(_step1 = _iterator1.n()).done;) {
+                  var _e0 = _step1.value;
+                  r.u(_e0);
+                }
+              } catch (err) {
+                _iterator1.e(err);
+              } finally {
+                _iterator1.f();
+              }
+              var e = r.M();
+              e && e.T !== i.value && (i.value = e.T, i.entries = e.entries, o());
+            });
+          },
+          c = m("event", a, {
+            durationThreshold: (_e$durationThreshold = e.durationThreshold) !== null && _e$durationThreshold !== void 0 ? _e$durationThreshold : 40
+          });
+        o = u(t, i, q, e.reportAllChanges), c && (c.observe({
+          type: "first-input",
+          buffered: !0
+        }), n.onHidden(function () {
+          a(c.takeRecords()), o(!0);
+        }), f(function () {
+          r.v(), i = h("INP"), o = u(t, i, q, e.reportAllChanges);
+        }));
+      });
+    }(function (e) {
+      var n = b(e);
+      t(n);
+    }, e);
+  };
+var U = [800, 1800],
+  _V = function V(t) {
+    document.prerendering ? T(function () {
+      return _V(t);
+    }) : "complete" !== document.readyState ? addEventListener("load", function () {
+      return _V(t);
+    }, !0) : setTimeout(t);
+  },
+  $ = function $(t) {
+    var n = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+    (function (t) {
+      var n = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+      var o = h("TTFB"),
+        i = u(t, o, U, n.reportAllChanges);
+      _V(function () {
+        var r = e();
+        r && (o.value = Math.max(r.responseStart - l(), 0), o.entries = [r], i(!0), f(function () {
+          o = h("TTFB", 0), i = u(t, o, U, n.reportAllChanges), i(!0);
+        }));
+      });
+    })(function (e) {
+      var n = function (t) {
+        var e = {
+          waitingDuration: 0,
+          cacheDuration: 0,
+          dnsDuration: 0,
+          connectionDuration: 0,
+          requestDuration: 0
+        };
+        if (t.entries.length) {
+          var _n7 = t.entries[0],
+            _o9 = _n7.activationStart || 0,
+            _i6 = Math.max((_n7.workerStart || _n7.fetchStart) - _o9, 0),
+            _r4 = Math.max(_n7.domainLookupStart - _o9, 0),
+            _s3 = Math.max(_n7.connectStart - _o9, 0),
+            _a2 = Math.max(_n7.connectEnd - _o9, 0);
+          e = {
+            waitingDuration: _i6,
+            cacheDuration: _r4 - _i6,
+            dnsDuration: _s3 - _r4,
+            connectionDuration: _a2 - _s3,
+            requestDuration: t.value - _a2,
+            navigationEntry: _n7
+          };
+        }
+        return Object.assign(t, {
+          attribution: e
+        });
+      }(e);
+      t(n);
+    }, n);
+  };
+
+/**
+ * Timing 指标含义:
+ *  https://zhuanlan.zhihu.com/p/82981365
+ *  https://www.w3.org/TR/navigation-timing-2/#process
+ */
+var PerformancePlugin = /*#__PURE__*/function () {
+  function PerformancePlugin() {
+    _classCallCheck(this, PerformancePlugin);
+    _defineProperty(this, "name", 'performance');
+    _defineProperty(this, "sdk", null);
+    _defineProperty(this, "metrics", {
+      // Core Web Vitals
+      FCP: null,
+      LCP: null,
+      FID: null,
+      CLS: 0,
+      // 加载性能
+      TTFB: null,
+      // 请求响应耗时
+      FPT: null,
+      // 白屏时间 First Paint Time
+      TTI: null,
+      // 可交互时间 Time to Interactive
+      READY: null,
+      // DOM Ready时间
+      LOAD: null // 页面完全加载时间
+    });
+    _defineProperty(this, "performanceObservers", []);
+  }
+  return _createClass(PerformancePlugin, [{
+    key: "install",
+    value: function install(sdk) {
+      this.sdk = sdk;
+      window.addEventListener("load", this.performanceMetricTracking.bind(this));
+    }
+  }, {
+    key: "uninstall",
+    value: function uninstall() {
+      // 断开所有PerformanceObserver
+      this.performanceObservers.forEach(function (observer) {
+        if (observer) observer.disconnect();
+      });
+      this.performanceObservers = [];
+      window.removeEventListener("load", this.performanceMetricTracking.bind(this));
+    }
+  }, {
+    key: "performanceMetricTracking",
+    value: function performanceMetricTracking() {
+      this.collectPerformanceMetrics();
+      this.observePerformance();
+      // onCLS(this.webVitalsReport.bind(this));
+      x(this.webVitalsReport.bind(this));
+      // onLCP(this.webVitalsReport.bind(this));
+      w(this.webVitalsReport.bind(this)); // 白屏时间
+      $(this.webVitalsReport.bind(this));
+    }
+
+    // 收集性能指标
+  }, {
+    key: "collectPerformanceMetrics",
+    value: function collectPerformanceMetrics() {
+      // 使用Performance Timeline API收集指标
+      if (window.performance && window.performance.timing) {
+        var timing = window.performance.timing;
+        console.log("timing:", timing);
+
+        // TTFB (Time to First Byte)
+        this.metrics.TTFB = timing.responseStart - timing.requestStart;
+
+        // 白屏时间 (First Paint Time)
+        // 实际中需要通过PerformanceObserver获取FP/FCP
+        // 这里使用一个近似值
+        // this.metrics.FPT = timing.responseEnd - timing.navigationStart;
+
+        // 首次可交互时间
+        this.metrics.TTI = timing.domInteractive - timing.fetchStart;
+
+        // DOM Ready时间
+        this.metrics.READY = timing.domContentLoadedEventEnd - timing.navigationStart;
+
+        // setTimeout(() => {
+        //     // 页面完全加载时间
+        //     this.metrics.LOAD = timing.loadEventStart - timing.fetchStart;
+        //     console.log("页面完全加载:", this.metrics.LOAD);
+        //     // 页面完全加载
+        //     this.sdk.capture(this.name, {
+        //         type: "LOAD",
+        //         id: genRandomUUID(),
+        //         value: this.metrics.LOAD,
+        //     })
+        // })
+
+        // 性能瀑图：https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/ce6f41887a9a469f8384e3302b576850~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?
+        // 性能指标采集方案：https://juejin.cn/post/7097157902862909471#heading-16
+        // 瀑图渲染数据选择方案 ChatGpt 回答：https://chatgpt.com/s/t_697af925ad9c8191b9be054b7ddd0e8f
+        // 页面加载性能指标
+        console.log("DNS 查询:", timing.domainLookupEnd - timing.domainLookupStart);
+        console.log("TCP 建连:", timing.connectEnd - timing.connectStart);
+        console.log("SSL:", timing.connectEnd - timing.secureConnectionStart ? timing.secureConnectionStart : timing.connectEnd);
+        console.log("请求响应耗时 TTFB:", timing.responseStart - timing.fetchStart);
+        console.log("响应传输:", timing.responseEnd - timing.responseStart);
+        console.log("DOM 解析:", timing.domInteractive - timing.responseEnd);
+        console.log("HTML加载完成时间 DOM Ready:", this.metrics.READY);
+        console.log("同步资源加载 Res:", timing.loadEventStart - timing.domContentLoadedEventEnd);
+        this.sdk.capture(this.name, {
+          type: "DNS 查询",
+          id: genRandomUUID(),
+          value: timing.domainLookupEnd - timing.domainLookupStart
+        });
+        this.sdk.capture(this.name, {
+          type: "TCP 建连",
+          id: genRandomUUID(),
+          value: timing.connectEnd - timing.connectStart
+        });
+        this.sdk.capture(this.name, {
+          type: "SSL",
+          id: genRandomUUID(),
+          value: timing.connectEnd - timing.secureConnectionStart ? timing.secureConnectionStart : timing.connectEnd
+        });
+        this.sdk.capture(this.name, {
+          type: "响应传输",
+          id: genRandomUUID(),
+          value: timing.responseEnd - timing.responseStart
+        });
+        this.sdk.capture(this.name, {
+          type: "DOM 解析",
+          id: genRandomUUID(),
+          value: timing.domInteractive - timing.responseEnd
+        });
+        this.sdk.capture(this.name, {
+          type: "Ready",
+          id: genRandomUUID(),
+          value: this.metrics.READY
+        });
+        this.sdk.capture(this.name, {
+          type: "资源加载",
+          id: genRandomUUID(),
+          value: timing.loadEventStart - timing.domContentLoadedEventEnd
+        });
+      }
+
+      // 使用PerformanceNavigationTiming API (如果可用)
+      if (window.performance && window.performance.getEntriesByType) {
+        var navigationEntries = performance.getEntriesByType("navigation");
+        if (navigationEntries.length > 0) {
+          var navigation = navigationEntries[0];
+
+          // 更精确的TTFB
+          this.metrics.TTFB = navigation.responseStart;
+          // console.log("TTFB (Navigation Timing):", this.metrics.TTFB);
+        }
+      }
+    }
+
+    // 监听性能指标
+  }, {
+    key: "observePerformance",
+    value: function observePerformance() {
+      var _this = this;
+      if ('PerformanceObserver' in window) {
+        var longTaskObserver = new PerformanceObserver(function (list) {
+          list.getEntries().forEach(function (entry) {
+            console.log("LONG Task:", entry);
+            // this.sdk.capture(this.name, {
+            //     type: 'long-task',
+            //     duration: entry.duration,
+            //     startTime: entry.startTime
+            // });
+          });
+        });
+        longTaskObserver.observe({
+          type: "longtask",
+          buffered: true
+        });
+        this.performanceObservers.push(longTaskObserver);
+
+        // FP(first-paint): 从页面加载开始到第一个像素绘制到屏幕上的时间，也可以把 FP 理解成白屏时间。
+        // const fpObserver = new PerformanceObserver((entryList) => {
+        //     for (const entry of entryList.getEntries()) {
+        //         this.sdk.capture(this.name, {
+        //             type: "FP",
+        //             metric: entry
+        //         })
+        //     }
+        // });
+        // fpObserver.observe({ type: 'paint', buffered: true })
+        // this.performanceObservers.push(fpObserver)
+
+        // FCP观察者 https://web.developers.google.cn/articles/fcp?hl=zh-cn
+        // const fcpObserver = new PerformanceObserver((entryList) => {
+        //     const entries = entryList.getEntries();
+        //     for (const entry of entries) {
+        //         if (entry.name === "first-contentful-paint") {
+        //             this.sdk.capture(this.name, {
+        //                 type: 'FCP',
+        //                 value: entry.startTime
+        //             });
+        //         }
+        //     }
+        // });
+        // fcpObserver.observe({ entryTypes: ["paint"] });
+        // this.performanceObservers.push(fcpObserver)
+
+        // LCP观察者 https://web.developers.google.cn/articles/clp?hl=zh-cn
+        var lcpObserver = new PerformanceObserver(function (entryList) {
+          var entries = entryList.getEntries();
+          var lastEntry = entries[entries.length - 1];
+          _this.sdk.capture(_this.name, {
+            type: 'LCP',
+            value: lastEntry.renderTime || lastEntry.loadTime
+          });
+        });
+        lcpObserver.observe({
+          entryTypes: ['largest-contentful-paint']
+        });
+        this.performanceObservers.push(lcpObserver);
+
+        // CLS观察者 https://web.developers.google.cn/articles/cls?hl=zh-cn#measure-cls
+        var clsObserver = new PerformanceObserver(function (entryList) {
+          var _iterator = _createForOfIteratorHelper(entryList.getEntries()),
+            _step;
+          try {
+            for (_iterator.s(); !(_step = _iterator.n()).done;) {
+              var entry = _step.value;
+              // 过滤掉值为0的CLS
+              // if (entry.value === 0) continue;
+              _this.sdk.capture(_this.name, {
+                type: 'CLS',
+                value: entry.value
+              });
+            }
+          } catch (err) {
+            _iterator.e(err);
+          } finally {
+            _iterator.f();
+          }
+        });
+        clsObserver.observe({
+          type: 'layout-shift',
+          buffered: true
+        });
+        this.performanceObservers.push(clsObserver);
+
+        // TTFB观察者 https://web.developers.google.cn/articles/ttfb?hl=zh-cn
+        // const ttfbObserver = new PerformanceObserver((entryList) => {
+        //     const [pageNav] = entryList.getEntriesByType('navigation');
+        //     this.sdk.capture(this.name, {
+        //         type: 'TTFB',
+        //         value: pageNav.responseStart
+        //     });
+        // });
+        // ttfbObserver.observe({
+        //     type: 'navigation',
+        //     buffered: true
+        // });
+        // this.performanceObservers.push(ttfbObserver)
+
+        // FID观察者 https://web.developers.google.cn/articles/fid?hl=zh-cn#how_to_measure_fid
+        var fidObserver = new PerformanceObserver(function (entryList) {
+          var _iterator2 = _createForOfIteratorHelper(entryList.getEntries()),
+            _step2;
+          try {
+            for (_iterator2.s(); !(_step2 = _iterator2.n()).done;) {
+              var entry = _step2.value;
+              var delay = entry.processingStart - entry.startTime;
+              _this.metrics.FID = delay;
+              _this.sdk.capture(_this.name, {
+                type: "FID",
+                value: _this.metrics.FID
+              });
+            }
+          } catch (err) {
+            _iterator2.e(err);
+          } finally {
+            _iterator2.f();
+          }
+        });
+        fidObserver.observe({
+          type: 'first-input',
+          buffered: true
+        });
+        this.performanceObservers.push(fidObserver);
+      }
+    }
+    // web-vitals 指标上报
+  }, {
+    key: "webVitalsReport",
+    value: function webVitalsReport(metric) {
+      // console.log(`metric name: ${metric.name}`, metric);
+      this.metrics[metric.name] = metric.value;
+      this.sdk.capture(this.name, {
+        type: metric.name,
+        value: metric.value
+      });
+    }
+  }]);
+}();
+
+// Vue2 集成插件
+var Vue2Plugin = /*#__PURE__*/function (_EventBus) {
+  function Vue2Plugin() {
+    var _this;
+    _classCallCheck(this, Vue2Plugin);
+    for (var _len = arguments.length, args = new Array(_len), _key = 0; _key < _len; _key++) {
+      args[_key] = arguments[_key];
+    }
+    _this = _callSuper(this, Vue2Plugin, [].concat(args));
+    _defineProperty(_this, "name", "vue2");
+    _defineProperty(_this, "sdk", null);
+    return _this;
+  }
+  _inherits(Vue2Plugin, _EventBus);
+  return _createClass(Vue2Plugin, [{
+    key: "install",
+    value: function () {
+      var _install = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee(sdk) {
+        var sleep;
+        return _regenerator().w(function (_context) {
+          while (1) switch (_context.n) {
+            case 0:
+              sleep = function _sleep(ms) {
+                return new Promise(function (resolve) {
+                  return setTimeout(resolve, ms);
+                });
+              }; // TODO 暂时如此，待优化
+              _context.n = 1;
+              return sleep(0);
+            case 1:
+              this.sdk = sdk;
+              this.globalErrorHandle();
+            case 2:
+              return _context.a(2);
+          }
+        }, _callee, this);
+      }));
+      function install(_x) {
+        return _install.apply(this, arguments);
+      }
+      return install;
+    }()
+  }, {
+    key: "uninstall",
+    value: function uninstall() {}
+
+    // 全局错误捕获
+  }, {
+    key: "globalErrorHandle",
+    value: function globalErrorHandle() {
+      var _this$sdk$config$Vue = this.sdk.config.Vue,
+        Vue = _this$sdk$config$Vue === void 0 ? null : _this$sdk$config$Vue;
+      var self = this;
+      // quit if Vue isn't on the page
+      if (!Vue || !Vue.config) return;
+      // 为什么这么做？
+      var _oldOnError = Vue.config.errorHandler;
+      Vue.config.errorHandler = function VueErrorHandler(error, vm, info) {
+        var _vm$$options;
+        self.sdk.capture(self.name, {
+          type: "globalError",
+          message: error.message,
+          errorType: error.name,
+          stack: error.stack,
+          // vm,
+          component: vm === null || vm === void 0 || (_vm$$options = vm.$options) === null || _vm$$options === void 0 ? void 0 : _vm$$options.name,
+          file: vm === null || vm === void 0 ? void 0 : vm.$options.__file,
+          info: info
+        });
+        self.emit(RRWEB_RECORD_STOP_EVENT, {
+          sdk: self.sdk
+        });
+        if (typeof _oldOnError === 'function') {
+          _oldOnError.call(this, error, vm, info);
+        }
+      };
+    }
+  }]);
+}(EventBus);
 
 var RuoyiMonitor = new MonitoringCore({
   // appId: "abc",
-  plugins: [
-  // new Vue2Plugin(),
-  // new PerformancePlugin(),
+  plugins: [new Vue2Plugin(), new PerformancePlugin(),
   // new ResourcePlugin(),
   // new UserBehaviorPlugin(),
   // new EnvironmentInfoPlugin(),

@@ -55,14 +55,14 @@ export class ResourcePlugin {
             startTime: entry.startTime,
             entryType: entry.entryType,
             initiatorType: entry.initiatorType,
+            responseStatus: entry.responseStatus || 0,
             size: entry.transferSize || 0,
             decodedSize: entry.decodedBodySize || 0,
             encodedSize: entry.encodedBodySize || 0,
             transferSize: entry.transferSize || 0,
             cached: this.isCachedResource(entry),
             // 判断资源加载状态
-            status: entry.decodedBodySize === 0 &&
-                entry.transferSize === 0 ? "error" : "success",
+            status: entry.responseStatus >= 200 && entry.responseStatus <= 400 ? "success" : "error",
             timing: {
                 dns: entry.domainLookupEnd - entry.domainLookupStart,
                 tcp: entry.connectEnd - entry.connectStart,
@@ -88,9 +88,11 @@ export class ResourcePlugin {
 
     // 判断资源是否从缓存加载
     isCachedResource(entry) {
-        // 如果transferSize为0且encodedBodySize不为0，说明是从缓存加载
+        // 如果transferSize为0且encodedBodySize不为0，deliveryType = "cache"说明是从缓存加载
         // 注意：跨域资源可能无法获取这些字段
-        return entry.transferSize === 0 && entry.encodedBodySize > 0;
+        return entry.transferSize === 0 &&
+            entry.encodedBodySize > 0 &&
+            entry.deliveryType === "cache";
     }
 
     // 获取资源名称
